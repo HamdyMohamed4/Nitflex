@@ -11,7 +11,7 @@ namespace Presentation.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+
     public class GenreController : ControllerBase
     {
         private readonly IGenreService _service;
@@ -52,7 +52,9 @@ namespace Presentation.Controllers
             }
         }
 
+
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<ApiResponse<GenreDto>>> Create([FromBody] CreateGenreDto dto)
         {
             try
@@ -67,6 +69,7 @@ namespace Presentation.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<ApiResponse<GenreDto>>> Update(Guid id, [FromBody] UpdateGenreDto dto)
         {
             try
@@ -84,6 +87,7 @@ namespace Presentation.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<ApiResponse<bool>>> Delete(Guid id)
         {
             try

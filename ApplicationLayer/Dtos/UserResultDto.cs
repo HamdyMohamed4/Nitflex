@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ApplicationLayer.Dtos
 {
-    public class UserResultDto
+    public class UserResultDto : BaseDto
     {
         public bool Success { get; set; }
         public string Token { get; set; }

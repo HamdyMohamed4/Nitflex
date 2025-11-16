@@ -16,5 +16,13 @@ namespace ApplicationLayer.Dtos
         [Required]
         [MinLength(6, ErrorMessage = "Password must be at least 6 characters long.")]
         public string Password { get; set; }
+
+        public LoginDto(string email, string password)
+        {
+            Email = email;
+            Password = password;
+        }
+
+        public LoginDto() { }
     }
 }

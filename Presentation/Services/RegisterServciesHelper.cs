@@ -74,6 +74,8 @@ namespace Presentation.Services
             builder.Services.AddScoped<IMovieService, MovieService>();
             builder.Services.AddScoped<IRatingService, RatingService>();
             builder.Services.AddScoped<ISubsciptionService, SubcriptionService>();
+            builder.Services.AddScoped<IAuthService, AuthService>();
+            
 
             builder.Services.AddHttpClient<PayPalGateway>();
             builder.Services.AddHttpClient<PaymobGateway>();
@@ -82,6 +84,9 @@ namespace Presentation.Services
             builder.Services.AddSingleton<TokenService>();
             builder.Services.AddScoped<IRefreshTokens, RefreshTokenService>();
             builder.Services.AddScoped<IRefreshTokenRetriver, RefreshTokenRetriverService>();
+
+            builder.Services.AddSingleton<EmailService>();
+
         }
     }
 }
