@@ -1,8 +1,11 @@
 ﻿using AutoMapper;
 using ApplicationLayer.Contract;
 using ApplicationLayer.Dtos;
-using InfrastructureLayer.Contracts;
 using Domains;
+using InfrastructureLayer.Contracts;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace ApplicationLayer.Services
 {
@@ -23,27 +26,20 @@ namespace ApplicationLayer.Services
             _userService = userService;
         }
 
-        // ===========================
-        // Custom Method: Get All Async
-        // ===========================
+        // =========================== Custom Methods ===========================
+
         public async Task<List<GenreDto>> GetAllAsync()
         {
             var list = await _repo.GetAll();
             return _mapper.Map<List<GenreDto>>(list);
         }
 
-        // ===========================
-        // Custom Method: Get By Id
-        // ===========================
         public async Task<GenreDto?> GetByIdAsync(Guid id)
         {
             var entity = await _repo.GetById(id);
             return entity == null ? null : _mapper.Map<GenreDto>(entity);
         }
 
-        // ===========================
-        // Custom Method: Create
-        // ===========================
         public async Task<GenreDto> CreateAsync(CreateGenreDto dto)
         {
             var entity = _mapper.Map<Genre>(dto);
@@ -58,9 +54,6 @@ namespace ApplicationLayer.Services
             return _mapper.Map<GenreDto>(entity);
         }
 
-        // ===========================
-        // Custom Method: Update
-        // ===========================
         public async Task<GenreDto?> UpdateAsync(Guid id, UpdateGenreDto dto)
         {
             var entity = await _repo.GetById(id);
@@ -75,9 +68,6 @@ namespace ApplicationLayer.Services
             return _mapper.Map<GenreDto>(entity);
         }
 
-        // ===========================
-        // Custom Method: Delete (Soft Delete)
-        // ===========================
         public async Task<bool> DeleteAsync(Guid id)
         {
             return await _repo.ChangeStatus(id, _userService.GetLoggedInUser(), 0);

@@ -122,9 +122,20 @@ namespace Presentation.Services
 
         public Guid GetLoggedInUser()
         {
-            var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userIdStr = _httpContextAccessor.HttpContext?.User?.FindFirst("sub")?.Value;
 
-            return Guid.Parse(userId);
+            if (string.IsNullOrEmpty(userIdStr))
+                throw new InvalidOperationException("No logged-in user found");
+
+            return Guid.Parse(userIdStr);
         }
+
+
+        //public Guid GetLoggedInUser()
+        //{
+        //    var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        //    return Guid.Parse(userId);
+        //}
     }
 }

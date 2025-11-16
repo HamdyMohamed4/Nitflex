@@ -69,6 +69,12 @@ namespace Presentation.Services
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<IPaymentMethods, PaymentMethodsService>();
 
+
+            builder.Services.AddScoped<IGenreService, GenreService>();
+            builder.Services.AddScoped<IMovieService, MovieService>();
+            builder.Services.AddScoped<IRatingService, RatingService>();
+            builder.Services.AddScoped<ISubsciptionService, SubcriptionService>();
+
             builder.Services.AddHttpClient<PayPalGateway>();
             builder.Services.AddHttpClient<PaymobGateway>();
             builder.Services.AddScoped<PaymentFactory>();
