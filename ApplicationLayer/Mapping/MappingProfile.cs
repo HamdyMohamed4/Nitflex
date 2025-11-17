@@ -1,22 +1,20 @@
 ﻿using AutoMapper;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using ApplicationLayer.Dtos;
 using Domains;
+using InfrastructureLayer.UserModels;
+
 namespace ApplicationLayer.Mapping
 {
     public class MappingProfile : Profile
     {
-        public MappingProfile() 
-        { 
-
+        public MappingProfile()
+        {
+            // Refresh Tokens & Payment Methods
             CreateMap<TbRefreshTokens, RefreshTokenDto>().ReverseMap();
             CreateMap<TbPaymentMethod, PaymentMethodDto>().ReverseMap();
 
-            // Movie mapping (existing)
+            // Movie
             CreateMap<Movie, MovieDto>().ReverseMap();
 
             // Genre
@@ -24,7 +22,7 @@ namespace ApplicationLayer.Mapping
             CreateMap<CreateGenreDto, Genre>();
             CreateMap<UpdateGenreDto, Genre>();
 
-            // TvShow, Season, Episode
+            // TV Shows, Seasons, Episodes
             CreateMap<TVShow, TvShowDto>().ReverseMap();
             CreateMap<TVShow, TvShowDetailsDto>().ReverseMap();
             CreateMap<CreateTvShowDto, TVShow>();
@@ -42,9 +40,12 @@ namespace ApplicationLayer.Mapping
             CreateMap<UserWatchlist, WatchlistItemDto>().ReverseMap();
             CreateMap<AddToWatchlistDto, UserWatchlist>();
 
-            // Rating
+            // Ratings
             CreateMap<UserRating, RatingDto>().ReverseMap();
             CreateMap<RateContentDto, UserRating>();
+
+            // OTP
+            CreateMap<EmailOtp, OtpDto>().ReverseMap();
 
             // Subscriptions
             CreateMap<SubscriptionPlan, SubscriptionPlanDto>().ReverseMap();
@@ -53,8 +54,14 @@ namespace ApplicationLayer.Mapping
 
             CreateMap<UserSubscription, UserSubscriptionDto>().ReverseMap();
             CreateMap<CreateUserSubscriptionDto, UserSubscription>();
-        }
 
+            // Users
+            CreateMap<ApplicationUser, RegisterDto>()
+                .ForMember(dest => dest.Password, opt => opt.Ignore()) // Password won't be mapped back
+                .ReverseMap();
+            CreateMap<ApplicationUser, LoginDto>().ReverseMap();
+            CreateMap<ApplicationUser, LoginWithOtpDto>().ReverseMap();
+            CreateMap<ApplicationUser, UserResultDto>().ReverseMap();
+        }
     }
 }
-

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using ApplicationLayer.Dtos;
 namespace InfrastructureLayer;
 
 public class NetflixContext : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>
@@ -32,6 +33,7 @@ public class NetflixContext : IdentityDbContext<ApplicationUser, IdentityRole<Gu
     public DbSet<UserRating> UserRatings { get; set; }
     public DbSet<TbRefreshTokens> TbRefreshTokens { get; set; }
     public DbSet<TbPaymentMethod> TbPaymentMethod { get; set; }
+    public DbSet<EmailOtp> EmailOtp { get; set; }
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

@@ -75,7 +75,8 @@ namespace Presentation.Services
             builder.Services.AddScoped<IRatingService, RatingService>();
             builder.Services.AddScoped<ISubsciptionService, SubcriptionService>();
             builder.Services.AddScoped<IAuthService, AuthService>();
-            
+            builder.Services.AddScoped<IOtpRepository, OtpRepository>();
+
 
             builder.Services.AddHttpClient<PayPalGateway>();
             builder.Services.AddHttpClient<PaymobGateway>();
@@ -86,6 +87,11 @@ namespace Presentation.Services
             builder.Services.AddScoped<IRefreshTokenRetriver, RefreshTokenRetriverService>();
 
             builder.Services.AddSingleton<EmailService>();
+
+
+
+
+           
 
         }
     }

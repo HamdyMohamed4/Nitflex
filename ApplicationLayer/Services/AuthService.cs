@@ -113,7 +113,7 @@ namespace ApplicationLayer.Services
             if (user == null) return null;
 
             // TODO: Generate real JWT here
-            return new LoginResponseDto("DEMO_JWT_TOKEN", "DEMO_REFRESH_TOKEN", user.Id);
+            return new LoginResponseDto("DEMO_JWT_TOKEN", "DEMO_REFRESH_TOKEN", user.Id.ToString());
         }
 
         public async Task<LoginResponseDto?> RegisterWithPasswordAsync(RegisterDto model)
@@ -133,7 +133,7 @@ namespace ApplicationLayer.Services
             if (user == null) return null;
 
             // TODO: Generate real JWT here
-            return new LoginResponseDto("DEMO_JWT_TOKEN", "DEMO_REFRESH_TOKEN", user.Id);
+            return new LoginResponseDto("DEMO_JWT_TOKEN", "DEMO_REFRESH_TOKEN", user.Id.ToString());
         }
     }
 }

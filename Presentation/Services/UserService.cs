@@ -1,5 +1,6 @@
 ﻿using ApplicationLayer.Contract;
 using ApplicationLayer.Dtos;
+using ApplicationLayer.Services;
 using InfrastructureLayer.UserModels;
 using Microsoft.AspNetCore.Identity;
 using System.Security.Claims;
@@ -11,13 +12,15 @@ namespace Presentation.Services
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IOtpRepository _otpRepo;
 
         public UserService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager,
-             IHttpContextAccessor accessor)
+             IHttpContextAccessor accessor,IOtpRepository otpRepo)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _httpContextAccessor = accessor;
+            _otpRepo = otpRepo;
         }
 
         public async Task<UserResultDto> RegisterAsync(RegisterDto registerDto)
@@ -133,6 +136,71 @@ namespace Presentation.Services
 
             return new UserResultDto { Success = true };
         }
+
+        //public async Task<LoginResponseDto> LoginWithOtpAsync(string email, string code)
+        //{
+        //    // تحقق من الكود
+        //    var otpValid = await _otpRepo.GetValidOtpAsync(email, code);
+        //    if (otpValid == null || otpValid.ExpirationDate < DateTime.UtcNow)
+        //        return null!; // أو throw exception أو ترجع null
+
+        //    // علامة استخدام الكود
+        //    await _otpRepo.MarkOtpUsedAsync(email, code);
+
+        //    // تحقق من وجود المستخدم
+        //    var user = await _userManager.FindByEmailAsync(email);
+        //    if (user == null)
+        //    {
+        //        user = new ApplicationUser
+        //        {
+        //            UserName = email,
+        //            Email = email,
+        //            Name = email.Split('@')[0],
+        //            EmailConfirmed = true
+        //        };
+        //        var result = await _userManager.CreateAsync(user);
+        //        if (!result.Succeeded) return null!;
+        //        await _userManager.AddToRoleAsync(user, "User");
+        //    }
+
+        //    // هنا تحول الـ UserResultDto إلى LoginResponseDto
+        //    var loginResponse = new LoginResponseDto
+        //    {
+        //        AccessToken = "DEMO_ACCESS_TOKEN",   // هنا تحط منطق إنشاء JWT فعلي
+        //        RefreshToken = "DEMO_REFRESH_TOKEN",
+        //        UserId = user.Id.ToString()
+        //    };
+
+        //    return loginResponse;
+        //}
+
+        public async Task<LoginResponseDto?> LoginWithOtpAsync(string email, string otp)
+        {
+            var otpRecord = await _otpRepo.GetValidOtpAsync(email, otp);
+            if (otpRecord == null)
+                return null;
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return null;
+
+            // Mark OTP as used
+            await _otpRepo.MarkOtpUsedAsync(email,otp);
+
+            return new LoginResponseDto
+            {
+                UserId = user.Id.ToString(),
+                Email = user.Email,
+            };
+        }
+
+
+
+        public Task<OtpDto?> GetValidOtpAsync(string email, string code)
+        {
+            throw new NotImplementedException();
+        }
+
     }
 }
 

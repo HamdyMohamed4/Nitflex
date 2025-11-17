@@ -1,7 +1,9 @@
 ﻿using ApplicationLayer.Contract;
 using ApplicationLayer.Dtos;
 using ApplicationLayer.Services;
+using InfrastructureLayer.UserModels;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Presentation.Models;
 using Presentation.Services;
@@ -15,21 +17,27 @@ namespace Presentation.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
+        private readonly EmailService _emailService;
         private readonly TokenService _tokenService;
         private readonly IUserService _userService;
+        private readonly IOtpRepository _otpRepository;
         private readonly IRefreshTokens _RefreshTokenService;
         private readonly IRefreshTokenRetriver _RefreshTokenRetriver;
 
         public AuthController(IAuthService authService, TokenService tokenService,
                               IUserService userService,
                               IRefreshTokens refreshTokenService,
-                              IRefreshTokenRetriver refreshTokenRetriver)
+                              IRefreshTokenRetriver refreshTokenRetriver,
+                              EmailService emailService,
+                              IOtpRepository otpRepository)
         {
             _authService = authService;
             _tokenService = tokenService;
             _userService = userService;
             _RefreshTokenService = refreshTokenService;
             _RefreshTokenRetriver = refreshTokenRetriver;
+            _emailService = emailService;
+            _otpRepository = otpRepository;
 
         }
 
@@ -208,5 +216,102 @@ namespace Presentation.Controllers
 
             return claims;
         }
+
+        [HttpPost("request-otp")]
+        public async Task<ActionResult<ApiResponse<object>>> RequestOtp([FromBody] EmailRequestDto model)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+                return BadRequest(ApiResponse<object>.FailResponse("Validation failed.", errors));
+            }
+
+            // توليد كود OTP
+            var otp = new Random().Next(1000, 9999).ToString();
+
+            // حفظ الكود في DB
+            await _otpRepository.SaveOtpAsync(new OtpDto
+            {
+                Email = model.Email,
+                OtpCode = otp,
+                ExpirationDate = DateTime.UtcNow.AddMinutes(5),
+                IsUsed = false
+            });
+
+            // ارسال الكود عبر البريد
+            await _emailService.SendEmailAsync(
+                model.Email,
+                "Your Login Verification Code",
+                $"Your OTP Code is: <b>{otp}</b><br/><br/>This code expires in 5 minutes."
+            );
+
+            return Ok(ApiResponse<object>.SuccessResponse(null, $"OTP sent to {model.Email}."));
+        }
+
+        //// === Login using OTP ===
+        //[HttpPost("login-otp")]
+        //public async Task<ActionResult<ApiResponse<LoginResponseDto>>> LoginOtp([FromBody] LoginWithOtpDto dto)
+        //{
+        //    if (!ModelState.IsValid)
+        //        return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Invalid Request"));
+
+        //    var result = await _userService.LoginWithOtpAsync(dto.Email, dto.Code);
+
+        //    if (result == null)
+        //        return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Invalid or expired OTP."));
+
+        //    return Ok(ApiResponse<LoginResponseDto>.SuccessResponse(result, "Login Successful"));
+        //}
+
+        [HttpPost("login-otp")]
+        public async Task<ActionResult<ApiResponse<LoginResponseDto>>> LoginOtp([FromBody] LoginWithOtpDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Invalid Request"));
+
+            var user = await _userService.LoginWithOtpAsync(dto.Email, dto.Code);
+
+            if (user == null || string.IsNullOrEmpty(user.UserId) || string.IsNullOrEmpty(user.Email))
+                return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Invalid or expired OTP. User missing required data."));
+
+            var claims = new List<Claim>
+    {
+        new Claim(ClaimTypes.NameIdentifier, user.UserId),
+        new Claim(ClaimTypes.Email, user.Email),
+        new Claim(ClaimTypes.Role, "User")
+    };
+
+            var accessToken = _tokenService.GenerateAccessToken(claims);
+            var refreshToken = _tokenService.GenerateRefreshToken();
+
+            await _RefreshTokenService.Refresh(new RefreshTokenDto
+            {
+                Token = refreshToken,
+                UserId = user.UserId,
+                Expires = DateTime.UtcNow.AddDays(7),
+                CurrentState = 1
+            });
+
+            Response.Cookies.Append("RefreshToken", refreshToken, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
+                Expires = DateTime.UtcNow.AddDays(7)
+            });
+
+            user.AccessToken = accessToken;
+            user.RefreshToken = refreshToken;
+
+            return Ok(ApiResponse<LoginResponseDto>.SuccessResponse(user, "Login successful with OTP."));
+        }
+
+
+
+
+
+
+
+
     }
 }
