@@ -334,6 +334,12 @@ namespace InfrastructureLayer.Migrations
                     b.Property<int>("MaxDevices")
                         .HasColumnType("int");
 
+                    b.Property<int>("MaxDownloadDevices")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MaxSimultaneousDevices")
+                        .HasColumnType("int");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -347,11 +353,19 @@ namespace InfrastructureLayer.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<string>("SpatialAudio")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime?>("UpdatedDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("VideoAndSoundQuality")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.HasKey("Id");
 
@@ -514,7 +528,7 @@ namespace InfrastructureLayer.Migrations
                     b.ToTable("TVShowCasts", "Identity");
                 });
 
-            modelBuilder.Entity("Domains.UserRating", b =>
+            modelBuilder.Entity("Domains.UserHistory", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -524,7 +538,6 @@ namespace InfrastructureLayer.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("ContentType")
-                        .HasMaxLength(20)
                         .HasColumnType("int");
 
                     b.Property<Guid>("CreatedBy")
@@ -536,8 +549,45 @@ namespace InfrastructureLayer.Migrations
                     b.Property<int>("CurrentState")
                         .HasColumnType("int");
 
-                    b.Property<int>("RatingValue")
+                    b.Property<DateTime>("LastWatched")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ProfileId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProfileId", "ContentId", "ContentType")
+                        .IsUnique();
+
+                    b.ToTable("UserHistories", "Identity");
+                });
+
+            modelBuilder.Entity("Domains.UserProfile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CurrentState")
                         .HasColumnType("int");
+
+                    b.Property<string>("ProfileName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("uniqueidentifier");
@@ -550,7 +600,47 @@ namespace InfrastructureLayer.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId", "ContentId", "ContentType")
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Profiles", "Identity");
+                });
+
+            modelBuilder.Entity("Domains.UserRating", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ContentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("ContentType")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CurrentState")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("ProfileId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("RatingValue")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProfileId", "ContentId", "ContentType")
                         .IsUnique();
 
                     b.ToTable("UserRatings", "Identity");
@@ -615,7 +705,6 @@ namespace InfrastructureLayer.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("ContentType")
-                        .HasMaxLength(20)
                         .HasColumnType("int");
 
                     b.Property<Guid>("CreatedBy")
@@ -627,18 +716,18 @@ namespace InfrastructureLayer.Migrations
                     b.Property<int>("CurrentState")
                         .HasColumnType("int");
 
+                    b.Property<Guid>("ProfileId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime?>("UpdatedDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId", "ContentId", "ContentType")
+                    b.HasIndex("ProfileId", "ContentId", "ContentType")
                         .IsUnique();
 
                     b.ToTable("UserWatchlists", "Identity");
@@ -763,7 +852,7 @@ namespace InfrastructureLayer.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("AspNetRoleClaims", "Identity");
+                    b.ToTable("RoleClaims", "Identity");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<System.Guid>", b =>
@@ -787,7 +876,7 @@ namespace InfrastructureLayer.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("AspNetUserClaims", "Identity");
+                    b.ToTable("UserClaims", "Identity");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<System.Guid>", b =>
@@ -808,7 +897,7 @@ namespace InfrastructureLayer.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("AspNetUserLogins", "Identity");
+                    b.ToTable("UserLogins", "Identity");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<System.Guid>", b =>
@@ -823,7 +912,7 @@ namespace InfrastructureLayer.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("AspNetUserRoles", "Identity");
+                    b.ToTable("UserRoles", "Identity");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<System.Guid>", b =>
@@ -842,7 +931,7 @@ namespace InfrastructureLayer.Migrations
 
                     b.HasKey("UserId", "LoginProvider", "Name");
 
-                    b.ToTable("AspNetUserTokens", "Identity");
+                    b.ToTable("UserTokens", "Identity");
                 });
 
             modelBuilder.Entity("Domains.Episode", b =>
@@ -943,15 +1032,37 @@ namespace InfrastructureLayer.Migrations
                     b.Navigation("TvShow");
                 });
 
-            modelBuilder.Entity("Domains.UserRating", b =>
+            modelBuilder.Entity("Domains.UserHistory", b =>
+                {
+                    b.HasOne("Domains.UserProfile", "Profile")
+                        .WithMany("Histories")
+                        .HasForeignKey("ProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Profile");
+                });
+
+            modelBuilder.Entity("Domains.UserProfile", b =>
                 {
                     b.HasOne("InfrastructureLayer.UserModels.ApplicationUser", "User")
-                        .WithMany("Ratings")
+                        .WithMany("Profiles")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Domains.UserRating", b =>
+                {
+                    b.HasOne("Domains.UserProfile", "Profile")
+                        .WithMany("Ratings")
+                        .HasForeignKey("ProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Profile");
                 });
 
             modelBuilder.Entity("Domains.UserSubscription", b =>
@@ -975,13 +1086,13 @@ namespace InfrastructureLayer.Migrations
 
             modelBuilder.Entity("Domains.UserWatchlist", b =>
                 {
-                    b.HasOne("InfrastructureLayer.UserModels.ApplicationUser", "User")
+                    b.HasOne("Domains.UserProfile", "Profile")
                         .WithMany("WatchlistItems")
-                        .HasForeignKey("UserId")
+                        .HasForeignKey("ProfileId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("User");
+                    b.Navigation("Profile");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
@@ -1068,13 +1179,20 @@ namespace InfrastructureLayer.Migrations
                     b.Navigation("TVShowGenres");
                 });
 
-            modelBuilder.Entity("InfrastructureLayer.UserModels.ApplicationUser", b =>
+            modelBuilder.Entity("Domains.UserProfile", b =>
                 {
+                    b.Navigation("Histories");
+
                     b.Navigation("Ratings");
 
-                    b.Navigation("Subscriptions");
-
                     b.Navigation("WatchlistItems");
+                });
+
+            modelBuilder.Entity("InfrastructureLayer.UserModels.ApplicationUser", b =>
+                {
+                    b.Navigation("Profiles");
+
+                    b.Navigation("Subscriptions");
                 });
 #pragma warning restore 612, 618
         }

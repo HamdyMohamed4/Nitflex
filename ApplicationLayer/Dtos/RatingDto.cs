@@ -9,7 +9,7 @@ namespace ApplicationLayer.Dtos
 {
     public class RatingDto:BaseDto
     {
-        public Guid UserId { get; set; }
+        public Guid ProfileId { get; set; }
         public ContentType ContentType { get; set; }
         public Guid ContentId { get; set; }
         public int RatingValue { get; set; }

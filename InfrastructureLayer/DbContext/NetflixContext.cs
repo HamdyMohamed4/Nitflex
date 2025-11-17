@@ -1,78 +1,107 @@
-﻿using InfrastructureLayer.UserModels;
+﻿using ApplicationLayer.Dtos;
 using Domains;
+using InfrastructureLayer.UserModels;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using ApplicationLayer.Dtos;
-namespace InfrastructureLayer;
 
-public class NetflixContext : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>
+namespace InfrastructureLayer
 {
-    public NetflixContext(DbContextOptions<NetflixContext> options)
-        : base(options) { }
-
-    // Define all DbSet properties for custom tables
-    // Note: Identity DbSets (Users, Roles, etc.) are inherited automatically.
-    public DbSet<Genre> Genres { get; set; }
-    public DbSet<Movie> Movies { get; set; }
-    public DbSet<TVShow> TVShows { get; set; }
-    public DbSet<Season> Seasons { get; set; }
-    public DbSet<Episode> Episodes { get; set; }
-    public DbSet<CastMember> CastMembers { get; set; }
-    public DbSet<SubscriptionPlan> SubscriptionPlans { get; set; }
-    public DbSet<UserSubscription> UserSubscriptions { get; set; }
-
-    // DbSet for Junction/Relationship tables
-    public DbSet<MovieGenre> MovieGenres { get; set; }
-    public DbSet<TVShowGenre> TVShowGenres { get; set; }
-    public DbSet<MovieCast> MovieCasts { get; set; }
-    public DbSet<TvShowCast> TVShowCasts { get; set; }
-    public DbSet<UserWatchlist> UserWatchlists { get; set; }
-    public DbSet<UserRating> UserRatings { get; set; }
-    public DbSet<TbRefreshTokens> TbRefreshTokens { get; set; }
-    public DbSet<TbPaymentMethod> TbPaymentMethod { get; set; }
-    public DbSet<EmailOtp> EmailOtp { get; set; }
-
-
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    public class NetflixContext : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>
     {
-        // Must call base implementation to correctly configure Identity tables
-        base.OnModelCreating(modelBuilder);
+        public NetflixContext(DbContextOptions<NetflixContext> options)
+            : base(options) { }
 
-        // Rename Identity tables for cleaner look (Optional but recommended)
-        modelBuilder.HasDefaultSchema("Identity");
-        modelBuilder.Entity<ApplicationUser>().ToTable("Users");
-        modelBuilder.Entity<IdentityRole<Guid>>().ToTable("Roles");
-        // ... other Identity table renames as needed
+        // --- Core Content ---
+        public DbSet<Genre> Genres { get; set; }
+        public DbSet<Movie> Movies { get; set; }
+        public DbSet<TVShow> TVShows { get; set; }
+        public DbSet<Season> Seasons { get; set; }
+        public DbSet<Episode> Episodes { get; set; }
+        public DbSet<CastMember> CastMembers { get; set; }
 
-        // --- Define Composite Keys and Relationships for Junction Tables ---
+        // --- User-related tables ---
+        public DbSet<SubscriptionPlan> SubscriptionPlans { get; set; }
+        public DbSet<UserSubscription> UserSubscriptions { get; set; }
+        public DbSet<UserProfile> Profiles { get; set; }
 
-        // MovieGenre: Composite Key and relationships (using Guid)
-        modelBuilder.Entity<MovieGenre>().HasKey(mg => new { mg.MovieId, mg.GenreId });
+        // --- Profile-based user activity ---
+        public DbSet<UserWatchlist> UserWatchlists { get; set; }
+        public DbSet<UserRating> UserRatings { get; set; }
+        public DbSet<UserHistory> UserHistories { get; set; }
 
-        // TVShowGenre: Composite Key and relationships (using Guid)
-        modelBuilder.Entity<TVShowGenre>().HasKey(tg => new { tg.TVShowId, tg.GenreId });
+        // --- Identity & Security ---
+        public DbSet<TbRefreshTokens> TbRefreshTokens { get; set; }
+        public DbSet<TbPaymentMethod> TbPaymentMethod { get; set; }
+        public DbSet<EmailOtp> EmailOtp { get; set; }
 
-        // MovieCast: Composite Key and relationships (using Guid)
-        modelBuilder.Entity<MovieCast>().HasKey(mc => new { mc.MovieId, mc.CastMemberId });
+        // --- Junction Tables ---
+        public DbSet<MovieGenre> MovieGenres { get; set; }
+        public DbSet<TVShowGenre> TVShowGenres { get; set; }
+        public DbSet<MovieCast> MovieCasts { get; set; }
+        public DbSet<TvShowCast> TVShowCasts { get; set; }
 
-        // TvShowCast: Composite Key and relationships (using Guid)
-        modelBuilder.Entity<TvShowCast>().HasKey(tc => new { tc.TvShowId, tc.CastMemberId });
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
 
-        // UserWatchlist: Composite Index (using Guid for UserId and ContentId)
-        modelBuilder.Entity<UserWatchlist>()
-            .HasIndex(uw => new { uw.UserId, uw.ContentId, uw.ContentType })
-            .IsUnique();
+            // --- Identity Tables ---
+            modelBuilder.HasDefaultSchema("Identity");
+            modelBuilder.Entity<ApplicationUser>().ToTable("Users");
+            modelBuilder.Entity<IdentityRole<Guid>>().ToTable("Roles");
+            modelBuilder.Entity<IdentityUserRole<Guid>>().ToTable("UserRoles");
+            modelBuilder.Entity<IdentityUserClaim<Guid>>().ToTable("UserClaims");
+            modelBuilder.Entity<IdentityUserLogin<Guid>>().ToTable("UserLogins");
+            modelBuilder.Entity<IdentityRoleClaim<Guid>>().ToTable("RoleClaims");
+            modelBuilder.Entity<IdentityUserToken<Guid>>().ToTable("UserTokens");
 
-        // UserRating: Composite Index (using Guid for UserId and ContentId)
-        modelBuilder.Entity<UserRating>()
-            .HasIndex(ur => new { ur.UserId, ur.ContentId, ur.ContentType })
-            .IsUnique();
+            // --- Composite Keys for Junction Tables ---
+            modelBuilder.Entity<MovieGenre>().HasKey(mg => new { mg.MovieId, mg.GenreId });
+            modelBuilder.Entity<TVShowGenre>().HasKey(tg => new { tg.TVShowId, tg.GenreId });
+            modelBuilder.Entity<MovieCast>().HasKey(mc => new { mc.MovieId, mc.CastMemberId });
+            modelBuilder.Entity<TvShowCast>().HasKey(tc => new { tc.TvShowId, tc.CastMemberId });
 
-        // --- Indexing for faster lookups ---
-        modelBuilder.Entity<Movie>().HasIndex(m => m.Title);
-        modelBuilder.Entity<TVShow>().HasIndex(t => t.Title);
+            // --- Profile-based Keys & Indexes ---
+            modelBuilder.Entity<UserWatchlist>()
+                .HasIndex(uw => new { uw.ProfileId, uw.ContentId, uw.ContentType })
+                .IsUnique();
+
+            modelBuilder.Entity<UserRating>()
+                .HasIndex(ur => new { ur.ProfileId, ur.ContentId, ur.ContentType })
+                .IsUnique();
+
+            modelBuilder.Entity<UserHistory>()
+                .HasIndex(uh => new { uh.ProfileId, uh.ContentId, uh.ContentType })
+                .IsUnique();
+
+            // --- Relationships ---
+            modelBuilder.Entity<UserProfile>()
+                .HasOne(p => p.User)
+                .WithMany(u => u.Profiles)
+                .HasForeignKey(p => p.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<UserWatchlist>()
+                .HasOne(uw => uw.Profile)
+                .WithMany(p => p.WatchlistItems)
+                .HasForeignKey(uw => uw.ProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<UserRating>()
+                .HasOne(ur => ur.Profile)
+                .WithMany(p => p.Ratings)
+                .HasForeignKey(ur => ur.ProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<UserHistory>()
+                .HasOne(uh => uh.Profile)
+                .WithMany(p => p.Histories)
+                .HasForeignKey(uh => uh.ProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // --- Indexing for Content ---
+            modelBuilder.Entity<Movie>().HasIndex(m => m.Title);
+            modelBuilder.Entity<TVShow>().HasIndex(t => t.Title);
+        }
     }
 }

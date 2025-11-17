@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace ApplicationLayer.Contract
 {
-    public interface ISubsciptionService:IBaseService<UserSubscription, UserSubscriptionDto>
+    public interface ISubsciptionService:IBaseService<SubscriptionPlan, SubscriptionPlanDto>
     {
         // Plans - Admin
         Task<List<SubscriptionPlanDto>> GetPlansAsync();

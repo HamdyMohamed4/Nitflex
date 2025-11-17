@@ -6,72 +6,111 @@ using InfrastructureLayer.Contracts;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace ApplicationLayer.Services
 {
-    public class SubcriptionService : BaseService<UserSubscription, UserSubscriptionDto>, ISubsciptionService
+    public class SubcriptionService : BaseService<SubscriptionPlan, SubscriptionPlanDto>, ISubsciptionService
     {
-        private readonly IGenericRepository<UserSubscription> _repo;
-        public SubcriptionService(IGenericRepository<UserSubscription> repo, IMapper mapper, IUserService userService) : base(repo, mapper, userService)
+        private readonly IGenericRepository<SubscriptionPlan> _planRepo;
+        private readonly IGenericRepository<UserSubscription> _userSubRepo;
+        private readonly IMapper _mapper;
+        private readonly IUserService _userService;
+
+        public SubcriptionService(
+            IGenericRepository<SubscriptionPlan> planRepo,
+            IGenericRepository<UserSubscription> userSubRepo,
+            IMapper mapper,
+            IUserService userService
+        ) : base(planRepo, mapper, userService)
         {
-            _repo = repo;
+            _planRepo = planRepo;
+            _userSubRepo = userSubRepo;
+            _mapper = mapper;
+            _userService = userService;
         }
 
-        public Task<(bool, Guid)> Add(UserSubscriptionDto entity)
+        // ==================== Admin: Plans ====================
+        public async Task<List<SubscriptionPlanDto>> GetPlansAsync()
         {
-            throw new NotImplementedException();
+            var plans = await _planRepo.GetAll();
+            return _mapper.Map<List<SubscriptionPlanDto>>(plans);
         }
 
-        public Task<SubscriptionPlanDto> CreatePlanAsync(CreateSubscriptionPlanDto dto)
+        public async Task<SubscriptionPlanDto?> GetPlanByIdAsync(Guid id)
         {
-            throw new NotImplementedException();
+            var plan = await _planRepo.GetById(id);
+            if (plan == null) return null;
+            return _mapper.Map<SubscriptionPlanDto>(plan);
         }
 
-        public Task<bool> DeletePlanAsync(Guid id)
+        public async Task<SubscriptionPlanDto> CreatePlanAsync(CreateSubscriptionPlanDto dto)
         {
-            throw new NotImplementedException();
+            var plan = _mapper.Map<SubscriptionPlan>(dto);
+            plan.CreatedBy = _userService.GetLoggedInUser();
+            plan.CurrentState = 1;
+
+            await _planRepo.Add(plan);
+            return _mapper.Map<SubscriptionPlanDto>(plan);
         }
 
-        public Task<UserSubscriptionDto?> GetCurrentUserSubscriptionAsync(string userId)
+        public async Task<SubscriptionPlanDto?> UpdatePlanAsync(Guid id, UpdateSubscriptionPlanDto dto)
         {
-            throw new NotImplementedException();
+            var plan = await _planRepo.GetById(id);
+            if (plan == null) return null;
+
+            plan.Name = dto.Name;
+            plan.PricePerMonth = dto.PricePerMonth;
+            plan.VideoAndSoundQuality = dto.VideoAndSoundQuality;
+            plan.Resolution = dto.Resolution;
+            plan.MaxDevices = dto.MaxDevices;
+            plan.MaxSimultaneousDevices = dto.MaxSimultaneousDevices;
+            plan.MaxDownloadDevices = dto.MaxDownloadDevices;
+            plan.SpatialAudio = dto.SpatialAudio;
+            plan.Description = dto.Description;
+            plan.UpdatedBy = _userService.GetLoggedInUser();
+
+            await _planRepo.Update(plan);
+            return _mapper.Map<SubscriptionPlanDto>(plan);
         }
 
-        public Task<SubscriptionPlanDto?> GetPlanByIdAsync(Guid id)
+        public async Task<bool> DeletePlanAsync(Guid id)
         {
-            throw new NotImplementedException();
+            return await _planRepo.Delete(id);
         }
 
-        public Task<List<SubscriptionPlanDto>> GetPlansAsync()
+        // ==================== User Subscriptions ====================
+        public async Task<UserSubscriptionDto?> GetCurrentUserSubscriptionAsync(string userId)
         {
-            throw new NotImplementedException();
+            var subs = await _userSubRepo.GetList(us =>
+                us.UserId.ToString() == userId &&
+                us.StartDate <= DateTime.UtcNow &&
+                us.EndDate >= DateTime.UtcNow);
+
+            var currentSub = subs.FirstOrDefault();
+            if (currentSub == null) return null;
+
+            return _mapper.Map<UserSubscriptionDto>(currentSub);
         }
 
-        public Task<UserSubscriptionDto> SubscribeAsync(string userId, CreateUserSubscriptionDto dto)
+        public async Task<UserSubscriptionDto> SubscribeAsync(string userId, CreateUserSubscriptionDto dto)
         {
-            throw new NotImplementedException();
-        }
+            var subPlan = await _planRepo.GetById(dto.SubscriptionPlanId);
+            if (subPlan == null) throw new Exception("Invalid subscription plan");
 
-        public Task<bool> Update(UserSubscriptionDto entity)
-        {
-            throw new NotImplementedException();
-        }
+            var userSub = new UserSubscription
+            {
+                Id = Guid.NewGuid(),
+                UserId = Guid.Parse(userId),
+                SubscriptionPlanId = dto.SubscriptionPlanId,
+                StartDate = DateTime.UtcNow,
+                EndDate = DateTime.UtcNow.AddMonths(1), // أو حسب Duration
+                CreatedBy = Guid.Parse(userId),
+                CurrentState = 1
+            };
 
-        public Task<SubscriptionPlanDto?> UpdatePlanAsync(Guid id, UpdateSubscriptionPlanDto dto)
-        {
-            throw new NotImplementedException();
-        }
-
-        Task<List<UserSubscriptionDto>> IBaseService<UserSubscription, UserSubscriptionDto>.GetAll()
-        {
-            throw new NotImplementedException();
-        }
-
-        Task<UserSubscriptionDto> IBaseService<UserSubscription, UserSubscriptionDto>.GetById(Guid id)
-        {
-            throw new NotImplementedException();
+            await _userSubRepo.Add(userSub);
+            return _mapper.Map<UserSubscriptionDto>(userSub);
         }
     }
 }

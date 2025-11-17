@@ -9,7 +9,7 @@ namespace ApplicationLayer.Dtos
 {
     public class WatchlistItemDto:BaseDto
     {
-        public Guid UserId { get; set; }
+        public Guid ProfileId { get; set; }
         public ContentType ContentType { get; set; }
         public Guid ContentId { get; set; }
         public DateTime AddedAt { get; set; }
