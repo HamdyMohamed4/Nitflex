@@ -16,7 +16,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("https://localhost:7279")
+        policy.WithOrigins("https://localhost:7263")
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials();
@@ -34,6 +34,19 @@ builder.Services.AddControllers()
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+
+// 1. Add CORS service
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAngularLocalhost", policy =>
+    {
+        policy.WithOrigins("http://localhost:4200") // هنا تحط origin بتاع Angular
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials(); // لو محتاج ترسل الكوكيز أو التوكن
+    });
+});
+
 // Services
 RegisterServicesHelper.RegisteredServices(builder);
 
@@ -45,6 +58,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseCors("AllowAngularLocalhost");
 
 app.UseHttpsRedirection();
 app.UseCors("AllowFrontend");
