@@ -22,15 +22,13 @@ namespace Domains
         [MaxLength(50)]
         public string Resolution { get; set; } = "HD";  // Default Resolution
 
-        public int MaxDevices { get; set; }  // Devices supported
+        public string SupportedDevices { get; set; }  // Devices supported
 
         public int MaxSimultaneousDevices { get; set; }  // Devices that can watch at the same time
 
         public int MaxDownloadDevices { get; set; }  // Download devices
 
         public string? SpatialAudio { get; set; }  // Optional: For Premium plan
-
-        public string Description { get; set; } = string.Empty;  // Additional description for each plan
 
         public ICollection<UserSubscription> UserSubscriptions { get; set; } = new List<UserSubscription>();
     }

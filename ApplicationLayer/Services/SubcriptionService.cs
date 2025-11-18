@@ -63,11 +63,11 @@ namespace ApplicationLayer.Services
             plan.PricePerMonth = dto.PricePerMonth;
             plan.VideoAndSoundQuality = dto.VideoAndSoundQuality;
             plan.Resolution = dto.Resolution;
-            plan.MaxDevices = dto.MaxDevices;
+            plan.SupportedDevices = dto.SupportedDevices;
             plan.MaxSimultaneousDevices = dto.MaxSimultaneousDevices;
             plan.MaxDownloadDevices = dto.MaxDownloadDevices;
             plan.SpatialAudio = dto.SpatialAudio;
-            plan.Description = dto.Description;
+
             plan.UpdatedBy = _userService.GetLoggedInUser();
 
             await _planRepo.Update(plan);
