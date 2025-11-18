@@ -216,7 +216,6 @@ namespace Presentation.Services
             };
         }
 
-
         // ---- الميثود الجديدة ----
         public async Task<List<string>> GetUserRolesAsync(string userId)
         {
@@ -229,9 +228,6 @@ namespace Presentation.Services
 
             return roles.ToList();
         }
-
-
-
 
     }
 }

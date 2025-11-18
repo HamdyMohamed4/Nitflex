@@ -42,36 +42,7 @@ namespace Presentation.Controllers
         }
 
         [HttpPost("send-magic-link")]
-        public async Task<ActionResult<ApiResponse<object>>> SendMagicLink([FromBody] EmailRequestDto model)
-        {
-            if (!ModelState.IsValid)
-            {
-                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
-                return BadRequest(ApiResponse<object>.FailResponse("Validation failed.", errors));
-            }
-
-            var success = await _authService.SendMagicLinkAsync(model.Email);
-            if (success)
-                return Ok(ApiResponse<object>.SuccessResponse(null, $"Sign-up link sent to {model.Email}"));
-
-            return BadRequest(ApiResponse<object>.FailResponse("Could not send link."));
-        }
-
-        [HttpGet("confirm-signup")]
-        public async Task<ActionResult<ApiResponse<LoginResponseDto>>> ConfirmSignUp([FromQuery] string userId, [FromQuery] string token)
-        {
-            if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(token))
-                return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Invalid confirmation link."));
-
-            var response = await _authService.RegisterUserFromMagicLinkAsync(userId, token);
-            if (response != null)
-                return Ok(ApiResponse<LoginResponseDto>.SuccessResponse(response, "Registration confirmed. Proceed to plan selection."));
-
-            return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Invalid or expired token."));
-        }
-
-        [HttpPost("register-with-password")]
-        public async Task<ActionResult<ApiResponse<LoginResponseDto>>> RegisterWithPassword([FromBody] RegisterDto model)
+        public async Task<ActionResult<ApiResponse<LoginResponseDto>>> SendMagicLink([FromBody] EmailRequestDto model)
         {
             if (!ModelState.IsValid)
             {
@@ -79,12 +50,58 @@ namespace Presentation.Controllers
                 return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Validation failed.", errors));
             }
 
-            var response = await _authService.RegisterWithPasswordAsync(model);
-            if (response != null)
-                return Ok(ApiResponse<LoginResponseDto>.SuccessResponse(response, "Account created."));
+            var success = await _authService.SendMagicLinkAsync(model.Email);
 
-            return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Registration failed."));
+            if (!success)
+                return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Could not send link."));
+
+            return Ok(ApiResponse<LoginResponseDto>.SuccessResponse(null, $"Sign-up link sent to {model.Email}"));
         }
+
+
+        [HttpGet("confirm-signup")]
+        public async Task<ActionResult<ApiResponse<LoginResponseDto>>> ConfirmSignUp(string userId, string token)
+        {
+            var confirm = await _userService.ConfirmEmailAsync(Guid.Parse(userId), token);
+
+            if (!confirm.Success)
+                return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Invalid or expired token."));
+
+            var user = await _userService.GetUserByIdAsync(userId);
+
+            return await GenerateAuthTokensAsync(user!.Email);
+        }
+
+
+
+        //[HttpGet("confirm-signup")]
+        //public async Task<ActionResult<ApiResponse<LoginResponseDto>>> ConfirmSignUp([FromQuery] string userId, [FromQuery] string token)
+        //{
+        //    if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(token))
+        //        return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Invalid confirmation link."));
+
+        //    var response = await _authService.RegisterUserFromMagicLinkAsync(userId, token);
+        //    if (response != null)
+        //        return Ok(ApiResponse<LoginResponseDto>.SuccessResponse(response, "Registration confirmed. Proceed to plan selection."));
+
+        //    return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Invalid or expired token."));
+        //}
+
+        //[HttpPost("register-with-password")]
+        //public async Task<ActionResult<ApiResponse<LoginResponseDto>>> RegisterWithPassword([FromBody] RegisterDto model)
+        //{
+        //    if (!ModelState.IsValid)
+        //    {
+        //        var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+        //        return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Validation failed.", errors));
+        //    }
+
+        //    var response = await _authService.RegisterWithPasswordAsync(model);
+        //    if (response != null)
+        //        return Ok(ApiResponse<LoginResponseDto>.SuccessResponse(response, "Account created."));
+
+        //    return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Registration failed."));
+        //}
 
         //[HttpPost("login")]
         //public async Task<IActionResult> Login([FromBody] LoginDto request)
@@ -99,7 +116,7 @@ namespace Presentation.Controllers
         //    var userData = await GetClims(request.Email);
         //    var claims = userData.Item1;
         //    RegisterDto user = userData.Item2;
-        //    var accessToken = _tokenService.GenerateAccessToken(claims);
+        //    var accessToken = _tokenService.(claims);
         //    var refreshToken = _tokenService.GenerateRefreshToken();
 
         //    var storedToken = new RefreshTokenDto
@@ -121,6 +138,23 @@ namespace Presentation.Controllers
 
         //    return Ok(new { AccessToken = accessToken, RefreshToken = refreshToken });
         //}
+
+
+        [HttpPost("register")]
+        public async Task<ActionResult<ApiResponse<LoginResponseDto>>> Register([FromBody] RegisterDto dto)
+        {
+            var result = await _userService.RegisterAsync(dto);
+
+            if (!result.Success)
+                return BadRequest(result.Errors);
+
+            return await GenerateAuthTokensAsync(dto.Email);
+        }
+
+
+
+
+
 
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto request)
@@ -360,17 +394,17 @@ namespace Presentation.Controllers
             return Ok(new { RefreshToken = newRefreshToken });
         }
 
-        async Task<(Claim[], RegisterDto)> GetClims(string email)
-        {
-            var user = await _userService.GetUserByEmailAsync(email);
-            var claims = new[] {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Name, user.Email),
-                new Claim(ClaimTypes.Role, "User")
-            };
+        //async Task<(Claim[], RegisterDto)> GetClims(string email)
+        //{
+        //    var user = await _userService.GetUserByEmailAsync(email);
+        //    var claims = new[] {
+        //        new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+        //        new Claim(ClaimTypes.Name, user.Email),
+        //        new Claim(ClaimTypes.Role, "User")
+        //    };
 
-            return (claims, user);
-        }
+        //    return (claims, user);
+        //}
 
         async Task<Claim[]> GetClimsById(string userId)
         {
@@ -386,9 +420,40 @@ namespace Presentation.Controllers
         }
 
 
+        private async Task<ActionResult<ApiResponse<LoginResponseDto>>> GenerateAuthTokensAsync(string email)
+        {
+            var (claims, user) = await _authService.GetUserWithRoles(email);
 
+            var accessToken = _tokenService.GenerateAccessToken(claims);
+            var refreshToken = _tokenService.GenerateRefreshToken();
 
+            var storedToken = new RefreshTokenDto
+            {
+                Token = refreshToken,
+                UserId = user.Id.ToString(),
+                Expires = DateTime.UtcNow.AddDays(7),
+                CurrentState = 1
+            };
 
+            await _RefreshTokenService.Refresh(storedToken);
+
+            Response.Cookies.Append("RefreshToken", refreshToken, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                Expires = storedToken.Expires
+            });
+
+            var response = new LoginResponseDto
+            {
+                AccessToken = accessToken,
+                RefreshToken = refreshToken,
+                UserId = user.Id.ToString(),
+                Email = user.Email
+            };
+
+            return Ok(ApiResponse<LoginResponseDto>.SuccessResponse(response, "User authenticated successfully."));
+        }
 
 
 

@@ -83,7 +83,7 @@ namespace Presentation.Controllers
         // *************************************
 
         [HttpGet("me")]
-        [Authorize]
+        [Authorize(Roles = "User")]
         public async Task<ActionResult<ApiResponse<UserSubscriptionDto?>>> GetMySubscription()
         {
             var userId = _userService.GetLoggedInUser();
@@ -95,7 +95,7 @@ namespace Presentation.Controllers
 
 
         [HttpPost("subscribe")]
-        [Authorize]
+        [Authorize(Roles = "User")]
         public async Task<ActionResult<ApiResponse<UserSubscriptionDto>>> Subscribe(CreateUserSubscriptionDto dto)
         {
             var userId = _userService.GetLoggedInUser();
