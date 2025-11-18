@@ -41,6 +41,28 @@ namespace Presentation.Controllers
 
         }
 
+        [HttpPost("check-email")]
+        public async Task<ActionResult<ApiResponse<object>>> CheckEmail([FromBody] EmailRequestDto model)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+                return BadRequest(ApiResponse<object>.FailResponse("Validation failed.", errors));
+            }
+
+            var user = await _userService.GetUserByEmailAsync(model.Email);
+            if (user != null)
+            {
+                // إذا كان المستخدم موجودًا، توجهه إلى صفحة تسجيل الدخول
+                return Ok(ApiResponse<object>.SuccessResponse(null, "User already exists, redirecting to login."));
+            }
+            else
+            {
+                // إذا كان المستخدم غير موجود، أكمل التسجيل
+                return Ok(ApiResponse<object>.SuccessResponse(null, "Proceeding with registration."));
+            }
+        }
+
         [HttpPost("send-magic-link")]
         public async Task<ActionResult<ApiResponse<LoginResponseDto>>> SendMagicLink([FromBody] EmailRequestDto model)
         {
