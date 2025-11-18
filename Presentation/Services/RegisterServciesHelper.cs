@@ -10,8 +10,9 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using System.Text;
+using Microsoft.OpenApi.Models;
 using Presentation.Services;
+using System.Text;
 
 namespace Presentation.Services
 {
@@ -19,6 +20,39 @@ namespace Presentation.Services
     {
         public static void RegisteredServices(WebApplicationBuilder builder)
         {
+
+            builder.Services.AddSwaggerGen(options =>
+            {
+                options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                {
+                    Name = "Authorization",
+                    Type = SecuritySchemeType.ApiKey,
+                    Scheme = "Bearer",
+                    BearerFormat = "JWT",
+                    In = ParameterLocation.Header,
+                    Description = "Enter 'Bearer' followed by space and your token."
+                });
+
+                options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[] {}
+        }
+    });
+            });
+
+
+
+
+
             // DbContext
             builder.Services.AddDbContext<NetflixContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -87,6 +121,7 @@ namespace Presentation.Services
             builder.Services.AddScoped<IRefreshTokenRetriver, RefreshTokenRetriverService>();
 
             builder.Services.AddSingleton<EmailService>();
+
 
 
 

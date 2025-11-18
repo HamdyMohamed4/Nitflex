@@ -86,26 +86,24 @@ namespace Presentation.Controllers
         [Authorize]
         public async Task<ActionResult<ApiResponse<UserSubscriptionDto?>>> GetMySubscription()
         {
-            var userId = _userService.GetLoggedInUser().ToString();
+            var userId = _userService.GetLoggedInUser();
 
-            if (userId == null)
-                return Unauthorized(ApiResponse<UserSubscriptionDto?>.FailResponse("User not logged in"));
-
-            var subscription = await _subscriptionService.GetCurrentUserSubscriptionAsync(userId);
+            var subscription = await _subscriptionService.GetCurrentUserSubscriptionAsync(userId.ToString());
 
             return Ok(ApiResponse<UserSubscriptionDto?>.SuccessResponse(subscription, "Current subscription retrieved"));
         }
+
 
         [HttpPost("subscribe")]
         [Authorize]
         public async Task<ActionResult<ApiResponse<UserSubscriptionDto>>> Subscribe(CreateUserSubscriptionDto dto)
         {
-            var userId = _userService.GetLoggedInUser().ToString();
+            var userId = _userService.GetLoggedInUser();
 
             if (userId == null)
                 return Unauthorized(ApiResponse<UserSubscriptionDto>.FailResponse("User not logged in"));
 
-            var result = await _subscriptionService.SubscribeAsync(userId, dto);
+            var result = await _subscriptionService.SubscribeAsync(userId.ToString(), dto);
 
             return Ok(ApiResponse<UserSubscriptionDto>.SuccessResponse(result, "Subscription activated successfully"));
         }

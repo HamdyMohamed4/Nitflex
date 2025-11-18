@@ -6,6 +6,7 @@ using Presentation.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -135,5 +136,31 @@ namespace ApplicationLayer.Services
             // TODO: Generate real JWT here
             return new LoginResponseDto("DEMO_JWT_TOKEN", "DEMO_REFRESH_TOKEN", user.Id.ToString());
         }
+
+        // ===== Helper Methods =====
+
+       public async Task<(Claim[] Claims, RegisterDto User)> GetUserWithRoles(string email)
+        {
+            var user = await _userService.GetUserByEmailAsync(email);
+
+            // Retrieve roles from Identity
+            var roles = await _userService.GetUserRolesAsync(user.Id.ToString());
+
+            var claims = new List<Claim>
+    {
+        new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+        new Claim(ClaimTypes.Email, user.Email),
+    };
+
+            // Add roles as claims
+            foreach (var role in roles)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, role));
+            }
+
+            return (claims.ToArray(), user);
+        }
+
+        
     }
 }

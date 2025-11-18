@@ -81,12 +81,34 @@ namespace Presentation.Services
             }).ToList();
         }
 
+        //public Guid GetLoggedInUser()
+        //{
+        //    var userIdStr = _httpContextAccessor.HttpContext?.User?.FindFirst("sub")?.Value;
+        //    if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out Guid userId))
+        //        throw new InvalidOperationException("No valid logged-in user ID found in claims.");
+        //    return userId;
+        //}
+
+
         public Guid GetLoggedInUser()
         {
-            var userIdStr = _httpContextAccessor.HttpContext?.User?.FindFirst("sub")?.Value;
-            if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out Guid userId))
+            var user = _httpContextAccessor.HttpContext?.User;
+
+            if (user == null)
+                throw new InvalidOperationException("No HttpContext or User found.");
+
+            // محاولة الحصول على الـ ID من أكثر من Claim
+            var userIdClaim =
+                user.FindFirst(ClaimTypes.NameIdentifier)?.Value ??
+                user.FindFirst("sub")?.Value ??
+                user.FindFirst("uid")?.Value ??
+                user.FindFirst("id")?.Value ??
+                user.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim))
                 throw new InvalidOperationException("No valid logged-in user ID found in claims.");
-            return userId;
+
+            return Guid.Parse(userIdClaim);
         }
 
         public async Task<ApplicationUser?> GetUserByIdentityAsync(string userId) => await _userManager.FindByIdAsync(userId);
@@ -195,11 +217,21 @@ namespace Presentation.Services
         }
 
 
-
-        public Task<OtpDto?> GetValidOtpAsync(string email, string code)
+        // ---- الميثود الجديدة ----
+        public async Task<List<string>> GetUserRolesAsync(string userId)
         {
-            throw new NotImplementedException();
+            var user = await _userManager.FindByIdAsync(userId);
+
+            if (user == null)
+                return new List<string>();
+
+            var roles = await _userManager.GetRolesAsync(user);
+
+            return roles.ToList();
         }
+
+
+
 
     }
 }

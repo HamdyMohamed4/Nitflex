@@ -86,6 +86,42 @@ namespace Presentation.Controllers
             return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Registration failed."));
         }
 
+        //[HttpPost("login")]
+        //public async Task<IActionResult> Login([FromBody] LoginDto request)
+        //{
+        //    var userResult = await _userService.LoginAsync(request);
+        //    if (!userResult.Success)
+        //    {
+        //        return Unauthorized("Invalid credentials");
+        //    }
+
+
+        //    var userData = await GetClims(request.Email);
+        //    var claims = userData.Item1;
+        //    RegisterDto user = userData.Item2;
+        //    var accessToken = _tokenService.GenerateAccessToken(claims);
+        //    var refreshToken = _tokenService.GenerateRefreshToken();
+
+        //    var storedToken = new RefreshTokenDto
+        //    {
+        //        Token = refreshToken,
+        //        UserId = user.Id.ToString(),
+        //        Expires = DateTime.UtcNow.AddDays(7),
+        //        CurrentState = 1
+        //    };
+
+        //    await _RefreshTokenService.Refresh(storedToken);
+
+        //    Response.Cookies.Append("RefreshToken", refreshToken, new CookieOptions
+        //    {
+        //        HttpOnly = true,
+        //        Secure = true,
+        //        Expires = storedToken.Expires
+        //    });
+
+        //    return Ok(new { AccessToken = accessToken, RefreshToken = refreshToken });
+        //}
+
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto request)
         {
@@ -95,10 +131,9 @@ namespace Presentation.Controllers
                 return Unauthorized("Invalid credentials");
             }
 
+            // 👇 الجديد: احصل على الـ Claims من خلال AuthService
+            var (claims, user) = await _authService.GetUserWithRoles(request.Email);
 
-            var userData = await GetClims(request.Email);
-            var claims = userData.Item1;
-            RegisterDto user = userData.Item2;
             var accessToken = _tokenService.GenerateAccessToken(claims);
             var refreshToken = _tokenService.GenerateRefreshToken();
 
@@ -119,9 +154,13 @@ namespace Presentation.Controllers
                 Expires = storedToken.Expires
             });
 
-            return Ok(new { AccessToken = accessToken, RefreshToken = refreshToken });
+            return Ok(new
+            {
+                AccessToken = accessToken,
+                RefreshToken = refreshToken,
+                Roles = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value)
+            });
         }
-
 
 
 
@@ -171,6 +210,49 @@ namespace Presentation.Controllers
         //    return Ok(ApiResponse<LoginResponseDto>.SuccessResponse(result, "Login Successful"));
         //}
 
+        //    [HttpPost("login-otp")]
+        //    public async Task<ActionResult<ApiResponse<LoginResponseDto>>> LoginOtp([FromBody] LoginWithOtpDto dto)
+        //    {
+        //        if (!ModelState.IsValid)
+        //            return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Invalid Request"));
+
+        //        var user = await _userService.LoginWithOtpAsync(dto.Email, dto.Code);
+
+        //        if (user == null || string.IsNullOrEmpty(user.UserId) || string.IsNullOrEmpty(user.Email))
+        //            return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Invalid or expired OTP. User missing required data."));
+
+        //        var claims = new List<Claim>
+        //{
+        //    new Claim(ClaimTypes.NameIdentifier, user.UserId),
+        //    new Claim(ClaimTypes.Email, user.Email),
+        //    new Claim(ClaimTypes.Role, "User")
+        //};
+
+        //        var accessToken = _tokenService.GenerateAccessToken(claims);
+        //        var refreshToken = _tokenService.GenerateRefreshToken();
+
+        //        await _RefreshTokenService.Refresh(new RefreshTokenDto
+        //        {
+        //            Token = refreshToken,
+        //            UserId = user.UserId,
+        //            Expires = DateTime.UtcNow.AddDays(7),
+        //            CurrentState = 1
+        //        });
+
+        //        Response.Cookies.Append("RefreshToken", refreshToken, new CookieOptions
+        //        {
+        //            HttpOnly = true,
+        //            Secure = true,
+        //            SameSite = SameSiteMode.Strict,
+        //            Expires = DateTime.UtcNow.AddDays(7)
+        //        });
+
+        //        user.AccessToken = accessToken;
+        //        user.RefreshToken = refreshToken;
+
+        //        return Ok(ApiResponse<LoginResponseDto>.SuccessResponse(user, "Login successful with OTP."));
+        //    }
+
         [HttpPost("login-otp")]
         public async Task<ActionResult<ApiResponse<LoginResponseDto>>> LoginOtp([FromBody] LoginWithOtpDto dto)
         {
@@ -179,15 +261,11 @@ namespace Presentation.Controllers
 
             var user = await _userService.LoginWithOtpAsync(dto.Email, dto.Code);
 
-            if (user == null || string.IsNullOrEmpty(user.UserId) || string.IsNullOrEmpty(user.Email))
-                return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Invalid or expired OTP. User missing required data."));
+            if (user == null || string.IsNullOrEmpty(user.UserId))
+                return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Invalid or expired OTP."));
 
-            var claims = new List<Claim>
-    {
-        new Claim(ClaimTypes.NameIdentifier, user.UserId),
-        new Claim(ClaimTypes.Email, user.Email),
-        new Claim(ClaimTypes.Role, "User")
-    };
+            // 👇 الجديد: اجلب Claims داخل الـ AuthService
+            var (claims, userObj) = await _authService.GetUserWithRoles(user.Email);
 
             var accessToken = _tokenService.GenerateAccessToken(claims);
             var refreshToken = _tokenService.GenerateRefreshToken();
@@ -213,6 +291,7 @@ namespace Presentation.Controllers
 
             return Ok(ApiResponse<LoginResponseDto>.SuccessResponse(user, "Login successful with OTP."));
         }
+
 
         [HttpPost("RefreshAccessToken")]
         public async Task<IActionResult> RefreshAccessToken()

@@ -21,6 +21,8 @@ namespace ApplicationLayer.Contract
         Task<UserResultDto> SetPasswordAsync(Guid userId, string password);
         Task<ApplicationUser?> GetUserByIdentityAsync(string userId);
         Task<LoginResponseDto> LoginWithOtpAsync(string email, string code);
+
+        Task<List<string>> GetUserRolesAsync(string userId);
         //Task SaveOtpAsync(OtpDto otp);
 
     }
