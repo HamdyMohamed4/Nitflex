@@ -98,8 +98,7 @@ namespace ApplicationLayer.Services
 
             var frontendUrl = _config["Frontend:BaseUrl"]; // <-- خد URL من settings
 
-            var magicLink = $"{frontendUrl}";
-            //var magicLink = $"{frontendUrl}/verify-email?userId={result.Id}&token={Uri.EscapeDataString(token)}";
+            var magicLink = $"{frontendUrl}?token={Uri.EscapeDataString(token)}";
 
             string emailBody = $@"
     <h3>Welcome to WatchMe!</h3>
