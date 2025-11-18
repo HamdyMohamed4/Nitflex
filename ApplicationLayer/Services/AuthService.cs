@@ -2,6 +2,7 @@
 using ApplicationLayer.Dtos;
 using InfrastructureLayer.UserModels;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Configuration;
 using Presentation.Services;
 using System;
 using System.Collections.Generic;
@@ -74,16 +75,19 @@ namespace ApplicationLayer.Services
         private readonly TokenService _tokenService;
         private readonly IUserService _userService;
         private readonly EmailService _emailService;
+        private readonly IConfiguration _config;
 
         public AuthService(IUserService userService,
             EmailService emailService ,
             TokenService tokenService,
-            IRefreshTokens refreshTokenService)
+            IRefreshTokens refreshTokenService,
+            IConfiguration config)
         {
             _userService = userService;
             _emailService = emailService;
             _tokenService = tokenService;
             _refreshTokenService = refreshTokenService;
+            _config = config;
         }
 
         public async Task<bool> SendMagicLinkAsync(string email)
@@ -92,18 +96,21 @@ namespace ApplicationLayer.Services
 
             if (!result.Success || token == null) return false;
 
-            var magicLink = $"https://localhost:7263/api/auth/confirm-signup?userId={result.Id}&token={Uri.EscapeDataString(token)}";
+            var frontendUrl = _config["Frontend:BaseUrl"]; // <-- خد URL من settings
+
+            var magicLink = $"{frontendUrl}/verify-email?userId={result.Id}&token={Uri.EscapeDataString(token)}";
 
             string emailBody = $@"
-            <h3>Welcome to WatchMe!</h3>
-            <p>Click the link below to complete your registration:</p>
-            <a href='{magicLink}'>Confirm Registration</a>
-            <p>If you did not request this, ignore this email.</p>";
+    <h3>Welcome to WatchMe!</h3>
+    <p>Click the link below to complete your registration:</p>
+    <a href='{magicLink}'>Confirm Registration</a>
+    <p>If you did not request this, ignore this email.</p>";
 
             await _emailService.SendEmailAsync(email, "WatchMe Sign-Up Confirmation", emailBody);
 
             return true;
         }
+
 
         // باقي الـ AuthService بدون تغيير
 
