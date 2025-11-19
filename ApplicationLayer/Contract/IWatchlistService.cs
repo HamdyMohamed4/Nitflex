@@ -10,8 +10,8 @@ namespace ApplicationLayer.Contract
 {
     public interface IWatchlistService : IBaseService<UserWatchlist, WatchlistItemDto>
     {
-        Task<List<WatchlistItemDto>> GetUserWatchlistAsync(string userId);
-        Task<WatchlistItemDto> AddAsync(string userId, AddToWatchlistDto dto);
-        Task<bool> RemoveAsync(string userId, Guid id);
+        Task<List<WatchlistItemDto>> GetUserWatchlistAsync(string userId, Guid ProfileId);
+        Task<(bool Success, Guid watchListItemId)> AddAsync(string userId, AddToWatchlistDto dto);
+        Task<bool> RemoveAsync(string userId, Guid id, Guid ProfileId);
     }
 }

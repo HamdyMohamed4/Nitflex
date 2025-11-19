@@ -10,18 +10,18 @@ using AutoMapper;
 using InfrastructureLayer.Repositories;
 namespace ApplicationLayer.Services
 {
-    public class BaseService<T, DTO> : IBaseService<T,DTO> where T : BaseTable
+    public class BaseService<T, DTO> : IBaseService<T, DTO> where T : BaseTable
     {
-        readonly IGenericRepository<T> _repo;
-        readonly IMapper _mapper;
-        readonly IUserService _userService;
-        readonly IUnitOfWork _UnitOfWork;
+        protected readonly IGenericRepository<T> _repo;
+        protected readonly IMapper _mapper;
+        protected readonly IUserService _userService;
+        protected readonly IUnitOfWork _UnitOfWork;
         public BaseService(IGenericRepository<T> repo, IMapper mapper,
-            IUserService userService) 
+            IUserService userService)
         {
-            _repo=repo;
-            _mapper=mapper;
-            _userService=userService;
+            _repo = repo;
+            _mapper = mapper;
+            _userService = userService;
         }
         public BaseService(IUnitOfWork unitofwork, IMapper mapper,
             IUserService userService)
@@ -33,14 +33,14 @@ namespace ApplicationLayer.Services
         }
         public async Task<List<DTO>> GetAll()
         {
-            var list= await _repo.GetAll();
+            var list = await _repo.GetAll();
             return _mapper.Map<List<T>, List<DTO>>(list);
         }
 
         public async Task<DTO> GetById(Guid id)
         {
-            var obj= await _repo.GetById(id);
-            return _mapper.Map<T,DTO>(obj);
+            var obj = await _repo.GetById(id);
+            return _mapper.Map<T, DTO>(obj);
         }
 
         public async Task<(bool, Guid)> Add(DTO entity)
@@ -54,7 +54,7 @@ namespace ApplicationLayer.Services
 
         public async Task<bool> Update(DTO entity)
         {
-            var dbObject = _mapper.Map<DTO,T>(entity);
+            var dbObject = _mapper.Map<DTO, T>(entity);
             dbObject.UpdatedBy = _userService.GetLoggedInUser();
             return await _repo.Update(dbObject);
         }
