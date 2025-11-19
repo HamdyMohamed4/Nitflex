@@ -64,7 +64,11 @@ namespace ApplicationLayer.Services
 
             try
             {
-                await _repo.Delete(userWatchListItem.Id);
+                // Old Version
+                // await _repo.Delete(userWatchListItem.Id); =========> Old Version By (hard deleting it total from the database)
+
+                // soft deleting
+                await ChangeStatus(userWatchListItem.Id, 0); //  =========> Updated Version by (changing status instead of deleting from the database)
             }
             catch (Exception ex)
             {
