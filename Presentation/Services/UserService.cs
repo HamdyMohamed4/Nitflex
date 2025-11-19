@@ -15,7 +15,7 @@ namespace Presentation.Services
         private readonly IOtpRepository _otpRepo;
 
         public UserService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager,
-             IHttpContextAccessor accessor,IOtpRepository otpRepo)
+             IHttpContextAccessor accessor, IOtpRepository otpRepo)
         {
             _userManager = userManager;
             _signInManager = signInManager;
@@ -63,7 +63,6 @@ namespace Presentation.Services
             return new RegisterDto { Id = user.Id, Email = user.Email ?? string.Empty, Password = string.Empty, Name = user.Name ?? string.Empty };
         }
 
-
         public async Task<ApplicationUser?> GetUserByEmailAsyncs(string email)
         {
             return await _userManager.FindByEmailAsync(email);
@@ -86,14 +85,6 @@ namespace Presentation.Services
                 Name = u.Name ?? string.Empty
             }).ToList();
         }
-
-        //public Guid GetLoggedInUser()
-        //{
-        //    var userIdStr = _httpContextAccessor.HttpContext?.User?.FindFirst("sub")?.Value;
-        //    if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out Guid userId))
-        //        throw new InvalidOperationException("No valid logged-in user ID found in claims.");
-        //    return userId;
-        //}
 
 
         public Guid GetLoggedInUser()
@@ -213,7 +204,7 @@ namespace Presentation.Services
                 return null;
 
             // Mark OTP as used
-            await _otpRepo.MarkOtpUsedAsync(email,otp);
+            await _otpRepo.MarkOtpUsedAsync(email, otp);
 
             return new LoginResponseDto
             {
