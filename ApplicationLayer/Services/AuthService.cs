@@ -99,6 +99,7 @@ namespace ApplicationLayer.Services
             var frontendUrl = _config["Frontend:BaseUrl"]; // <-- خد URL من settings
 
             var magicLink = $"{frontendUrl}?token={Uri.EscapeDataString(token)}";
+            //var magicLink = $"{frontendUrl}?userId={result.Id}&token={Uri.EscapeDataString(token)}";
 
             string emailBody = $@"
 <!DOCTYPE html>
@@ -220,68 +221,6 @@ namespace ApplicationLayer.Services
             return true;
         }
 
-
-
-
-
-        // باقي الـ AuthService بدون تغيير
-
-
-        //public async Task<LoginResponseDto?> RegisterUserFromMagicLinkAsync(string userId, string token)
-        //{
-        //    if (!Guid.TryParse(userId, out Guid userGuid)) return null;
-
-        //    var confirmResult = await _userService.ConfirmEmailAsync(userGuid, token);
-        //    if (!confirmResult.Success) return null;
-
-        //    var user = await _userService.GetUserByIdentityAsync(userId);
-        //    if (user == null) return null;
-
-        //    // TODO: Generate real JWT here
-        //    return new LoginResponseDto("DEMO_JWT_TOKEN", "DEMO_REFRESH_TOKEN", user.Id.ToString());
-        //}
-
-
-        //    public async Task<LoginResponseDto?> RegisterUserFromMagicLinkAsync(string userId, string token)
-        //    {
-        //        if (!Guid.TryParse(userId, out Guid userGuid))
-        //            return null;
-
-        //        var confirmResult = await _userService.ConfirmEmailAsync(userGuid, token);
-        //        if (!confirmResult.Success)
-        //            return null;
-
-        //        var user = await _userService.GetUserByIdentityAsync(userId);
-        //        if (user == null)
-        //            return null;
-
-        //        // 👇 اجلب الـ Roles من الـ userService
-        //        var roles = await _userService.GetUserRolesAsync(user.Id.ToString());
-
-        //        // 👇 جهز الـ claims لو محتاج تستخدمهم للتوكن
-        //        var claims = new List<Claim>
-        //{
-        //    new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-        //    new Claim(ClaimTypes.Email, user.Email)
-        //};
-
-        //        foreach (var role in roles)
-        //            claims.Add(new Claim(ClaimTypes.Role, role));
-
-        //        // 👇 توليد AccessToken و RefreshToken حقيقي (هنا مجرد Demo)
-        //        var accessToken = "DEMO_JWT_TOKEN"; // لاحقًا استخدم الـ TokenService
-        //        var refreshToken = "DEMO_REFRESH_TOKEN";
-
-        //        return new LoginResponseDto
-        //        {
-        //            AccessToken = accessToken,
-        //            RefreshToken = refreshToken,
-        //            UserId = user.Id.ToString(),
-        //            Email = user.Email,
-        //        };
-        //    }
-
-
         public async Task<LoginResponseDto?> RegisterUserFromMagicLinkAsync(string userId, string token)
         {
             if (!Guid.TryParse(userId, out Guid guid))
@@ -299,8 +238,6 @@ namespace ApplicationLayer.Services
 
             return await GenerateTokensForUserAsync(user);
         }
-
-
 
         public async Task<LoginResponseDto?> RegisterWithPasswordAsync(RegisterDto model)
         {

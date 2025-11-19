@@ -161,6 +161,33 @@ namespace Presentation.Controllers
         //    return Ok(new { AccessToken = accessToken, RefreshToken = refreshToken });
         //}
 
+        //[HttpPost("confirm-signup")]
+        //public async Task<ActionResult<ApiResponse<LoginResponseDto>>> ConfirmSignUp([FromBody] ConfirmMagicLinkDto dto)
+        //{
+        //    if (!ModelState.IsValid)
+        //        return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Invalid input"));
+
+        //    // كل المنطق بقى جوه AuthService
+        //    var authResponse = await _authService.ConfirmEmailAndGenerateTokensAsync(dto.UserId, dto.Token);
+
+        //    if (authResponse == null)
+        //        return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Invalid or expired token."));
+
+        //    // Optional: وضع الـ Refresh Token في Cookie
+        //    Response.Cookies.Append("RefreshToken", authResponse.RefreshToken, new CookieOptions
+        //    {
+        //        HttpOnly = true,
+        //        Secure = true,
+        //        Expires = DateTime.UtcNow.AddDays(7)
+        //    });
+
+        //    return Ok(ApiResponse<LoginResponseDto>.SuccessResponse(authResponse, "Email confirmed and user logged in."));
+        //}
+
+
+
+
+
 
         [HttpPost("register")]
         public async Task<ActionResult<ApiResponse<LoginResponseDto>>> Register([FromBody] RegisterDto dto)

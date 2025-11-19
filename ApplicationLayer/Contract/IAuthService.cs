@@ -1,4 +1,5 @@
 ﻿using ApplicationLayer.Dtos;
+using InfrastructureLayer.UserModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,6 +26,9 @@ namespace ApplicationLayer.Contract
         Task<LoginResponseDto?> LoginAsync(string email, string password);
 
         Task<(Claim[] Claims, RegisterDto User)> GetUserWithRoles(string email);
+
+        Task<LoginResponseDto> GenerateTokensForUserAsync(ApplicationUser user);
+
 
     }
 }
