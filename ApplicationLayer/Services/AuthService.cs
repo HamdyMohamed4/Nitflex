@@ -106,7 +106,7 @@ namespace ApplicationLayer.Services
 <head>
     <meta charset=""utf-8"">
     <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
-    <title>WatchMe - Confirm your email</title>
+    <title>Netflix  - Confirm your email</title>
     <style>
         body {{
             margin: 0;
@@ -179,7 +179,7 @@ namespace ApplicationLayer.Services
                     <tr>
                         <td class=""header"">
                             <!-- لو عندك لوجو WatchMe حطه هنا، لو مفيش هنكتب الاسم بالأحمر -->
-                            <h1 style=""margin:0; color:#ffffff; font-size:32px; font-weight:bold;"">WatchMe</h1>
+                            <h1 style=""margin:0; color:#ffffff; font-size:32px; font-weight:bold;"">Netflix</h1>
                         </td>
                     </tr>
 
@@ -187,7 +187,7 @@ namespace ApplicationLayer.Services
                     <tr>
                         <td class=""content"">
                             <h1>Just one more step...</h1>
-                            <p>You're almost ready to start enjoying WatchMe.</p>
+                            <p>You're almost ready to start enjoying Netflix.</p>
                             <p>Simply click the big red button below to confirm your email address and complete your registration.</p>
                             
                             <a href=""{magicLink}"" class=""button"">Confirm My Email</a>
