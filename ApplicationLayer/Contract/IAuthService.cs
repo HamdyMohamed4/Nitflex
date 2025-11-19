@@ -27,5 +27,30 @@ namespace ApplicationLayer.Contract
 
         // 7. Refresh Access Token
         Task<LoginResponseDto?> RefreshAccessTokenAsync(string refreshToken);
+
+        Task<(Claim[] Claims, RegisterDto User)> GetUserWithRolesAsync(string email);
+
+
+
+        //// Magic link (email)
+        //Task<bool> SendMagicLinkAsync(string email);
+
+        //// Confirm magic link and return tokens (email+token passed in body)
+        //Task<LoginResponseDto?> ConfirmEmailAndGenerateTokensAsync(string userIdentifier, string token);
+
+        //// Register with email+password and return tokens
+        //Task<LoginResponseDto?> RegisterAndGenerateTokensAsync(RegisterDto dto);
+
+        //// Login with email+password and return tokens
+        //Task<LoginResponseDto?> LoginAndGenerateTokensAsync(string email, string password);
+
+        //// OTP flows
+        //Task<bool> GenerateAndSendOtpAsync(string email); // generate 4-digit and send
+        //Task<LoginResponseDto?> LoginWithOtpAndGenerateTokensAsync(string email, string code);
+
+        //// Refresh access token using refresh token string
+        //Task<LoginResponseDto?> RefreshAccessTokenAsync(string refreshToken);
+
+        // Optional: expose helper to get claims+user (if needed by controllers)
     }
 }

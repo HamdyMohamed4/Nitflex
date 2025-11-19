@@ -78,5 +78,14 @@ namespace ApplicationLayer.Services
             await _db.SaveChangesAsync();
         }
 
+        public Task<OtpDto?> GetOtpAsync(string emailOrUserId)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task DeleteOtpAsync(string emailOrUserId)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
