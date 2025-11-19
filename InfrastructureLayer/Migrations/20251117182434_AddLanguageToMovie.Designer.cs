@@ -4,6 +4,7 @@ using InfrastructureLayer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace InfrastructureLayer.Migrations
 {
     [DbContext(typeof(NetflixContext))]
-    partial class NetflixContextModelSnapshot : ModelSnapshot
+    [Migration("20251117182434_AddLanguageToMovie")]
+    partial class AddLanguageToMovie
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -334,6 +337,13 @@ namespace InfrastructureLayer.Migrations
                     b.Property<int>("CurrentState")
                         .HasColumnType("int");
 
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("MaxDevices")
+                        .HasColumnType("int");
+
                     b.Property<int>("MaxDownloadDevices")
                         .HasColumnType("int");
 
@@ -354,10 +364,6 @@ namespace InfrastructureLayer.Migrations
                         .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("SpatialAudio")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("SupportedDevices")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid?>("UpdatedBy")
@@ -764,6 +770,7 @@ namespace InfrastructureLayer.Migrations
                         .HasColumnType("datetimeoffset");
 
                     b.Property<string>("Name")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("NormalizedEmail")
