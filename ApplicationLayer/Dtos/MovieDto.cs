@@ -14,5 +14,8 @@ namespace ApplicationLayer.Dtos
         public int Duration { get; set; }
         public string? PosterUrl { get; set; }
         public bool IsFeatured { get; set; }
+        public string? Language { get; set; }
+        public string? AudioType { get; set; }  // Original / Dubbed / Subtitled
+
     }
 }
