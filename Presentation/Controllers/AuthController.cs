@@ -78,26 +78,11 @@ namespace Presentation.Controllers
             return Ok(ApiResponse<object>.SuccessResponse(null, $"Sign-up link sent to {model.Email}"));
         }
 
+
+
         // ============================
         // Confirm Email & Generate Tokens
-        // ============================
-        //[HttpPost("confirm-signup")]
-        //public async Task<ActionResult<ApiResponse<LoginResponseDto>>> ConfirmSignUp([FromBody] ConfirmMagicLinkDto dto)
-        //{
-        //    if (!ModelState.IsValid)
-        //        return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Invalid input"));
-
-        //    var user = await _authService.ConfirmEmailAndGenerateTokensAsync(dto.UserId, dto.Token);
-        //    if (user == null)
-        //        return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Invalid or expired token."));
-
-        //    SetRefreshTokenCookie(user.RefreshToken);
-        //    return Ok(ApiResponse<LoginResponseDto>.SuccessResponse(user, "Email confirmed and user logged in."));
-        //}
-
-        // ============================
-        // Register & Generate Tokens
-        // ============================
+        // ============================      
 
         [HttpPost("confirm-signup")]
         public async Task<ActionResult<ApiResponse<LoginResponseDto>>> ConfirmSignUp([FromBody] ConfirmMagicLinkDto dto)
@@ -112,7 +97,9 @@ namespace Presentation.Controllers
             SetRefreshTokenCookie(user.RefreshToken);
             return Ok(ApiResponse<LoginResponseDto>.SuccessResponse(user, "Email confirmed and user logged in."));
         }
-
+        // ============================
+        // Register & Generate Tokens
+        // ============================
 
         [HttpPost("register")]
         public async Task<ActionResult<ApiResponse<LoginResponseDto>>> Register([FromBody] RegisterDto dto)

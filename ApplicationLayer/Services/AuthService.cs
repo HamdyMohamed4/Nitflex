@@ -304,7 +304,7 @@ namespace ApplicationLayer.Services
             await _otpRepository.SaveOtpAsync(email, token, DateTime.UtcNow.AddMinutes(10));
 
             var frontendUrl = _config["Frontend:BaseUrl"];
-            var magicLink = $"{frontendUrl}?email={email}&token={Uri.EscapeDataString(token)}";
+            var magicLink = $"{frontendUrl}?email={email}&token={Uri.EscapeDataString(token)}"; 
 
             string emailBody = $@"
 <!DOCTYPE html>
@@ -546,7 +546,7 @@ namespace ApplicationLayer.Services
                     Email = email,
                     UserName = email,
                     Name = email.Split('@')[0],
-                    EmailConfirmed = false
+                    EmailConfirmed = true
                 };
 
                 var createResult = await _userManager.CreateAsync(user);
@@ -575,6 +575,7 @@ namespace ApplicationLayer.Services
 
             return response;
         }
+
 
         public async Task<bool> GenerateAndSendOtpAsync(string email)
         {
@@ -704,6 +705,10 @@ namespace ApplicationLayer.Services
         // ==========================
         // Helper: Generate Tokens for User
         // ==========================
+
+
+
+
         private async Task<LoginResponseDto> GenerateTokensForUserAsync(ApplicationUser user)
         {
             // Get roles

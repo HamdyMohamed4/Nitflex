@@ -24,7 +24,7 @@ namespace Presentation.Controllers
         // *************************************
 
         [HttpGet("plans")]
-        [Authorize(Roles = "User")]
+
         public async Task<ActionResult<ApiResponse<List<SubscriptionPlanDto>>>> GetPlans()
         {
             var plans = await _subscriptionService.GetPlansAsync();
@@ -33,7 +33,7 @@ namespace Presentation.Controllers
         }
 
         [HttpGet("plans/{id:guid}")]
-        [Authorize(Roles = "User")]
+
         public async Task<ActionResult<ApiResponse<SubscriptionPlanDto?>>> GetPlan(Guid id)
         {
             var plan = await _subscriptionService.GetPlanByIdAsync(id);
