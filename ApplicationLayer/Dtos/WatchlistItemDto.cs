@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace ApplicationLayer.Dtos
 {
-    public class WatchlistItemDto:BaseDto
+    public class WatchlistItemDto : BaseDto
     {
         public Guid ProfileId { get; set; }
         public ContentType ContentType { get; set; }

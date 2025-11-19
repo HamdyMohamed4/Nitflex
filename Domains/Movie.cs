@@ -17,6 +17,11 @@ namespace Domains
         public AgeRating AgeRating { get; set; }
 
         [MaxLength(500)]
+        public string? Language { get; set; }  // English / Arabic / Spanish / French
+        public string? AudioType { get; set; }  // Original / Dubbed / Subtitled
+
+
+        [MaxLength(500)]
         public string PosterUrl { get; set; } = string.Empty;
         [MaxLength(500)]
         public string BannerUrl { get; set; } = string.Empty;
@@ -24,7 +29,7 @@ namespace Domains
         public string TrailerUrl { get; set; } = string.Empty;
 
         public bool IsFeatured { get; set; } = false;
-
+        
         public ICollection<MovieGenre> MovieGenres { get; set; } = new List<MovieGenre>();
         public ICollection<MovieCast> Castings { get; set; } = new List<MovieCast>();
     }

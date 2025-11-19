@@ -27,20 +27,70 @@ namespace ApplicationLayer.Services
         }
 
         // ===========================
-        // Get All with Filters
+        // Get All Movie
         // ===========================
         public async Task<IEnumerable<MovieDto>> GetAllAsync(Guid? genreId = null, string? search = null)
         {
             var query = await _repo.GetList(m => m.CurrentState == 1);
 
             if (genreId.HasValue)
-                query = query.Where(m => m.Id == genreId.Value).ToList();
+                query = query.Where(m => m.MovieGenres.Any(g => g.GenreId == genreId.Value)).ToList();
 
             if (!string.IsNullOrWhiteSpace(search))
                 query = query.Where(m => m.Title.Contains(search, StringComparison.OrdinalIgnoreCase)).ToList();
 
             return _mapper.Map<IEnumerable<MovieDto>>(query);
         }
+
+
+        // ===========================
+        // Get All with Filters
+        // ===========================
+        public async Task<IEnumerable<MovieDto>> GetAllByFilter(MovieSearchFilterDto filter)
+        {
+
+            var query = await _repo.GetList(m => m.CurrentState == 1);
+
+            // ===== Search =====
+            if (!string.IsNullOrWhiteSpace(filter.SearchTerm))
+            {
+                var term = filter.SearchTerm.Trim().ToLower();
+                query = query.Where(m =>
+                    m.Title.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                    m.Description.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                    m.Castings.Any(c => c.CastMember.Name.Contains(term, StringComparison.OrdinalIgnoreCase)) ||
+                    m.MovieGenres.Any(g => g.Genre.Name.Contains(term, StringComparison.OrdinalIgnoreCase))
+                ).ToList();
+            }
+
+            // ===== Filter by Language =====
+            if (!string.IsNullOrWhiteSpace(filter.Language))
+            {
+                query = query.Where(m =>
+                m.Language != null && m.Language.Equals(filter.Language, StringComparison.OrdinalIgnoreCase)).ToList();
+            }
+
+            // ===== Filter by AudioType =====
+            if (!string.IsNullOrWhiteSpace(filter.AudioType))
+            {
+                query = query.Where(m => m.AudioType.Equals(filter.AudioType, StringComparison.OrdinalIgnoreCase)).ToList();
+            }
+
+            // ===== Sort =====
+            if (!string.IsNullOrWhiteSpace(filter.SortOption))
+            {
+                query = filter.SortOption switch
+                {
+                    "YearRelease" => query.OrderByDescending(m => m.ReleaseYear).ToList(),
+                    "A-Z" => query.OrderBy(m => m.Title).ToList(),
+                    "Z-A" => query.OrderByDescending(m => m.Title).ToList(),
+                    _ => query
+                };
+            }
+
+            return _mapper.Map<IEnumerable<MovieDto>>(query);
+        }
+
 
         // ===========================
         // Get By Id
