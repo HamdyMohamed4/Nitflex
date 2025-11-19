@@ -29,6 +29,10 @@ namespace ApplicationLayer.Contract
 
         Task<LoginResponseDto> GenerateTokensForUserAsync(ApplicationUser user);
 
+        Task<LoginResponseDto?> ConfirmEmailAndGenerateTokensAsync(string userId, string token);
+
+        Task<LoginResponseDto?> RegisterAndGenerateTokensAsync(RegisterDto dto);
+
 
     }
 }

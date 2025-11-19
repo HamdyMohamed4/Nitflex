@@ -90,6 +90,139 @@ namespace ApplicationLayer.Services
             _config = config;
         }
 
+        //        public async Task<bool> SendMagicLinkAsync(string email)
+        //        {
+        //            var (result, token) = await _userService.CreateUserWithoutPasswordAndGetTokenAsync(email);
+
+        //            if (!result.Success || token == null) return false;
+
+        //            var frontendUrl = _config["Frontend:BaseUrl"]; // <-- خد URL من settings
+
+        //            //var magicLink = $"{frontendUrl}?token={Uri.EscapeDataString(token)}";
+        //            var magicLink = $"{frontendUrl}?userId={result.Id}&token={Uri.EscapeDataString(token)}";
+
+        //            string emailBody = $@"
+        //<!DOCTYPE html>
+        //<html>
+        //<head>
+        //    <meta charset=""utf-8"">
+        //    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
+        //    <title>Netflix  - Confirm your email</title>
+        //    <style>
+        //        body {{
+        //            margin: 0;
+        //            padding: 0;
+        //            background-color: #f4f4f4;
+        //            font-family: Helvetica, Arial, sans-serif;
+        //        }}
+        //        .container {{
+        //            max-width: 600px;
+        //            margin: 0 auto;
+        //            background-color: #ffffff;
+        //        }}
+        //        .header {{
+        //            background-color: #E50914; /* Netflix Red */
+        //            padding: 30px 20px;
+        //            text-align: center;
+        //        }}
+        //        .header img {{
+        //            height: 40px;
+        //        }}
+        //        .content {{
+        //            padding: 40px 40px 60px;
+        //            text-align: center;
+        //            color: #333333;
+        //        }}
+        //        .content h1 {{
+        //            font-size: 28px;
+        //            margin-bottom: 20px;
+        //            color: #000000;
+        //        }}
+        //        .content p {{
+        //            font-size: 16px;
+        //            line-height: 1.5;
+        //            margin-bottom: 30px;
+        //            color: #555555;
+        //        }}
+        //        .button {{
+        //            display: inline-block;
+        //            background-color: #E50914;
+        //            color: #ffffff !important;
+        //            font-size: 18px;
+        //            font-weight: bold;
+        //            padding: 16px 36px;
+        //            text-decoration: none;
+        //            border-radius: 4px;
+        //            margin: 20px 0;
+        //        }}
+        //        .button:hover {{
+        //            background-color: #c30812;
+        //        }}
+        //        .footer {{
+        //            background-color: #f4f4f4;
+        //            padding: 30px;
+        //            text-align: center;
+        //            font-size: 12px;
+        //            color: #999999;
+        //        }}
+        //        .footer a {{
+        //            color: #999999;
+        //            text-decoration: underline;
+        //        }}
+        //    </style>
+        //</head>
+        //<body>
+        //    <table width=""100%"" cellpadding=""0"" cellspacing=""0"" style=""background-color:#f4f4f4;"">
+        //        <tr>
+        //            <td align=""center"">
+        //                <table class=""container"">
+        //                    <!-- Header -->
+        //                    <tr>
+        //                        <td class=""header"">
+        //                            <!-- لو عندك لوجو WatchMe حطه هنا، لو مفيش هنكتب الاسم بالأحمر -->
+        //                            <h1 style=""margin:0; color:#ffffff; font-size:32px; font-weight:bold;"">Netflix</h1>
+        //                        </td>
+        //                    </tr>
+
+        //                    <!-- Content -->
+        //                    <tr>
+        //                        <td class=""content"">
+        //                            <h1>Just one more step...</h1>
+        //                            <p>You're almost ready to start enjoying Netflix.</p>
+        //                            <p>Simply click the big red button below to confirm your email address and complete your registration.</p>
+
+        //                            <a href=""{magicLink}"" class=""button"">Confirm My Email</a>
+
+        //                            <p style=""margin-top:40px; font-size:14px; color:#777;"">
+        //                                If you didn't create an account with WatchMe, you can safely ignore this email.
+        //                            </p>
+        //                        </td>
+        //                    </tr>
+
+        //                    <!-- Footer -->
+        //                    <tr>
+        //                        <td class=""footer"">
+        //                            <p>© 2025 WatchMe. All rights reserved.</p>
+        //                            <p>
+        //                                If you're having trouble clicking the button, copy and paste this link into your browser:<br/>
+        //                                <a href=""{magicLink}"">{magicLink}</a>
+        //                            </p>
+        //                        </td>
+        //                    </tr>
+        //                </table>
+        //            </td>
+        //        </tr>
+        //    </table>
+        //</body>
+        //</html>";
+
+        //            await _emailService.SendEmailAsync(email, "WatchMe Sign-Up Confirmation", emailBody);
+
+        //            return true;
+        //        }
+
+
+
         public async Task<bool> SendMagicLinkAsync(string email)
         {
             var (result, token) = await _userService.CreateUserWithoutPasswordAndGetTokenAsync(email);
@@ -99,7 +232,7 @@ namespace ApplicationLayer.Services
             var frontendUrl = _config["Frontend:BaseUrl"]; // <-- خد URL من settings
 
             //var magicLink = $"{frontendUrl}?token={Uri.EscapeDataString(token)}";
-            var magicLink = $"{frontendUrl}?userId={result.Id}&token={Uri.EscapeDataString(token)}";
+            var magicLink = $"{frontendUrl}";
 
             string emailBody = $@"
 <!DOCTYPE html>
@@ -221,6 +354,8 @@ namespace ApplicationLayer.Services
             return true;
         }
 
+
+
         public async Task<LoginResponseDto?> RegisterUserFromMagicLinkAsync(string userId, string token)
         {
             if (!Guid.TryParse(userId, out Guid guid))
@@ -321,6 +456,86 @@ namespace ApplicationLayer.Services
                 UserId = user.Id.ToString(),
             };
         }
+
+        public async Task<LoginResponseDto?> ConfirmEmailAndGenerateTokensAsync(string userId, string token)
+        {
+            // تأكيد الايميل
+            var confirm = await _userService.ConfirmEmailAsync(Guid.Parse(userId), token);
+            if (!confirm.Success) return null;
+
+            // جلب الـ user
+            var user = await _userService.GetUserByIdentityAsync(userId);
+            if (user == null) return null;
+
+            // جلب الأدوار
+            var roles = await _userService.GetUserRolesAsync(userId);
+
+            // إعداد الـ claims
+            var claims = new List<Claim>
+        {
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.Email, user.Email)
+        };
+            foreach (var role in roles)
+                claims.Add(new Claim(ClaimTypes.Role, role));
+
+            // توليد الـ Access Token
+            var accessToken = _tokenService.GenerateAccessToken(claims);
+
+            // توليد الـ Refresh Token
+            var refreshToken = _tokenService.GenerateRefreshToken();
+
+            // حفظ الـ Refresh Token في DB
+            await _refreshTokenService.Refresh(new RefreshTokenDto
+            {
+                Token = refreshToken,
+                UserId = user.Id.ToString(),
+                Expires = DateTime.UtcNow.AddDays(7),
+                CurrentState = 1
+            });
+
+            return new LoginResponseDto
+            {
+                AccessToken = accessToken,
+                RefreshToken = refreshToken,
+                UserId = user.Id.ToString(),
+                Email = user.Email
+            };
+        }
+
+
+        public async Task<LoginResponseDto?> RegisterAndGenerateTokensAsync(RegisterDto dto)
+        {
+            var result = await _userService.RegisterAsync(dto);
+
+            if (!result.Success)
+                return null;
+
+            var user = await _userService.GetUserByEmailAsync(dto.Email);
+            if (user == null) return null;
+
+            var (claims, appUser) = await GetUserWithRoles(dto.Email);
+
+            var accessToken = _tokenService.GenerateAccessToken(claims);
+            var refreshToken = _tokenService.GenerateRefreshToken();
+
+            await _refreshTokenService.Refresh(new RefreshTokenDto
+            {
+                Token = refreshToken,
+                UserId = appUser.Id.ToString(),
+                Expires = DateTime.UtcNow.AddDays(7),
+                CurrentState = 1
+            });
+
+            return new LoginResponseDto
+            {
+                AccessToken = accessToken,
+                RefreshToken = refreshToken,
+                UserId = appUser.Id.ToString(),
+                Email = appUser.Email
+            };
+        }
+
 
 
     }
