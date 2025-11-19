@@ -76,6 +76,7 @@ namespace Presentation.Controllers
                 return BadRequest(ApiResponse<object>.FailResponse("Could not send magic link."));
 
             return Ok(ApiResponse<object>.SuccessResponse(null, $"Sign-up link sent to {model.Email}"));
+            
         }
 
 
@@ -84,19 +85,41 @@ namespace Presentation.Controllers
         // Confirm Email & Generate Tokens
         // ============================      
 
+        //[HttpPost("confirm-signup")]
+        //public async Task<ActionResult<ApiResponse<LoginResponseDto>>> ConfirmSignUp([FromBody] ConfirmMagicLinkDto dto)
+        //{
+        //    if (!ModelState.IsValid)
+        //        return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Invalid input"));
+
+        //    var user = await _authService.ConfirmEmailAndGenerateTokensAsync(dto.Email, dto.Token);
+        //    if (user == null)
+        //        return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Invalid or expired token."));
+
+        //    SetRefreshTokenCookie(user.RefreshToken);
+        //    return Ok(ApiResponse<LoginResponseDto>.SuccessResponse(user, "Email confirmed and user logged in."));
+        //}
+
         [HttpPost("confirm-signup")]
         public async Task<ActionResult<ApiResponse<LoginResponseDto>>> ConfirmSignUp([FromBody] ConfirmMagicLinkDto dto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Invalid input"));
 
-            var user = await _authService.ConfirmEmailAndGenerateTokensAsync(dto.Email, dto.Token);
+            // Decode token because it arrives URL encoded
+            dto.Token = Uri.UnescapeDataString(dto.Token);
+
+            // 1. Confirm email & Create/Login user
+            var user = await _authService.ConfirmEmailAndGenerateTokensAsync(dto.Email,dto.Token);
+
             if (user == null)
                 return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Invalid or expired token."));
 
+            // 2. Store refresh token inside HTTP Only cookie
             SetRefreshTokenCookie(user.RefreshToken);
+
             return Ok(ApiResponse<LoginResponseDto>.SuccessResponse(user, "Email confirmed and user logged in."));
         }
+
         // ============================
         // Register & Generate Tokens
         // ============================

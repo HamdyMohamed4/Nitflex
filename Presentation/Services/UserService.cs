@@ -13,14 +13,76 @@ namespace Presentation.Services
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IOtpRepository _otpRepo;
+        private readonly TokenService _tokenService;
+        private readonly IRefreshTokens _refreshTokenService;
 
         public UserService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager,
-             IHttpContextAccessor accessor,IOtpRepository otpRepo)
+             IHttpContextAccessor accessor,IOtpRepository otpRepo, TokenService tokenService)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _httpContextAccessor = accessor;
             _otpRepo = otpRepo;
+            _tokenService = tokenService;
+        }
+
+
+        public async Task<LoginResponseDto?> ConfirmSignUpAsync(string email, string token)
+        {
+            // 1. تحقق من صحة التوكن
+            var otpRecord = await _otpRepo.GetValidOtpAsync(email, token);
+            if (otpRecord == null)
+                return null; // توكن غير صالح أو منتهي
+
+            // 2. تحقق إذا كان المستخدم موجودًا في قاعدة البيانات
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+            {
+                // إذا لم يكن موجودًا، قم بإنشاء مستخدم جديد
+                user = new ApplicationUser
+                {
+                    Email = email,
+                    UserName = email,
+                    Name = email.Split('@')[0],
+                    EmailConfirmed = true
+                };
+
+                var result = await _userManager.CreateAsync(user);
+                if (!result.Succeeded)
+                    return null; // إذا حدث خطأ أثناء الإنشاء
+
+                await _userManager.AddToRoleAsync(user, "User");
+            }
+
+            // 3. تأكيد البريد الإلكتروني إذا لم يكن تم تأكيده بعد
+            if (!user.EmailConfirmed)
+            {
+                var confirmResult = await _userManager.ConfirmEmailAsync(user, token);
+                if (!confirmResult.Succeeded)
+                    return null; // إذا فشل التأكيد
+            }
+
+            // 4. توليد التوكنات
+            var accessToken = _tokenService.GenerateAccessToken(user);
+            var refreshToken = _tokenService.GenerateRefreshToken();
+
+            // 5. حفظ الـ Refresh Token في قاعدة البيانات
+            await _refreshTokenService.Refresh(new RefreshTokenDto
+            {
+                Token = refreshToken,
+                UserId = user.Id.ToString(),
+                Expires = DateTime.UtcNow.AddDays(7),
+                CurrentState = 1
+            });
+
+            // 6. إرجاع التوكنات للمستخدم
+            return new LoginResponseDto
+            {
+                AccessToken = accessToken,
+                RefreshToken = refreshToken,
+                UserId = user.Id.ToString(),
+                Email = user.Email
+            };
         }
 
         public async Task<UserResultDto> RegisterAsync(RegisterDto registerDto)
