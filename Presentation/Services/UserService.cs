@@ -63,6 +63,12 @@ namespace Presentation.Services
             return new RegisterDto { Id = user.Id, Email = user.Email ?? string.Empty, Password = string.Empty, Name = user.Name ?? string.Empty };
         }
 
+
+        public async Task<ApplicationUser?> GetUserByEmailAsyncs(string email)
+        {
+            return await _userManager.FindByEmailAsync(email);
+        }
+
         public async Task<RegisterDto?> GetUserByIdAsync(string userId)
         {
             var user = await _userManager.FindByIdAsync(userId);
@@ -216,18 +222,27 @@ namespace Presentation.Services
             };
         }
 
-        // ---- الميثود الجديدة ----
-        public async Task<List<string>> GetUserRolesAsync(string userId)
+
+        public async Task<IList<string>> GetUserRolesAsync(string userId)
         {
             var user = await _userManager.FindByIdAsync(userId);
+            if (user == null) return new List<string>();
 
-            if (user == null)
-                return new List<string>();
-
-            var roles = await _userManager.GetRolesAsync(user);
-
-            return roles.ToList();
+            return await _userManager.GetRolesAsync(user);
         }
+
+
+        //public async Task<(bool Success, string? Id)> CreateUserWithoutPasswordAndGetTokenAsync(string email)
+        //{
+        //    var user = new ApplicationUser { Email = email, UserName = email };
+        //    var result = await _userManager.CreateAsync(user);
+        //    if (!result.Succeeded) return (false, null);
+
+        //    // Generate token (مثلاً email confirmation token)
+        //    var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+        //    return (true, token);
+        //}
+
 
     }
 }

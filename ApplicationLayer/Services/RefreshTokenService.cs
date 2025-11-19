@@ -35,5 +35,14 @@ namespace ApplicationLayer.Services
             _repo.Add(dbTokens);
             return true;
         }
+
+        public async Task<RefreshTokenDto?> GetByTokenAsync(string token)
+        {
+            var entity = await _repo.GetFirstOrDefault(t => t.Token == token);
+
+            if (entity == null) return null;
+
+            return _mapper.Map<RefreshTokenDto>(entity);
+        }
     }
 }

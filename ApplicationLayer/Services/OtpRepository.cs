@@ -2,8 +2,11 @@
 using ApplicationLayer.Dtos;
 using AutoMapper;
 using InfrastructureLayer;
+using InfrastructureLayer.UserModels;
 using Microsoft.EntityFrameworkCore;
-
+using System;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace ApplicationLayer.Services
 {
@@ -18,23 +21,7 @@ namespace ApplicationLayer.Services
             _mapper = mapper;
         }
 
-        public async Task SaveOtpAsync(OtpDto otp)
-        {
-            var entity = _mapper.Map<EmailOtp>(otp);
-            await _db.EmailOtp.AddAsync(entity);
-            await _db.SaveChangesAsync();
-        }
-
-        //public async Task<OtpDto?> GetValidOtpAsync(string email, string code)
-        //{
-        //    var otp = await _db.EmailOtp
-        //        .Where(x => x.Email == email && x.OtpCode == code && !x.IsUsed)
-        //        .OrderByDescending(x => x.ExpirationDate)
-        //        .FirstOrDefaultAsync();
-
-        //    return otp == null ? null : _mapper.Map<OtpDto>(otp);
-        //}
-
+        // جلب OTP صالح لمستخدم محدد
         public async Task<OtpDto?> GetValidOtpAsync(string email, string code)
         {
             var otp = await _db.EmailOtp
@@ -42,31 +29,17 @@ namespace ApplicationLayer.Services
                 .OrderByDescending(x => x.ExpirationDate)
                 .FirstOrDefaultAsync();
 
-            if (otp == null)
-            {
-                Console.WriteLine("❌ OTP Not Found OR Already Used.");
+            if (otp == null || otp.ExpirationDate < DateTime.UtcNow)
                 return null;
-            }
-
-            if (otp.ExpirationDate < DateTime.UtcNow)
-            {
-                Console.WriteLine("⏳ OTP Expired");
-                return null;
-            }
-
-            Console.WriteLine($"✅ OTP Found: {otp.OtpCode}, Email: {otp.Email}, Exp: {otp.ExpirationDate}");
 
             return _mapper.Map<OtpDto>(otp);
         }
 
-
-
-
-
+        // وضع OTP كمُستخدم بعد النجاح
         public async Task MarkOtpUsedAsync(string email, string code)
         {
             var otp = await _db.EmailOtp
-                .FirstOrDefaultAsync(x => x.Email == email && x.OtpCode == code);
+                .FirstOrDefaultAsync(x => x.Email == email && x.OtpCode == code && !x.IsUsed);
 
             if (otp != null)
             {
@@ -75,6 +48,35 @@ namespace ApplicationLayer.Services
             }
         }
 
-    }
+        // تحقق من صلاحية OTP
+        public async Task<bool> ValidateOtpAsync(string email, string code)
+        {
+            var otp = await _db.EmailOtp
+                .Where(x => x.Email == email && x.OtpCode == code && !x.IsUsed)
+                .OrderByDescending(x => x.ExpirationDate)
+                .FirstOrDefaultAsync();
 
+            if (otp == null) return false;
+
+            if (otp.ExpirationDate < DateTime.UtcNow) return false;
+
+            return true;
+        }
+
+        public async Task SaveOtpAsync(string userId, string code, DateTime expires)
+        {
+            var otp = new EmailOtp
+            {
+                Email = userId,       // لو عندك عمود Email، أو UserId حسب التصميم
+                OtpCode = code,
+                ExpirationDate = expires,
+                CreatedDate = DateTime.UtcNow,
+                IsUsed = false
+            };
+
+            await _db.EmailOtp.AddAsync(otp);
+            await _db.SaveChangesAsync();
+        }
+
+    }
 }

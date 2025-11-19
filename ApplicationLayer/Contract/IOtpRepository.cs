@@ -9,8 +9,16 @@ namespace ApplicationLayer.Contract
 {
     public interface IOtpRepository
     {
-        Task SaveOtpAsync(OtpDto otp);
-        Task<OtpDto?> GetValidOtpAsync(string email, string code);
-        Task MarkOtpUsedAsync(string email, string code);
+        // حفظ OTP جديد
+        Task SaveOtpAsync(string userId, string code, DateTime expires);
+
+        // التحقق من صلاحية OTP (صالح ولم يُستخدم)
+        Task<bool> ValidateOtpAsync(string userId, string code);
+
+        // وضع OTP كمُستخدم (used)
+        Task MarkOtpUsedAsync(string userId, string code);
+
+        // جلب OTP صالح لمستخدم محدد (اختياري)
+        Task<OtpDto?> GetValidOtpAsync(string userId, string code);
     }
 }

@@ -22,7 +22,11 @@ namespace ApplicationLayer.Contract
         Task<ApplicationUser?> GetUserByIdentityAsync(string userId);
         Task<LoginResponseDto> LoginWithOtpAsync(string email, string code);
 
-        Task<List<string>> GetUserRolesAsync(string userId);
+        Task<IList<string>> GetUserRolesAsync(string userId);
+
+        Task<ApplicationUser?> GetUserByEmailAsyncs(string email);
+
+        //Task<List<string>> GetUserRolesAsync(string userId);
         //Task SaveOtpAsync(OtpDto otp);
 
     }

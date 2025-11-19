@@ -10,7 +10,9 @@ namespace ApplicationLayer.Contract
 {
     public interface IRefreshTokens : IBaseService<TbRefreshTokens, RefreshTokenDto>
     {
-        public Task<bool> Refresh(RefreshTokenDto tokenDto);
+        Task<bool> Refresh(RefreshTokenDto tokenDto);
+
+        Task<RefreshTokenDto?> GetByTokenAsync(string token);
 
     }
 }
