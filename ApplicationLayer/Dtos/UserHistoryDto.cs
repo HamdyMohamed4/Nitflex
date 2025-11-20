@@ -4,10 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+
 namespace ApplicationLayer.Dtos
 {
-    public class CreateUserSubscriptionDto:BaseDto
+    internal class UserHistoryDto
     {
-        public Guid SubscriptionPlanId { get; set; }
     }
 }
