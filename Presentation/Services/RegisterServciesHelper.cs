@@ -52,6 +52,8 @@ namespace Presentation.Services
 
 
 
+            builder.Services.AddSignalR();
+
 
             // DbContext
             builder.Services.AddDbContext<NetflixContext>(options =>
@@ -110,6 +112,7 @@ namespace Presentation.Services
             builder.Services.AddScoped<ISubsciptionService, SubcriptionService>();
             builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddScoped<IOtpRepository, OtpRepository>();
+            builder.Services.AddScoped<IUserHistoryService, UserHistoryService>();
 
 
             builder.Services.AddHttpClient<PayPalGateway>();
@@ -117,6 +120,7 @@ namespace Presentation.Services
             builder.Services.AddScoped<PaymentFactory>();
 
             builder.Services.AddSingleton<TokenService>();
+            builder.Services.AddScoped<NotificationService>();
             builder.Services.AddScoped<IRefreshTokens, RefreshTokenService>();
             builder.Services.AddScoped<IRefreshTokenRetriver, RefreshTokenRetriverService>();
 

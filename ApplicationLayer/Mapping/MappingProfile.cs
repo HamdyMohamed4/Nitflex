@@ -62,6 +62,22 @@ namespace ApplicationLayer.Mapping
             CreateMap<ApplicationUser, LoginDto>().ReverseMap();
             CreateMap<ApplicationUser, LoginWithOtpDto>().ReverseMap();
             CreateMap<ApplicationUser, UserResultDto>().ReverseMap();
+
+
+
+
+            // Mapping for UserHistory and UserHistoryDto
+            CreateMap<UserHistory, UserHistoryDto>()
+                .ForMember(dest => dest.Title, opt => opt.MapFrom(src => string.Empty))  // If you want to map Title separately
+                .ForMember(dest => dest.ThumbnailUrl, opt => opt.MapFrom(src => (string?)null));  // You can customize as needed
+
+            CreateMap<UserHistoryDto, UserHistory>().ReverseMap();
+            CreateMap<Notification, NotificationDto>().ReverseMap();
+
+
+            // Mapping from NotificationDto to Notification (Entity)
+            CreateMap<NotificationDto, Notification>().ReverseMap();
+
         }
     }
 }

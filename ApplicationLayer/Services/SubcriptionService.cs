@@ -155,7 +155,7 @@ namespace ApplicationLayer.Services
                 StartDate = DateTime.UtcNow,
                 EndDate = DateTime.UtcNow.AddMonths(1), // على سبيل المثال
                 IsActive = true, // تفعيل الاشتراك
-                PlanName = result.PlanName,
+                Name = result.Name,
                 AccessToken = accessToken,
                 RefreshToken = refreshToken
             };

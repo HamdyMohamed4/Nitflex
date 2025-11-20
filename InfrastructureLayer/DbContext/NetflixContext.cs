@@ -40,6 +40,9 @@ namespace InfrastructureLayer
         public DbSet<TVShowGenre> TVShowGenres { get; set; }
         public DbSet<MovieCast> MovieCasts { get; set; }
         public DbSet<TvShowCast> TVShowCasts { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
+
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
