@@ -28,6 +28,8 @@ namespace ApplicationLayer.Contract
 
         Task<ApplicationUser?> GetUserByEmailAsyncs(string email);
 
+        Task<LoginResponseDto?> ConfirmSignUpAsync(string email, string token);
+
         //Task<List<string>> GetUserRolesAsync(string userId);
         //Task SaveOtpAsync(OtpDto otp);
 
