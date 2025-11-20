@@ -3,6 +3,7 @@ using ApplicationLayer.Dtos;
 using ApplicationLayer.Services;
 using InfrastructureLayer.UserModels;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace Presentation.Services
@@ -282,6 +283,16 @@ namespace Presentation.Services
             if (user == null) return new List<string>();
 
             return await _userManager.GetRolesAsync(user);
+        }
+
+        public async Task<ApplicationUser?> GetUserByIdWithProfilesAsync(string userId)
+        {
+            return await _userManager.Users.Include(x => x.Profiles).AsNoTracking().FirstOrDefaultAsync(x => x.Id.ToString() == userId);
+        }
+
+        public async Task<ApplicationUser?> GetUserByIdWithProfilesWithHistoriesAsync(string userId)
+        {
+            return await _userManager.Users.Include(x => x.Profiles).ThenInclude(x => x.Histories).AsNoTracking().FirstOrDefaultAsync(x => x.Id.ToString() == userId);
         }
 
 

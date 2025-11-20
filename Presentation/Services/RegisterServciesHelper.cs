@@ -50,7 +50,7 @@ namespace Presentation.Services
             });
 
 
-
+            builder.Services.AddScoped<IProfileService, ProfileService>();
 
             builder.Services.AddSignalR();
 
@@ -130,7 +130,7 @@ namespace Presentation.Services
 
 
 
-           
+
 
         }
     }

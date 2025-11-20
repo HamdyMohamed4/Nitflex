@@ -3,16 +3,16 @@ using System;
 
 namespace ApplicationLayer.Dtos
 {
-    public class UserHistoryDto : BaseDto
-    {
+public class UserHistoryDto : BaseDto
+{
         // The user who watched the content
-        public Guid ProfileId { get; set; }
+    public Guid ProfileId { get; set; }
 
         // The id of the content (movie, episode, etc.)
         public Guid ContentId { get; set; }
 
         // Type of the content (e.g. "Movie", "Episode", "Serie")
-        public ContentType ContentType { get; set; } 
+    public ContentType ContentType { get; set; }
 
         // Human readable title for the UI
         public string Title { get; set; } = string.Empty;
