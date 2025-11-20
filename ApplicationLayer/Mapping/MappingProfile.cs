@@ -16,6 +16,8 @@ namespace ApplicationLayer.Mapping
 
             // Movie
             CreateMap<Movie, MovieDto>().ReverseMap();
+            CreateMap<Movie, GenreMoviesResponseDto>().ReverseMap();
+            CreateMap<Movie, MovieSearchFilterDto>().ReverseMap();
 
 
             // Genre
@@ -26,8 +28,11 @@ namespace ApplicationLayer.Mapping
             // TV Shows, Seasons, Episodes
             CreateMap<TVShow, TvShowDto>().ReverseMap();
             CreateMap<TVShow, TvShowDetailsDto>().ReverseMap();
-            CreateMap<CreateTvShowDto, TVShow>();
-            CreateMap<UpdateTvShowDto, TVShow>();
+            CreateMap<CreateTvShowDto, TVShow>().ReverseMap();
+            CreateMap<UpdateTvShowDto, TVShow>().ReverseMap();
+            CreateMap< TVShow, GenreShowsResponseDto>().ReverseMap();
+
+
 
             CreateMap<Season, SeasonDto>().ReverseMap();
             CreateMap<CreateSeasonDto, Season>();
