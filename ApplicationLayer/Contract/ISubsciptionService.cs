@@ -20,6 +20,7 @@ namespace ApplicationLayer.Contract
         // User subscriptions
         Task<UserSubscriptionDto?> GetCurrentUserSubscriptionAsync(string userId);
         Task<UserSubscriptionDto> SubscribeAsync(string userId, CreateUserSubscriptionDto dto);
+        Task<UserSubscriptionDto> ActivateSubscriptionAsync(Guid userId, CreateUserSubscriptionDto dto);
 
     }
 }
