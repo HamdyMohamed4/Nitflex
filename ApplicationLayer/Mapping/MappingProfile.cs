@@ -62,6 +62,13 @@ namespace ApplicationLayer.Mapping
             CreateMap<ApplicationUser, LoginDto>().ReverseMap();
             CreateMap<ApplicationUser, LoginWithOtpDto>().ReverseMap();
             CreateMap<ApplicationUser, UserResultDto>().ReverseMap();
+
+            // Profile
+            CreateMap<UserProfile, UserProfileDto>()
+                .ForMember(dest => dest.ProfileId, opt => opt.MapFrom(x => x.Id))
+                .ForMember(dest => dest.WatchListItems, opt => opt.MapFrom(x => x.WatchlistItems));
+
+            CreateMap<UserHistory, UserHistoryDto>();
         }
     }
 }

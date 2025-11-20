@@ -50,7 +50,7 @@ namespace Presentation.Services
             });
 
 
-
+            builder.Services.AddScoped<IProfileService, ProfileService>();
 
 
             // DbContext
@@ -126,7 +126,7 @@ namespace Presentation.Services
 
 
 
-           
+
 
         }
     }

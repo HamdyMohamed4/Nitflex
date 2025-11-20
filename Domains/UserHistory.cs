@@ -10,7 +10,6 @@ namespace Domains
     {
         public Guid ProfileId { get; set; }
         public UserProfile Profile { get; set; } = default!;
-
         public ContentType ContentType { get; set; }
         public Guid ContentId { get; set; }
         public DateTime LastWatched { get; set; }
