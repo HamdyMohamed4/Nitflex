@@ -1,5 +1,6 @@
 ﻿using ApplicationLayer.Contract;
 using ApplicationLayer.Dtos;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Presentation.Models;
 using System;
@@ -14,49 +15,101 @@ namespace Presentation.Controllers
     public class MovieController : ControllerBase
     {
         private readonly IMovieService _movieService;
+        private readonly IUserService _userService;
 
-        public MovieController(IMovieService movieService)
+        public MovieController(IMovieService movieService, IUserService userService)
         {
             _movieService = movieService;
+            _userService = userService;
         }
 
-        // POST: api/Movies/search
+        // POST: api/Movie/search
         [HttpPost("search")]
         public async Task<ActionResult<ApiResponse<List<MovieDto>>>> Search([FromBody] MovieSearchFilterDto filter)
         {
             try
             {
-                // ===== Validate the filter =====
                 if (filter == null)
-                {
-                    return BadRequest(ApiResponse<List<MovieDto>>.FailResponse(
-                        "Filter data is required."
-                    ));
-                }
+                    return BadRequest(ApiResponse<List<MovieDto>>.FailResponse("Filter data is required."));
 
-                // ===== Execute the search =====
                 var movies = await _movieService.GetAllByFilter(filter);
 
-                // ===== Check if any movies found =====
                 if (movies == null || !movies.Any())
-                {
-                    return NotFound(ApiResponse<List<MovieDto>>.FailResponse(
-                        "No movies found matching your search criteria."
-                    ));
-                }
+                    return NotFound(ApiResponse<List<MovieDto>>.FailResponse("No movies found matching your search criteria."));
 
-                // ===== Return the results successfully =====
-                return Ok(ApiResponse<List<MovieDto>>.SuccessResponse(
-                    movies.ToList(),
-                    "Movies retrieved successfully."
-                ));
+                return Ok(ApiResponse<List<MovieDto>>.SuccessResponse(movies.ToList(), "Movies retrieved successfully."));
             }
             catch (Exception ex)
             {
-                // ===== Catch any unexpected errors =====
                 return BadRequest(ApiResponse<List<MovieDto>>.FailResponse(
-                    "An error occurred while searching for movies.", new List<string> { ex.Message }
-                ));
+                    "An error occurred while searching for movies.", new List<string> { ex.Message }));
+            }
+        }
+
+        // GET: api/Movie/genre/{genreId}?page=1&pageSize=20
+        [HttpGet("genre/{genreId:guid}")]
+        public async Task<ActionResult<ApiResponse<GenreMoviesResponseDto>>> GetByGenre(Guid genreId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+        {
+            try
+            {
+                if (genreId == Guid.Empty)
+                    return BadRequest(ApiResponse<GenreMoviesResponseDto>.FailResponse("Invalid genre id."));
+
+                var result = await _movieService.GetMoviesByGenreAsync(genreId, page, pageSize);
+
+                if (result == null || result.Movies == null || result.Movies.Count == 0)
+                    return NotFound(ApiResponse<GenreMoviesResponseDto>.FailResponse("No movies found for the specified genre."));
+
+                return Ok(ApiResponse<GenreMoviesResponseDto>.SuccessResponse(result, "Movies by genre retrieved successfully."));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<GenreMoviesResponseDto>.FailResponse("Failed to retrieve movies by genre", new List<string> { ex.Message }));
+            }
+        }
+
+        // GET: api/Movie/{id}/play
+        // Returns a streaming locator for the movie. Requires authenticated user.
+        [HttpGet("{id:guid}/play")]
+        [Authorize(Roles = "User")]
+        public async Task<ActionResult<ApiResponse<string>>> Play(Guid id)
+        {
+            try
+            {
+                if (id == Guid.Empty)
+                    return BadRequest(ApiResponse<string>.FailResponse("Invalid movie id."));
+
+                // Using logged-in user id as profile identifier for now.
+                var profileId = _userService.GetLoggedInUser();
+
+                var url = await _movieService.GetStreamingUrlAsync(id, profileId);
+
+                if (string.IsNullOrWhiteSpace(url))
+                    return NotFound(ApiResponse<string>.FailResponse("Streaming URL not available for this movie."));
+
+                return Ok(ApiResponse<string>.SuccessResponse(url, "Streaming URL retrieved."));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<string>.FailResponse("Failed to get streaming URL", new List<string> { ex.Message }));
+            }
+        }
+
+        // GET: api/Movie/featured?limit=10
+        [HttpGet("featured")]
+        public async Task<ActionResult<ApiResponse<List<MovieDto>>>> GetFeatured([FromQuery] int limit = 10)
+        {
+            try
+            {
+                var movies = await _movieService.GetFeaturedAsync(limit);
+                if (movies == null || !movies.Any())
+                    return NotFound(ApiResponse<List<MovieDto>>.FailResponse("No featured movies found."));
+
+                return Ok(ApiResponse<List<MovieDto>>.SuccessResponse(movies.ToList(), "Featured movies retrieved."));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<List<MovieDto>>.FailResponse("Failed to retrieve featured movies", new List<string> { ex.Message }));
             }
         }
     }

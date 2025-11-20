@@ -17,6 +17,7 @@ namespace ApplicationLayer.Mapping
             // Movie
             CreateMap<Movie, MovieDto>().ReverseMap();
 
+
             // Genre
             CreateMap<Genre, GenreDto>().ReverseMap();
             CreateMap<CreateGenreDto, Genre>();
@@ -63,12 +64,21 @@ namespace ApplicationLayer.Mapping
             CreateMap<ApplicationUser, LoginWithOtpDto>().ReverseMap();
             CreateMap<ApplicationUser, UserResultDto>().ReverseMap();
 
-            // Profile
-            CreateMap<UserProfile, UserProfileDto>()
-                .ForMember(dest => dest.ProfileId, opt => opt.MapFrom(x => x.Id))
-                .ForMember(dest => dest.WatchListItems, opt => opt.MapFrom(x => x.WatchlistItems));
 
-            CreateMap<UserHistory, UserHistoryDto>();
+
+
+            // Mapping for UserHistory and UserHistoryDto
+            CreateMap<UserHistory, UserHistoryDto>()
+                .ForMember(dest => dest.Title, opt => opt.MapFrom(src => string.Empty))  // If you want to map Title separately
+                .ForMember(dest => dest.ThumbnailUrl, opt => opt.MapFrom(src => (string?)null));  // You can customize as needed
+
+            CreateMap<UserHistoryDto, UserHistory>().ReverseMap();
+            CreateMap<Notification, NotificationDto>().ReverseMap();
+
+
+            // Mapping from NotificationDto to Notification (Entity)
+            CreateMap<NotificationDto, Notification>().ReverseMap();
+
         }
     }
 }
