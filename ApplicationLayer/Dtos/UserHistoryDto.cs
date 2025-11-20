@@ -1,13 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Domains;
 
+namespace ApplicationLayer.Dtos;
 
-namespace ApplicationLayer.Dtos
+public class UserHistoryDto : BaseDto
 {
-    internal class UserHistoryDto
-    {
-    }
+    public Guid ProfileId { get; set; }
+    public ContentType ContentType { get; set; }
+    public Guid ContentId { get; set; }
+    public DateTime LastWatched { get; set; }
 }

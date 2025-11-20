@@ -3,6 +3,7 @@ using ApplicationLayer.Dtos;
 using AutoMapper;
 using Domains;
 using InfrastructureLayer.Contracts;
+using Presentation.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,18 +17,25 @@ namespace ApplicationLayer.Services
         private readonly IGenericRepository<UserSubscription> _userSubRepo;
         private readonly IMapper _mapper;
         private readonly IUserService _userService;
+        private readonly TokenService _tokenService;
+        private readonly IRefreshTokens _refreshTokenService;
+
 
         public SubcriptionService(
             IGenericRepository<SubscriptionPlan> planRepo,
             IGenericRepository<UserSubscription> userSubRepo,
             IMapper mapper,
-            IUserService userService
+            IUserService userService,
+            IRefreshTokens refreshTokenService,
+            TokenService tokenService
         ) : base(planRepo, mapper, userService)
         {
             _planRepo = planRepo;
             _userSubRepo = userSubRepo;
             _mapper = mapper;
             _userService = userService;
+            _tokenService = tokenService;
+            _refreshTokenService = refreshTokenService;
         }
 
         // ==================== Admin: Plans ====================
@@ -101,6 +109,7 @@ namespace ApplicationLayer.Services
             var userSub = new UserSubscription
             {
                 Id = Guid.NewGuid(),
+                Name = dto.Name,
                 UserId = Guid.Parse(userId),
                 SubscriptionPlanId = dto.SubscriptionPlanId,
                 StartDate = DateTime.UtcNow,
@@ -112,5 +121,51 @@ namespace ApplicationLayer.Services
             await _userSubRepo.Add(userSub);
             return _mapper.Map<UserSubscriptionDto>(userSub);
         }
+        public async Task<UserSubscriptionDto> ActivateSubscriptionAsync(Guid userId, CreateUserSubscriptionDto dto)
+        {
+            // تفعيل الاشتراك باستخدام التفاصيل المدخلة
+            var result = await SubscribeAsync(userId.ToString(), dto);
+
+            if (result == null)
+                throw new InvalidOperationException("Subscription activation failed.");
+
+            // الحصول على بيانات المستخدم
+            var user = await _userService.GetUserByIdentityAsync(userId.ToString());
+            if (user == null)
+                throw new InvalidOperationException("User not found.");
+
+            // توليد التوكنات
+            var accessToken = _tokenService.GenerateAccessToken(user);
+            var refreshToken = _tokenService.GenerateRefreshToken();
+
+            // حفظ الـ Refresh Token في قاعدة البيانات
+            await _refreshTokenService.Refresh(new RefreshTokenDto
+            {
+                Token = refreshToken,
+                UserId = user.Id.ToString(),
+                Expires = DateTime.UtcNow.AddDays(7),
+                CurrentState = 1
+            });
+
+            // إعداد الاستجابة مع بيانات الاشتراك والتوكنات
+            var response = new UserSubscriptionDto
+            {
+                UserId = user.Id,
+                SubscriptionPlanId = dto.SubscriptionPlanId, // من التفاصيل المدخلة
+                StartDate = DateTime.UtcNow,
+                EndDate = DateTime.UtcNow.AddMonths(1), // على سبيل المثال
+                IsActive = true, // تفعيل الاشتراك
+                Name = result.Name,
+                AccessToken = accessToken,
+                RefreshToken = refreshToken
+            };
+
+            return response;
+        }
+
+
+
     }
+
+
 }

@@ -8,6 +8,9 @@ namespace ApplicationLayer.Dtos
 {
     public class CreateUserSubscriptionDto:BaseDto
     {
-        public Guid SubscriptionPlanId { get; set; }
+        public Guid SubscriptionPlanId { get; set; } 
+        public string Name { get; set; }
+
+
     }
 }
