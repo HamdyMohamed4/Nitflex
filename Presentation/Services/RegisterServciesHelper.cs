@@ -121,8 +121,11 @@ namespace Presentation.Services
 
             builder.Services.AddSingleton<TokenService>();
             builder.Services.AddScoped<NotificationService>();
+
             builder.Services.AddScoped<IRefreshTokens, RefreshTokenService>();
             builder.Services.AddScoped<IRefreshTokenRetriver, RefreshTokenRetriverService>();
+            builder.Services.AddScoped<IMovieService, MovieService>();
+
 
             builder.Services.AddSingleton<EmailService>();
 

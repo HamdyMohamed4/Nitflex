@@ -17,6 +17,7 @@ namespace ApplicationLayer.Mapping
             // Movie
             CreateMap<Movie, MovieDto>().ReverseMap();
 
+
             // Genre
             CreateMap<Genre, GenreDto>().ReverseMap();
             CreateMap<CreateGenreDto, Genre>();
