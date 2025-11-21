@@ -44,7 +44,6 @@ namespace Presentation.Services
                 {
                     Email = email,
                     UserName = email,
-                    Name = email.Split('@')[0],
                     EmailConfirmed = true
                 };
 
@@ -64,7 +63,7 @@ namespace Presentation.Services
             }
 
             // 4. توليد التوكنات
-            var accessToken = _tokenService.GenerateAccessToken(user);
+            var accessToken = await _tokenService.GenerateAccessToken(user);
             var refreshToken = _tokenService.GenerateRefreshToken();
 
             // 5. حفظ الـ Refresh Token في قاعدة البيانات
@@ -93,7 +92,6 @@ namespace Presentation.Services
                 Id = Guid.NewGuid(),
                 UserName = registerDto.Email,
                 Email = registerDto.Email,
-                Name = registerDto.Name
             };
             var result = await _userManager.CreateAsync(user, registerDto.Password);
             if (!result.Succeeded) return new UserResultDto { Success = false, Errors = result.Errors.Select(e => e.Description) };
@@ -123,7 +121,11 @@ namespace Presentation.Services
             var user = await _userManager.FindByEmailAsync(email);
             if (user == null) return null;
 
-            return new RegisterDto { Id = user.Id, Email = user.Email ?? string.Empty, Password = string.Empty, Name = user.Name ?? string.Empty };
+            return new RegisterDto
+            {
+                Email = user.Email ?? string.Empty,
+                Password = string.Empty,
+            };
         }
 
         public async Task<ApplicationUser?> GetUserByEmailAsyncs(string email)
@@ -135,17 +137,15 @@ namespace Presentation.Services
         {
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null) return null;
-            return new RegisterDto { Id = user.Id, Email = user.Email ?? string.Empty, Password = string.Empty, Name = user.Name ?? string.Empty };
+            return new RegisterDto { Email = user.Email ?? string.Empty, Password = string.Empty};
         }
 
         public async Task<IEnumerable<RegisterDto>> GetAllUsersAsync()
         {
             return _userManager.Users.Select(u => new RegisterDto
             {
-                Id = u.Id,
                 Email = u.Email ?? string.Empty,
                 Password = string.Empty,
-                Name = u.Name ?? string.Empty
             }).ToList();
         }
 
@@ -180,7 +180,7 @@ namespace Presentation.Services
 
             if (user == null)
             {
-                user = new ApplicationUser { UserName = email, Email = email, Name = email.Split('@')[0], EmailConfirmed = false };
+                user = new ApplicationUser { UserName = email, Email = email,EmailConfirmed = false };
                 var result = await _userManager.CreateAsync(user);
 
                 if (!result.Succeeded) return (new UserResultDto { Success = false, Errors = result.Errors.Select(e => e.Description) }, null);

@@ -1,5 +1,6 @@
 using ApplicationLayer.Contract;
 using ApplicationLayer.Dtos;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Presentation.Models;
 
@@ -18,6 +19,7 @@ public class ProfileController : ControllerBase
 
     [HttpGet]
     [Route("AllProfiles/{userId}")]
+    [Authorize(Roles = "User")]
     public async Task<ActionResult<ApiResponse<List<UserProfileDto>>>> GetAllProfilesByUserIdAsync(Guid userId)
     {
         var response = await _profileService.GetAllProfilesByUserIdAsync(userId);
@@ -39,6 +41,7 @@ public class ProfileController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Roles = "User")]
     [Route("GetProfileByUserId/{userId}/{profileId}")]
     public async Task<ActionResult<ApiResponse<UserProfileDto>>> GetProfileByUserIdAsync(Guid userId, Guid profileId)
     {
@@ -62,6 +65,7 @@ public class ProfileController : ControllerBase
 
     [HttpGet]
     [Route("GetViewHistory/{userId}/{profileId}")]
+    [Authorize(Roles = "User")]
     public async Task<ActionResult<ApiResponse<IEnumerable<UserHistoryDto>>>> GetViewingHistory(Guid userId, Guid profileId)
     {
         var response = await _profileService.GetViewingHistoryAsync(userId, profileId);
@@ -82,6 +86,7 @@ public class ProfileController : ControllerBase
 
     [HttpPost]
     [Route("CreateProfileByUserId/{userId}")]
+    [Authorize(Roles = "User")]
     public async Task<ActionResult<ApiResponse<CreateProfileDto>>> CreateProfileForUserWithIdAsync(Guid userId, [FromBody] CreateProfileDto createProfileDto)
     {
         var response = await _profileService.CreateProfileAsync(userId, createProfileDto);
@@ -97,11 +102,12 @@ public class ProfileController : ControllerBase
         return Ok(ApiResponse<CreateProfileDto>.SuccessResponse(response.userProfileDto, response.Message));
     }
 
-    // [HttpPost]
-    // [Route("Update/{}")]
+    //[HttpPost]
+    //[Route("Update/{}")]
 
     [HttpDelete]
     [Route("Delete/{userId}/{profileId}")]
+    [Authorize(Roles = "User")]
     public async Task<ActionResult<ApiResponse<bool>>> DeleteProfile(Guid userId, Guid profileId)
     {
         var response = await _profileService.DeleteProfileByUserId(userId, profileId);
