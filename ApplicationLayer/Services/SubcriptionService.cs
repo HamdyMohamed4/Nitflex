@@ -135,7 +135,7 @@ namespace ApplicationLayer.Services
                 throw new InvalidOperationException("User not found.");
 
             // توليد التوكنات
-            var accessToken = _tokenService.GenerateAccessToken(user);
+            var accessToken = await _tokenService.GenerateAccessToken(user);
             var refreshToken = _tokenService.GenerateRefreshToken();
 
             // حفظ الـ Refresh Token في قاعدة البيانات

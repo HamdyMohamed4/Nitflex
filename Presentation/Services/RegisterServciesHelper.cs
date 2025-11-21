@@ -119,7 +119,7 @@ namespace Presentation.Services
             builder.Services.AddHttpClient<PaymobGateway>();
             builder.Services.AddScoped<PaymentFactory>();
 
-            builder.Services.AddSingleton<TokenService>();
+            builder.Services.AddScoped<TokenService>();
             builder.Services.AddScoped<NotificationService>();
 
             builder.Services.AddScoped<IRefreshTokens, RefreshTokenService>();

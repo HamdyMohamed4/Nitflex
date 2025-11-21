@@ -21,6 +21,22 @@ namespace ApplicationLayer.Services
             _mapper = mapper;
         }
 
+        // حفظ OTP مرتبط بالـ email
+        public async Task SaveOtpAsync(string email, string code, DateTime expires)
+        {
+            var otp = new EmailOtp
+            {
+                Email = email,                 // مهم جدًا
+                OtpCode = code,
+                ExpirationDate = expires,
+                CreatedDate = DateTime.UtcNow,
+                IsUsed = false
+            };
+
+            await _db.EmailOtp.AddAsync(otp);
+            await _db.SaveChangesAsync();
+        }
+
         // جلب OTP صالح لمستخدم محدد
         public async Task<OtpDto?> GetValidOtpAsync(string email, string code)
         {
@@ -35,7 +51,7 @@ namespace ApplicationLayer.Services
             return _mapper.Map<OtpDto>(otp);
         }
 
-        // وضع OTP كمُستخدم بعد النجاح
+        // وضع OTP كمستخدم بعد النجاح
         public async Task MarkOtpUsedAsync(string email, string code)
         {
             var otp = await _db.EmailOtp
@@ -57,37 +73,19 @@ namespace ApplicationLayer.Services
                 .FirstOrDefaultAsync();
 
             if (otp == null) return false;
-
             if (otp.ExpirationDate < DateTime.UtcNow) return false;
 
             return true;
         }
 
+        //public Task<OtpDto?> GetOtpAsync(string emailOrUserId)
+        //{
+        //    throw new NotImplementedException();
+        //}
 
-
-        public async Task SaveOtpAsync(string userId, string code, DateTime expires)
-        {
-            var otp = new EmailOtp
-            {
-                Email = userId,       // لو عندك عمود Email، أو UserId حسب التصميم
-                OtpCode = code,
-                ExpirationDate = expires,
-                CreatedDate = DateTime.UtcNow,
-                IsUsed = false
-            };
-
-            await _db.EmailOtp.AddAsync(otp);
-            await _db.SaveChangesAsync();
-        }
-
-        public Task<OtpDto?> GetOtpAsync(string emailOrUserId)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task DeleteOtpAsync(string emailOrUserId)
-        {
-            throw new NotImplementedException();
-        }
+        //public Task DeleteOtpAsync(string emailOrUserId)
+        //{
+        //    throw new NotImplementedException();
+        //}
     }
 }

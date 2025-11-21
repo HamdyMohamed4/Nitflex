@@ -1,4 +1,5 @@
-﻿using InfrastructureLayer;
+﻿using Domains;
+using InfrastructureLayer;
 using InfrastructureLayer.UserModels;
 using Microsoft.AspNetCore.Identity;
 using System;
@@ -42,6 +43,7 @@ namespace Presentation.Services
                     UserName = adminEmail,
                     Email = adminEmail,
                     EmailConfirmed = true,
+                    AccountStatus = UserAccountStatus.Active
                 };
 
                 var result = await userManager.CreateAsync(adminUser, "admin123456");

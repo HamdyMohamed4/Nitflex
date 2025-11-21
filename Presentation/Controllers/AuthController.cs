@@ -103,22 +103,26 @@ namespace Presentation.Controllers
         public async Task<ActionResult<ApiResponse<LoginResponseDto>>> ConfirmSignUp([FromBody] ConfirmMagicLinkDto dto)
         {
             if (!ModelState.IsValid)
-                return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Invalid input"));
+                return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Invalid input", null));
 
             // Decode token because it arrives URL encoded
             dto.Token = Uri.UnescapeDataString(dto.Token);
 
-            // 1. Confirm email & Create/Login user
-            var user = await _authService.ConfirmEmailAndGenerateTokensAsync(dto.Email,dto.Token);
+            // Step 1: Confirm & Create/Login User
+            var userResponse = await _authService.ConfirmEmailAndGenerateTokensAsync(dto.Email, dto.Token);
 
-            if (user == null)
-                return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Invalid or expired token."));
+            if (userResponse == null)
+                return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Invalid or expired token.", null));
 
-            // 2. Store refresh token inside HTTP Only cookie
-            SetRefreshTokenCookie(user.RefreshToken);
+            // Step 2: Store refresh token in HttpOnly cookie
+            SetRefreshTokenCookie(userResponse.RefreshToken);
 
-            return Ok(ApiResponse<LoginResponseDto>.SuccessResponse(user, "Email confirmed and user logged in."));
+            return Ok(ApiResponse<LoginResponseDto>.SuccessResponse(
+                userResponse,
+                "Email confirmed successfully and user logged in."
+            ));
         }
+
 
         // ============================
         // Register & Generate Tokens
