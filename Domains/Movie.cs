@@ -24,7 +24,7 @@ namespace Domains
         [MaxLength(500)]
         public string PosterUrl { get; set; } = string.Empty;
         [MaxLength(500)]
-        public string BannerUrl { get; set; } = string.Empty;
+        public string VideoUrl { get; set; } = string.Empty;
         [MaxLength(500)]
         public string TrailerUrl { get; set; } = string.Empty;
 

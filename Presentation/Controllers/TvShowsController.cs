@@ -23,6 +23,7 @@ namespace Presentation.Controllers
             _userService = userService;
         }
 
+
         // GET: api/TvShows/genre/{genreId}?page=1&pageSize=20
         [HttpGet("genre/{genreId:guid}")]
         public async Task<ActionResult<ApiResponse<GenreShowsResponseDto>>> GetByGenre(Guid genreId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
@@ -44,6 +45,12 @@ namespace Presentation.Controllers
                 return BadRequest(ApiResponse<GenreShowsResponseDto>.FailResponse("Failed to retrieve shows by genre", new List<string> { ex.Message }));
             }
         }
+
+
+
+
+
+
 
         // GET: api/TvShows/{id}/play
         // Returns a streaming locator for the show. Requires authenticated user.
@@ -90,3 +97,7 @@ namespace Presentation.Controllers
         }
     }
 }
+
+
+
+

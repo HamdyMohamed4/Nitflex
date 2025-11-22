@@ -68,33 +68,6 @@ namespace Presentation.Controllers
             }
         }
 
-        // GET: api/Movie/{id}/play
-        // Returns a streaming locator for the movie. Requires authenticated user.
-        [HttpGet("{id:guid}/play")]
-        [Authorize(Roles = "User")]
-        public async Task<ActionResult<ApiResponse<string>>> Play(Guid id)
-        {
-            try
-            {
-                if (id == Guid.Empty)
-                    return BadRequest(ApiResponse<string>.FailResponse("Invalid movie id."));
-
-                // Using logged-in user id as profile identifier for now.
-                var profileId = _userService.GetLoggedInUser();
-
-                var url = await _movieService.GetStreamingUrlAsync(id, profileId);
-
-                if (string.IsNullOrWhiteSpace(url))
-                    return NotFound(ApiResponse<string>.FailResponse("Streaming URL not available for this movie."));
-
-                return Ok(ApiResponse<string>.SuccessResponse(url, "Streaming URL retrieved."));
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ApiResponse<string>.FailResponse("Failed to get streaming URL", new List<string> { ex.Message }));
-            }
-        }
-
         // GET: api/Movie/featured?limit=10
         [HttpGet("featured")]
         public async Task<ActionResult<ApiResponse<List<MovieDto>>>> GetFeatured([FromQuery] int limit = 10)
@@ -112,5 +85,125 @@ namespace Presentation.Controllers
                 return BadRequest(ApiResponse<List<MovieDto>>.FailResponse("Failed to retrieve featured movies", new List<string> { ex.Message }));
             }
         }
+
+        // GET: api/Movie/featured-trailers?limit=10
+        // Returns featured movies (lightweight) that include TrailerUrl for client preview/play trailer
+        [HttpGet("featured-trailers")]
+        public async Task<ActionResult<ApiResponse<List<MovieDto>>>> GetFeaturedWithTrailers([FromQuery] int limit = 10)
+        {
+            try
+            {
+                // استدعاء الميثود من الـ Service للحصول على الأفلام المميزة مع التريلر
+                var movies = await _movieService.GetFeaturedWithTrailersAsync(limit);
+
+                if (movies == null || !movies.Any())
+                    return NotFound(ApiResponse<List<MovieDto>>.FailResponse("No featured movies found."));
+
+                return Ok(ApiResponse<List<MovieDto>>.SuccessResponse(movies, "Featured movies with trailers retrieved."));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<List<MovieDto>>.FailResponse("Failed to retrieve featured trailers", new List<string> { ex.Message }));
+            }
+        }
+
+
+        // GET: api/Movie/{id}/trailer
+        [HttpGet("{id:guid}/trailer")]
+        public async Task<ActionResult<ApiResponse<string>>> GetTrailer(Guid id)
+        {
+            try
+            {
+                if (id == Guid.Empty)
+                    return BadRequest(ApiResponse<string>.FailResponse("Invalid movie id."));
+
+                // استدعاء الميثود المعدلة من السيرفيس
+                var movie = await _movieService.GetTrailerByIdAsync(id);
+
+                if (movie == null)
+                    return NotFound(ApiResponse<string>.FailResponse("Movie not found or not featured."));
+
+                // تحقق من وجود رابط التريلر
+                if (string.IsNullOrWhiteSpace(movie.TrailerUrl))
+                    return NotFound(ApiResponse<string>.FailResponse("Trailer not available for this movie."));
+
+                // إرجاع رابط التريلر إذا كان متاحًا
+                return Ok(ApiResponse<string>.SuccessResponse(movie.TrailerUrl, "Trailer URL retrieved."));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<string>.FailResponse("Failed to retrieve trailer URL", new List<string> { ex.Message }));
+            }
+        }
+
+
+
+
+        [HttpGet("{id:guid}")]
+        public async Task<ActionResult<ApiResponse<MovieDto>>> GetMovieById(Guid id)
+        {
+            try
+            {
+                if (id == Guid.Empty)
+                    return BadRequest(ApiResponse<MovieDto>.FailResponse("Invalid movie id."));
+
+                // استدعاء الميثود من السيرفيس للحصول على تفاصيل الفيلم
+                var movie = await _movieService.GetById(id);
+
+                if (movie == null)
+                    return NotFound(ApiResponse<MovieDto>.FailResponse("Movie not found."));
+
+                return Ok(ApiResponse<MovieDto>.SuccessResponse(movie, "Movie details retrieved."));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<MovieDto>.FailResponse("Failed to retrieve movie details", new List<string> { ex.Message }));
+            }
+        }
+
+
+
+        // GET: api/Movie/{id}/play
+        // Returns a streaming locator for the movie. Requires authenticated user.
+        [HttpGet("{id:guid}/play")]
+        [Authorize(Roles = "User")]
+        public async Task<ActionResult<ApiResponse<string>>> Play(Guid id)
+        {
+            try
+            {
+                if (id == Guid.Empty)
+                    return BadRequest(ApiResponse<string>.FailResponse("Invalid movie id"));
+
+                var profileId = _userService.GetLoggedInUser();
+                var url = await _movieService.GetStreamingUrlAsync(id, profileId);
+
+                if (string.IsNullOrWhiteSpace(url))
+                    return NotFound(ApiResponse<string>.FailResponse("Streaming URL not available for this movie."));
+
+                return Ok(ApiResponse<string>.SuccessResponse(url, "Streaming URL retrieved."));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<string>.FailResponse("Failed to get streaming URL", new List<string> { ex.Message }));
+            }
+        }
+
+        //// GET: api/Movie/featured?limit=10
+        //[HttpGet("featured")]
+        //public async Task<ActionResult<ApiResponse<List<MovieDto>>>> GetFeatured([FromQuery] int limit = 10)
+        //{
+        //    try
+        //    {
+        //        var movies = await _movieService.GetFeaturedAsync(limit);
+        //        if (movies == null || !movies.Any())
+        //            return NotFound(ApiResponse<List<MovieDto>>.FailResponse("No featured movies found."));
+
+        //        return Ok(ApiResponse<List<MovieDto>>.SuccessResponse(movies.ToList(), "Featured movies retrieved."));
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return BadRequest(ApiResponse<List<MovieDto>>.FailResponse("Failed to retrieve featured movies", new List<string> { ex.Message }));
+        //    }
+        //}
     }
 }

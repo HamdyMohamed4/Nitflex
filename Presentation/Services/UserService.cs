@@ -18,7 +18,7 @@ namespace Presentation.Services
         private readonly IRefreshTokens _refreshTokenService;
 
         public UserService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager,
-             IHttpContextAccessor accessor,IOtpRepository otpRepo, TokenService tokenService)
+             IHttpContextAccessor accessor, IOtpRepository otpRepo, TokenService tokenService)
         {
             _userManager = userManager;
             _signInManager = signInManager;
@@ -121,7 +121,25 @@ namespace Presentation.Services
             var user = await _userManager.FindByEmailAsync(email);
             if (user == null) return null;
 
+            if (user.IsBlocked == true) 
+                return null;
+
             return new RegisterDto
+            {
+                Email = user.Email ?? string.Empty,
+                Password = string.Empty,
+            };
+        }
+
+        public async Task<LoginDto?> GetUserByLoginAsync(string email)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null) return null;
+
+            if (user.IsBlocked == true)
+                return null;
+
+            return new LoginDto
             {
                 Email = user.Email ?? string.Empty,
                 Password = string.Empty,
@@ -137,7 +155,7 @@ namespace Presentation.Services
         {
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null) return null;
-            return new RegisterDto { Email = user.Email ?? string.Empty, Password = string.Empty};
+            return new RegisterDto { Email = user.Email ?? string.Empty, Password = string.Empty };
         }
 
         public async Task<IEnumerable<RegisterDto>> GetAllUsersAsync()
@@ -180,7 +198,7 @@ namespace Presentation.Services
 
             if (user == null)
             {
-                user = new ApplicationUser { UserName = email, Email = email,EmailConfirmed = false };
+                user = new ApplicationUser { UserName = email, Email = email, EmailConfirmed = false };
                 var result = await _userManager.CreateAsync(user);
 
                 if (!result.Succeeded) return (new UserResultDto { Success = false, Errors = result.Errors.Select(e => e.Description) }, null);
@@ -310,5 +328,3 @@ namespace Presentation.Services
 
     }
 }
-
-

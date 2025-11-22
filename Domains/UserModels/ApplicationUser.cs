@@ -5,8 +5,12 @@ namespace InfrastructureLayer.UserModels
 {
     public class ApplicationUser : IdentityUser<Guid>
     {
-        public int CurrentState { get; set; }
+        public string? FullName { get; set; }
+        public int? CurrentState { get; set; }
         public UserAccountStatus AccountStatus { get; set; } = UserAccountStatus.Pending;
+
+        public bool IsBlocked { get; set; }  
+        public string? BlockReason { get; set; }
         public ICollection<UserSubscription> Subscriptions { get; set; } = new List<UserSubscription>();
         public ICollection<UserProfile> Profiles { get; set; } = new List<UserProfile>();
     }

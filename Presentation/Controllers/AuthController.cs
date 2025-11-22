@@ -52,8 +52,15 @@ namespace Presentation.Controllers
                 return BadRequest(ApiResponse<object>.FailResponse("Validation failed.", errors));
             }
 
-
             var user = await _userService.GetUserByEmailAsync(model.Email);
+
+            // إذا كان المستخدم محظورًا
+            if (user == null)
+            {
+                // إرجاع رسالة تفيد بأن المستخدم محظور
+                return BadRequest(ApiResponse<object>.FailResponse("User is blocked.", new List<string> { "This user is blocked and cannot proceed." }));
+            }
+
             var message = user != null ? "User already exists, redirecting to login." : "Proceeding with registration.";
             return Ok(ApiResponse<object>.SuccessResponse(null, message));
         }
@@ -64,6 +71,16 @@ namespace Presentation.Controllers
         [HttpPost("send-magic-link")]
         public async Task<ActionResult<ApiResponse<object>>> SendMagicLink([FromBody] EmailRequestDto model)
         {
+
+            var usert = await _userService.GetUserByEmailAsync(model.Email);
+
+            // إذا كان المستخدم محظورًا
+            if (usert == null)
+            {
+                // إرجاع رسالة تفيد بأن المستخدم محظور
+                return BadRequest(ApiResponse<object>.FailResponse("User is blocked.", new List<string> { "This user is blocked and cannot proceed." }));
+            }
+
             if (!ModelState.IsValid)
             {
                 var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
@@ -81,23 +98,6 @@ namespace Presentation.Controllers
 
 
 
-        // ============================
-        // Confirm Email & Generate Tokens
-        // ============================      
-
-        //[HttpPost("confirm-signup")]
-        //public async Task<ActionResult<ApiResponse<LoginResponseDto>>> ConfirmSignUp([FromBody] ConfirmMagicLinkDto dto)
-        //{
-        //    if (!ModelState.IsValid)
-        //        return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Invalid input"));
-
-        //    var user = await _authService.ConfirmEmailAndGenerateTokensAsync(dto.Email, dto.Token);
-        //    if (user == null)
-        //        return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Invalid or expired token."));
-
-        //    SetRefreshTokenCookie(user.RefreshToken);
-        //    return Ok(ApiResponse<LoginResponseDto>.SuccessResponse(user, "Email confirmed and user logged in."));
-        //}
 
         [HttpPost("confirm-signup")]
         public async Task<ActionResult<ApiResponse<LoginResponseDto>>> ConfirmSignUp([FromBody] ConfirmMagicLinkDto dto)
@@ -131,6 +131,7 @@ namespace Presentation.Controllers
         [HttpPost("register")]
         public async Task<ActionResult<ApiResponse<LoginResponseDto>>> Register([FromBody] RegisterDto dto)
         {
+            
             if (!ModelState.IsValid)
                 return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Invalid input"));
 
@@ -148,15 +149,57 @@ namespace Presentation.Controllers
         [HttpPost("login")]
         public async Task<ActionResult<ApiResponse<LoginResponseDto>>> Login([FromBody] LoginDto dto)
         {
+            var usert = await _userService.GetUserByEmailAsync(dto.Email);
+
+            // إذا كان المستخدم محظورًا
+            if (usert == null)
+            {
+                // إرجاع رسالة تفيد بأن المستخدم محظور
+                return BadRequest(ApiResponse<object>.FailResponse("User is blocked.", new List<string> { "This user is blocked and cannot proceed." }));
+            }
             if (!ModelState.IsValid)
                 return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Invalid input"));
 
-            var user = await _authService.LoginAndGenerateTokensAsync(dto.Email, dto.Password);
+           var user = await _authService.LoginAndGenerateTokensAsync(dto.Email, dto.Password);
             if (user == null)
                 return Unauthorized(ApiResponse<LoginResponseDto>.FailResponse("Invalid credentials"));
 
             SetRefreshTokenCookie(user.RefreshToken);
             return Ok(ApiResponse<LoginResponseDto>.SuccessResponse(user, "Login successful."));
+        }
+
+
+
+        // Logout (JWT) - invalidate refresh token server-side and remove cookie
+        // ============================
+        [HttpPost("logout")]
+        public async Task<ActionResult<ApiResponse<object>>> Logout()
+        {
+            try
+            {
+                // If client stored refresh token in HTTP-only cookie, remove it and invalidate server-side record.
+                if (Request.Cookies.TryGetValue("RefreshToken", out var refreshToken) && !string.IsNullOrWhiteSpace(refreshToken))
+                {
+                    var tokenRecord = await _refreshTokenService.GetByTokenAsync(refreshToken);
+                    if (tokenRecord != null)
+                    {
+                        // mark refresh token as inactive (soft delete)
+                        await _refreshTokenService.ChangeStatus(tokenRecord.Id, 0);
+                    }
+
+                    // Remove cookie from client
+                    Response.Cookies.Delete("RefreshToken");
+                }
+
+                // Also sign out from server auth mechanisms (no-op for pure JWT but safe if cookie auth used)
+                await _userService.LogoutAsync();
+
+                return Ok(ApiResponse<object>.SuccessResponse(null, "Logged out successfully."));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<object>.FailResponse("Logout failed.", new List<string> { ex.Message }));
+            }
         }
 
         // ============================
@@ -165,6 +208,15 @@ namespace Presentation.Controllers
         [HttpPost("request-otp")]
         public async Task<ActionResult<ApiResponse<object>>> RequestOtp([FromBody] EmailRequestDto model)
         {
+
+            var usert = await _userService.GetUserByEmailAsync(model.Email);
+
+            // إذا كان المستخدم محظورًا
+            if (usert == null)
+            {
+                // إرجاع رسالة تفيد بأن المستخدم محظور
+                return BadRequest(ApiResponse<object>.FailResponse("User is blocked.", new List<string> { "This user is blocked and cannot proceed." }));
+            }
             if (!ModelState.IsValid)
             {
                 var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
