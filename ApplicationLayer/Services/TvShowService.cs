@@ -160,6 +160,21 @@ namespace ApplicationLayer.Services
         // ===========================
         // Seasons
         // ===========================
+
+        // Get season by id
+        public async Task<SeasonDto?> GetSeasonByIdAsync(Guid seasonId)
+        {
+            var season = await _seasonRepo.GetById(seasonId);
+            return season == null ? null : _mapper.Map<SeasonDto>(season);
+        }
+
+        // Get all seasons for series
+        public async Task<List<SeasonDto>> GetAllSeasonsByTvShowIdAsync(Guid tvShowId)
+        {
+            var seasons = await _seasonRepo.GetList(s => s.TvShowId == tvShowId);
+            return _mapper.Map<List<SeasonDto>>(seasons);
+        }
+
         public async Task<SeasonDto?> CreateSeasonAsync(Guid tvShowId, CreateSeasonDto dto)
         {
             var show = await _tvShowRepo.GetById(tvShowId);
@@ -199,6 +214,21 @@ namespace ApplicationLayer.Services
         // ===========================
         // Episodes
         // ===========================
+
+        // Get episode by id
+        public async Task<EpisodeDto?> GetEpisodeByIdAsync(Guid episodeId)
+        {
+            var episode = await _episodeRepo.GetById(episodeId);
+            return episode == null ? null : _mapper.Map<EpisodeDto>(episode);
+        }
+
+        // Get all episodes for season
+        public async Task<List<EpisodeDto>> GetAllEpisodesBySeasonIdAsync(Guid seasonId)
+        {
+            var episodes = await _episodeRepo.GetList(e => e.SeasonId == seasonId);
+            return _mapper.Map<List<EpisodeDto>>(episodes);
+        }
+
         public async Task<EpisodeDto?> CreateEpisodeAsync(Guid tvShowId, Guid seasonId, CreateEpisodeDto dto)
         {
             var season = await _seasonRepo.GetById(seasonId);

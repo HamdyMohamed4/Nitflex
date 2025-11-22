@@ -84,6 +84,12 @@ namespace ApplicationLayer.Mapping
             // Mapping from NotificationDto to Notification (Entity)
             CreateMap<NotificationDto, Notification>().ReverseMap();
 
+
+            // Users
+            CreateMap<ApplicationUser, UserDto>().ReverseMap();
+            CreateMap<CreateUserDto, ApplicationUser>();
+            CreateMap<UpdateUserDto, ApplicationUser>();
+
         }
     }
 }
