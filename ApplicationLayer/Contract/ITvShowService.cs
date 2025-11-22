@@ -27,11 +27,15 @@ namespace ApplicationLayer.Contract
         Task<string?> GetStreamingUrlAsync(Guid tvShowId, Guid profileId);
 
         // Seasons
+        Task<SeasonDto?> GetSeasonByIdAsync(Guid seasonId);
+        Task<List<SeasonDto>> GetAllSeasonsByTvShowIdAsync(Guid tvShowId);
         Task<SeasonDto?> CreateSeasonAsync(Guid tvShowId, CreateSeasonDto dto);
         Task<bool> UpdateSeasonAsync(Guid tvShowId, Guid seasonId, UpdateSeasonDto dto);
         Task<bool> DeleteSeasonAsync(Guid tvShowId, Guid seasonId);
 
         // Episodes
+        Task<EpisodeDto?> GetEpisodeByIdAsync(Guid episodeId);
+        Task<List<EpisodeDto>> GetAllEpisodesBySeasonIdAsync(Guid seasonId);
         Task<EpisodeDto?> CreateEpisodeAsync(Guid tvShowId, Guid seasonId, CreateEpisodeDto dto);
         Task<bool> UpdateEpisodeAsync(Guid tvShowId, Guid seasonId, Guid episodeId, UpdateEpisodeDto dto);
         Task<bool> DeleteEpisodeAsync(Guid tvShowId, Guid seasonId, Guid episodeId);

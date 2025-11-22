@@ -31,9 +31,9 @@ namespace ApplicationLayer.Services
             _userService = userService;
         }
 
-        // ===========================
-        // Get All Movie
-        // ===========================
+        // ====================================
+        // Get All Movie with Simple Filters
+        // ====================================
         public async Task<IEnumerable<MovieDto>> GetAllAsync(Guid? genreId = null, string? search = null)
         {
             var query = await _repo.GetList(m => m.CurrentState == 1);
