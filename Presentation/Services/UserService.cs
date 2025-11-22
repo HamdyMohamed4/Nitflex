@@ -121,7 +121,25 @@ namespace Presentation.Services
             var user = await _userManager.FindByEmailAsync(email);
             if (user == null) return null;
 
+            if (user.IsBlocked == true) 
+                return null;
+
             return new RegisterDto
+            {
+                Email = user.Email ?? string.Empty,
+                Password = string.Empty,
+            };
+        }
+
+        public async Task<LoginDto?> GetUserByLoginAsync(string email)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null) return null;
+
+            if (user.IsBlocked == true)
+                return null;
+
+            return new LoginDto
             {
                 Email = user.Email ?? string.Empty,
                 Password = string.Empty,

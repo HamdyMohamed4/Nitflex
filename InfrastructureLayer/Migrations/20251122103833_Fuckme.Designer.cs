@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace InfrastructureLayer.Migrations
 {
     [DbContext(typeof(NetflixContext))]
-    [Migration("20251121231949_AddFullNameToApplicationUser")]
-    partial class AddFullNameToApplicationUser
+    [Migration("20251122103833_Fuckme")]
+    partial class Fuckme
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -195,11 +195,6 @@ namespace InfrastructureLayer.Migrations
                     b.Property<string>("AudioType")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("BannerUrl")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
                     b.Property<Guid>("CreatedBy")
                         .HasColumnType("uniqueidentifier");
 
@@ -246,6 +241,11 @@ namespace InfrastructureLayer.Migrations
 
                     b.Property<DateTime?>("UpdatedDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("VideoUrl")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.HasKey("Id");
 
@@ -813,7 +813,7 @@ namespace InfrastructureLayer.Migrations
                         .IsConcurrencyToken()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("CurrentState")
+                    b.Property<int?>("CurrentState")
                         .HasColumnType("int");
 
                     b.Property<string>("Email")
@@ -824,7 +824,6 @@ namespace InfrastructureLayer.Migrations
                         .HasColumnType("bit");
 
                     b.Property<string>("FullName")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsBlocked")

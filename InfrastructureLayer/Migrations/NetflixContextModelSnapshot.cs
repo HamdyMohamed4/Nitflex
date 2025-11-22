@@ -810,7 +810,7 @@ namespace InfrastructureLayer.Migrations
                         .IsConcurrencyToken()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("CurrentState")
+                    b.Property<int?>("CurrentState")
                         .HasColumnType("int");
 
                     b.Property<string>("Email")
@@ -821,7 +821,6 @@ namespace InfrastructureLayer.Migrations
                         .HasColumnType("bit");
 
                     b.Property<string>("FullName")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsBlocked")

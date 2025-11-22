@@ -126,6 +126,8 @@ namespace Presentation.Services
             builder.Services.AddScoped<IRefreshTokenRetriver, RefreshTokenRetriverService>();
             builder.Services.AddScoped<IMovieService, MovieService>();
             builder.Services.AddScoped<ITvShowService, TvShowService>();
+            builder.Services.AddScoped<IAdminUserService, AdminUserService>();
+            
 
 
 

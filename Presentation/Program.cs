@@ -68,6 +68,12 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+
+// التأكد من تحميل appsettings.json
+builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+
+
+
 // Migrate + Seed
 using (var scope = app.Services.CreateScope())
 {

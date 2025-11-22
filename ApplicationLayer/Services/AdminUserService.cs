@@ -7,12 +7,14 @@ using AutoMapper;
 public class AdminUserService : IAdminUserService
 {
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IUserService _userService;
     private readonly IMapper _mapper;
 
-    public AdminUserService(UserManager<ApplicationUser> userManager, IMapper mapper)
+    public AdminUserService(UserManager<ApplicationUser> userManager, IMapper mapper , IUserService userService)
     {
         _userManager = userManager;
         _mapper = mapper;
+        _userService = userService;
     }
 
     // ===========================
@@ -124,6 +126,9 @@ public class AdminUserService : IAdminUserService
         user.BlockReason = dto.Reason;
 
         var result = await _userManager.UpdateAsync(user);
+        await _userService.LogoutAsync();// Force logout if blocked
+
+
 
         return result.Succeeded;
 

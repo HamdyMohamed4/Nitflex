@@ -11,10 +11,10 @@ namespace ApplicationLayer.Contract
     /// </summary>
     public interface ITvShowService : IBaseService<TVShow, TvShowDto>
     {
-        // TvShow
+        //// TvShow
         Task<List<TvShowDto>> GetAllAsync(Guid? genreId = null, string? search = null);
         Task<TvShowDetailsDto?> GetByIdAsync(Guid id);
-        Task<TvShowDto> CreateAsync(CreateTvShowDto dto);       
+        Task<TvShowDto> CreateAsync(CreateTvShowDto dto);
         Task<bool> UpdateAsync(Guid id, UpdateTvShowDto dto);
         Task<bool> DeleteAsync(Guid id);
 

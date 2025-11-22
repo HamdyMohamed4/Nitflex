@@ -148,7 +148,7 @@ namespace Presentation.Controllers
                     return BadRequest(ApiResponse<MovieDto>.FailResponse("Invalid movie id."));
 
                 // استدعاء الميثود من السيرفيس للحصول على تفاصيل الفيلم
-                var movie = await _movieService.GetByIdAsync(id);
+                var movie = await _movieService.GetById(id);
 
                 if (movie == null)
                     return NotFound(ApiResponse<MovieDto>.FailResponse("Movie not found."));

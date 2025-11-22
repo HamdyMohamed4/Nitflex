@@ -90,7 +90,7 @@ namespace Presentation.Controllers
             {
                 var updated = await _tvShowService.UpdateAsync(id, dto);
 
-                if (!updated) 
+                if (!updated)
                     return NotFound(ApiResponse<bool>.FailResponse("Show not found."));
 
                 return Ok(ApiResponse<bool>.SuccessResponse(updated, "Show updated successfully."));
