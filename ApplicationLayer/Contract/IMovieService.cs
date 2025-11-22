@@ -64,5 +64,8 @@ namespace ApplicationLayer.Contract
         /// Get movies matching any of the supplied genre ids.
         /// </summary>
         Task<IEnumerable<MovieDto>> GetByGenreIdsAsync(IEnumerable<Guid> genreIds, int limit = 50);
+
+        Task<List<MovieDto>> GetFeaturedWithTrailersAsync(int limit = 10);
+        Task<MovieDto?> GetTrailerByIdAsync(Guid id);
     }
 }

@@ -106,6 +106,16 @@ namespace ApplicationLayer.Services
             return entity == null ? null : _mapper.Map<MovieDto>(entity);
         }
 
+        public async Task<MovieDto?> GetTrailerByIdAsync(Guid id)
+        {
+            // إضافة شرط للتأكد من أن الفيلم مميز
+            var entity = await _repo.GetFirstOrDefault(m => m.Id == id && m.IsFeatured && m.CurrentState == 1);
+
+            // إذا لم يوجد الفيلم أو لم يكن مميزًا، نرجع null
+            return entity == null ? null : _mapper.Map<MovieDto>(entity);
+        }
+
+
         // ===========================
         // Get Movies By Genre (paged)
         // ===========================
@@ -190,6 +200,19 @@ namespace ApplicationLayer.Services
             var list = await _repo.GetList(m => m.CurrentState == 1 && m.IsFeatured);
             var ordered = list.OrderByDescending(m => m.CreatedDate).Take(limit).ToList();
             return _mapper.Map<IEnumerable<MovieDto>>(ordered);
+        }
+
+
+
+
+        public async Task<List<MovieDto>> GetFeaturedWithTrailersAsync(int limit = 10)
+        {
+            var movies = await _repo.GetList(m => m.IsFeatured && m.CurrentState == 1);
+
+            var featuredMovies = movies.OrderByDescending(m => m.CreatedDate).Take(limit).ToList();
+
+            // باستخدام AutoMapper لتحويل الـ Movie إلى MovieDto
+            return _mapper.Map<List<MovieDto>>(featuredMovies);
         }
 
         // ===========================
