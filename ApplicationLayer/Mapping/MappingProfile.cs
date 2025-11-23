@@ -22,8 +22,7 @@ namespace ApplicationLayer.Mapping
 
             // Genre
             CreateMap<Genre, GenreDto>().ReverseMap();
-            CreateMap<CreateGenreDto, Genre>();
-            CreateMap<UpdateGenreDto, Genre>();
+
 
             // TV Shows, Seasons, Episodes
             CreateMap<TVShow, TvShowDto>().ReverseMap();

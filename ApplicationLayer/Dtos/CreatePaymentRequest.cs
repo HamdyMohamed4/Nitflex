@@ -8,7 +8,10 @@ namespace ApplicationLayer.Dtos
 {
     public class CreatePaymentRequest
     {
+        public string CountryCode { get; set; } = "EG";
+        public string SuccessUrl { get; set; }
+        public string CancelUrl { get; set; }
         public List<CartItemDto> Items { get; set; }
-        public decimal ShippingValue { get; set; }
+
     }
 }

@@ -13,9 +13,12 @@ namespace ApplicationLayer.Contract
         Task<UserResultDto> LoginAsync(LoginDto loginDto);
         Task LogoutAsync();
         Task<RegisterDto> GetUserByIdAsync(string userId);
-        Task<RegisterDto> GetUserByEmailAsync(string email);
+        //Task<RegisterDto> GetUserByEmailAsync(string email);
+        Task<ApplicationUser?> GetUserByEmailAsync(string email);
         Task<IEnumerable<RegisterDto>> GetAllUsersAsync();
         Guid GetLoggedInUser();
+
+        Task<bool> ResetPasswordAsync(string email, string token, string newPassword);
         Task<(UserResultDto Result, string? Token)> CreateUserWithoutPasswordAndGetTokenAsync(string email);
         Task<UserResultDto> ConfirmEmailAsync(Guid userId, string token);
         Task<UserResultDto> SetPasswordAsync(Guid userId, string password);
@@ -23,14 +26,10 @@ namespace ApplicationLayer.Contract
         Task<ApplicationUser?> GetUserByIdWithProfilesAsync(string userId);
         Task<ApplicationUser?> GetUserByIdWithProfilesWithHistoriesAsync(string userId);
         Task<LoginResponseDto> LoginWithOtpAsync(string email, string code);
-
         Task<IList<string>> GetUserRolesAsync(string userId);
-
-        Task<ApplicationUser?> GetUserByEmailAsyncs(string email);
-
         Task<LoginResponseDto?> ConfirmSignUpAsync(string email, string token);
-
         Task<LoginDto?> GetUserByLoginAsync(string email);
+
 
         //Task<List<string>> GetUserRolesAsync(string userId);
         //Task SaveOtpAsync(OtpDto otp);

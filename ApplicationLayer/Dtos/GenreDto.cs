@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ApplicationLayer.Dtos
 {
-    public class GenreDto:BaseDto
+    public class GenreDto
     {
         public string Name { get; set; } = null!;
     }

@@ -4,7 +4,10 @@ using Domains;
 using InfrastructureLayer.UserModels;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Presentation.Services;
+using System.Net;
+using System.Net.Mail;
 using System.Security.Claims;
 
 namespace ApplicationLayer.Services
@@ -17,6 +20,8 @@ namespace ApplicationLayer.Services
         private readonly IRefreshTokens _refreshTokenService;
         private readonly IOtpRepository _otpRepository;
         private readonly IConfiguration _config;
+        //private readonly ILogger _logger;
+        private readonly ILogger<AuthService> _logger;
         private readonly UserManager<ApplicationUser> _userManager;
 
         public AuthService(
@@ -26,7 +31,8 @@ namespace ApplicationLayer.Services
             IRefreshTokens refreshTokenService,
             IOtpRepository otpRepository,
             IConfiguration config,
-            UserManager<ApplicationUser> userManager)
+            UserManager<ApplicationUser> userManager
+            , ILogger<AuthService> logger)
         {
             _userService = userService;
             _emailService = emailService;
@@ -35,9 +41,161 @@ namespace ApplicationLayer.Services
             _otpRepository = otpRepository;
             _config = config;
             _userManager = userManager;
+            _logger = logger;
+
         }
 
-  
+
+        //        public async Task SendPasswordResetEmailAsync(string email, string token)
+        //        {
+        //            // رابط الصفحة الأمامية لإعادة تعيين الباسورد
+        //            var frontendBaseUrl = _config["Frontend:BaseUrl"]; // مثال: https://myapp.com
+        //            var resetLink = $"{frontendBaseUrl}/reset-password?email={Uri.EscapeDataString(email)}&token={Uri.EscapeDataString(token)}";
+
+        //            // HTML البريد
+        //            var emailBody = $@"
+        //<!DOCTYPE html>
+        //<html>
+        //<head>
+        //    <meta charset='utf-8'>
+        //    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+        //    <title>Reset your password</title>
+        //    <style>
+        //        body {{ font-family: Arial, sans-serif; background-color: #f4f4f4; margin:0; padding:0; }}
+        //        .container {{ max-width:600px; margin:0 auto; background:#fff; padding:40px; text-align:center; }}
+        //        .button {{ background-color:#E50914; color:#fff; padding:16px 32px; text-decoration:none; font-weight:bold; border-radius:4px; }}
+        //        .footer {{ font-size:12px; color:#777; margin-top:40px; }}
+        //    </style>
+        //</head>
+        //<body>
+        //    <div class='container'>
+        //        <h1>Reset your password</h1>
+        //        <p>Click the button below to reset your password. This link is valid for 1 hour.</p>
+        //        <a href='{resetLink}' class='button'>Reset Password</a>
+        //        <p style='margin-top:20px;'>If you did not request this password reset, please ignore this email.</p>
+        //        <div class='footer'>
+        //            <p>© 2025 MyApp. All rights reserved.</p>
+        //        </div>
+        //    </div>
+        //</body>
+        //</html>";
+
+        //            try
+        //            {
+        //                // استخدم SMTP أو أي خدمة إرسال بريد عندك
+        //                var smtpClient = new System.Net.Mail.SmtpClient(_config["Smtp:Host"])
+        //                {
+        //                    Port = int.Parse(_config["Smtp:Port"]),
+        //                    Credentials = new System.Net.NetworkCredential(_config["Smtp:User"], _config["Smtp:Pass"]),
+        //                    EnableSsl = true,
+        //                };
+
+        //                var mailMessage = new System.Net.Mail.MailMessage
+        //                {
+        //                    From = new System.Net.Mail.MailAddress(_config["Smtp:From"], "MyApp Support"),
+        //                    Subject = "Reset your password",
+        //                    Body = emailBody,
+        //                    IsBodyHtml = true,
+        //                };
+        //                mailMessage.To.Add(email);
+
+        //                await smtpClient.SendMailAsync(mailMessage);
+        //            }
+        //            catch (Exception ex)
+        //            {
+        //                _logger.LogError(ex, "Failed to send password reset email to {Email}", email);
+        //                throw;
+        //            }
+        //        }
+
+
+
+
+
+
+
+
+        public async Task<string?> GeneratePasswordResetTokenAsync(string email)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null) return null;
+
+            // Generate OTP
+            var tokenBytes = Guid.NewGuid().ToByteArray();
+            var otp = Convert.ToBase64String(tokenBytes);
+            var expires = DateTime.UtcNow.AddHours(1);
+
+            await _otpRepository.SaveOtpAsync(email, otp, expires, "ResetPassword");
+            return otp;
+        }
+
+        //public async Task SendPasswordResetEmailAsync(string email, string token)
+        //{
+        //    var resetLink = $"https://localhost:4200/reset-password?email={email}&token={Uri.EscapeDataString(token)}";
+        //    await _emailService.SendEmailAsync(email, "Password Reset", $"Click this link to reset your password: {resetLink}");
+        //}
+
+        public async Task<bool> ResetPasswordAsync(string email, string token, string newPassword)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null) return false;
+
+            // Validate OTP
+            var otp = await _otpRepository.GetValidOtpAsync(email, token);
+            if (otp == null) return false;
+
+            // Generate a real Identity token
+            var identityToken = await _userManager.GeneratePasswordResetTokenAsync(user);
+
+            var resetResult = await _userManager.ResetPasswordAsync(user, identityToken, newPassword);
+            if (!resetResult.Succeeded) return false;
+
+            await _otpRepository.MarkOtpAsUsedAsync(email, token);
+            return true;
+        }
+
+        public async Task SendPasswordResetEmailAsync(string email, string token)
+        {
+            try
+            {
+                var resetUrl = $"http://localhost:4200/reset-password?email={email}&token={Uri.EscapeDataString(token)}";
+
+                var message = new MailMessage
+                {
+                    From = new MailAddress(_config["EmailSettings:SenderEmail"], _config["EmailSettings:SenderName"]),
+                    Subject = "Reset Your Password",
+                    Body = $@"
+                <h2>Password Reset Request</h2>
+                <p>Click the link below to reset your password:</p>
+                <a href='{resetUrl}'>Reset Password</a>
+                <p>If you did not request this, ignore the email.</p>
+            ",
+                    IsBodyHtml = true
+                };
+
+                message.To.Add(email);
+
+                using var smtpClient = new SmtpClient(_config["EmailSettings:SmtpServer"])
+                {
+                    Port = int.Parse(_config["EmailSettings:Port"]),
+                    Credentials = new NetworkCredential(
+                        _config["EmailSettings:SenderEmail"],
+                        _config["EmailSettings:SenderPassword"]
+                    ),
+                    EnableSsl = true,
+                };
+
+                await smtpClient.SendMailAsync(message);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Failed to send password reset email");
+                throw;
+            }
+        }
+
+
+
         public async Task<bool> SendMagicLinkAsync(string email)
         {
             var token = Convert.ToBase64String(Guid.NewGuid().ToByteArray());
@@ -174,11 +332,44 @@ namespace ApplicationLayer.Services
             var loginResult = await _userService.LoginAsync(new LoginDto(email, password));
             if (!loginResult.Success) return null;
 
-            var user = await _userService.GetUserByEmailAsyncs(email);
+            var user = await _userService.GetUserByEmailAsync(email);
             if (user == null) return null;
 
             return await GenerateTokensForUserAsync(user);
         }
+
+
+
+        //public async Task<string?> GeneratePasswordResetTokenAsync(string email)
+        //{
+        //    if (string.IsNullOrEmpty(email))
+        //        return null;
+
+        //    var token = Convert.ToBase64String(Guid.NewGuid().ToByteArray());
+        //    var expires = DateTime.UtcNow.AddHours(1);
+
+        //    await _otpRepository.SaveOtpAsync(email, token, expires, "PasswordReset");
+
+        //    return token;
+        //}
+
+
+
+        public async Task<bool> ChangePasswordAsync(string userId, string oldPassword, string newPassword)
+        {
+            // 1. جلب المستخدم من قاعدة البيانات
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null) return false;
+
+            // 2. التحقق من الباسورد القديم
+            var isOldPasswordValid = await _userManager.CheckPasswordAsync(user, oldPassword);
+            if (!isOldPasswordValid) return false;
+
+            // 3. تغيير الباسورد
+            var result = await _userManager.ChangePasswordAsync(user, oldPassword, newPassword);
+            return result.Succeeded;
+        }
+
 
 
         public async Task<LoginResponseDto?> RegisterAndGenerateTokensAsync(RegisterDto dto)
@@ -186,7 +377,7 @@ namespace ApplicationLayer.Services
             var result = await _userService.RegisterAsync(dto);
             if (!result.Success) return null;
 
-            var user = await _userService.GetUserByEmailAsyncs(dto.Email);
+            var user = await _userService.GetUserByEmailAsync(dto.Email);
             if (user == null) return null;
 
             return await GenerateTokensForUserAsync(user);
@@ -240,7 +431,7 @@ namespace ApplicationLayer.Services
             }
 
             // 3️⃣ تعليم OTP كمستخدم
-            await _otpRepository.MarkOtpUsedAsync(email, token);
+            await _otpRepository.MarkOtpAsUsedAsync(email,token);
 
             // 4️⃣ توليد التوكنات
             var response = await GenerateTokensForUserAsync(user);
@@ -362,7 +553,7 @@ namespace ApplicationLayer.Services
             var user = await _userManager.FindByEmailAsync(email);
             if (user == null) return null;
 
-            await _otpRepository.MarkOtpUsedAsync(email, code);
+            await _otpRepository.MarkOtpAsUsedAsync(email, code);
 
             return await GenerateTokensForUserAsync(user);
         }

@@ -30,6 +30,16 @@ namespace ApplicationLayer.Contract
 
         Task<(Claim[] Claims, RegisterDto User)> GetUserWithRolesAsync(string email);
 
+        Task<bool> ChangePasswordAsync(string userId, string oldPassword, string newPassword);
+
+
+        Task<string?> GeneratePasswordResetTokenAsync(string email);
+
+        Task SendPasswordResetEmailAsync(string email, string token);
+
+
+        Task<bool> ResetPasswordAsync(string email, string token, string newPassword);
+
 
 
         //// Magic link (email)

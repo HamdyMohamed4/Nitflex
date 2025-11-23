@@ -54,29 +54,29 @@ namespace Presentation.Controllers
 
         // GET: api/TvShows/{id}/play
         // Returns a streaming locator for the show. Requires authenticated user.
-        [HttpGet("{id:guid}/play")]
-        [Authorize(Roles = "User")]
-        public async Task<ActionResult<ApiResponse<string>>> Play(Guid id)
-        {
-            try
-            {
-                if (id == Guid.Empty)
-                    return BadRequest(ApiResponse<string>.FailResponse("Invalid show id."));
+        //[HttpGet("{id:guid}/play")]
+        //[Authorize(Roles = "User")]
+        //public async Task<ActionResult<ApiResponse<string>>> Play(Guid id)
+        //{
+        //    try
+        //    {
+        //        if (id == Guid.Empty)
+        //            return BadRequest(ApiResponse<string>.FailResponse("Invalid show id."));
 
-                var profileId = _userService.GetLoggedInUser();
+        //        var profileId = _userService.GetLoggedInUser();
 
-                var url = await _tvShowService.GetStreamingUrlAsync(id, profileId);
+        //        var url = await _tvShowService.GetStreamingUrlAsync(id, profileId);
 
-                if (string.IsNullOrWhiteSpace(url))
-                    return NotFound(ApiResponse<string>.FailResponse("Streaming URL not available for this show."));
+        //        if (string.IsNullOrWhiteSpace(url))
+        //            return NotFound(ApiResponse<string>.FailResponse("Streaming URL not available for this show."));
 
-                return Ok(ApiResponse<string>.SuccessResponse(url, "Streaming URL retrieved."));
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ApiResponse<string>.FailResponse("Failed to get streaming URL", new List<string> { ex.Message }));
-            }
-        }
+        //        return Ok(ApiResponse<string>.SuccessResponse(url, "Streaming URL retrieved."));
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return BadRequest(ApiResponse<string>.FailResponse("Failed to get streaming URL", new List<string> { ex.Message }));
+        //    }
+        //}
 
         // GET: api/TvShows/featured?limit=10
         [HttpGet("featured")]
@@ -93,6 +93,28 @@ namespace Presentation.Controllers
             catch (Exception ex)
             {
                 return BadRequest(ApiResponse<List<TvShowDto>>.FailResponse("Failed to retrieve featured shows", new List<string> { ex.Message }));
+            }
+        }
+
+
+
+        // create endpoint for getting tv show by id
+        // GET: api/TvShows/{id}
+        [HttpGet("{id:guid}")]
+        public async Task<ActionResult<ApiResponse<TvShowDto>>> GetById(Guid id)
+        {
+            try
+            {
+                if (id == Guid.Empty)
+                    return BadRequest(ApiResponse<TvShowDto>.FailResponse("Invalid show id."));
+                var show = await _tvShowService.GetByIdAsync(id);
+                if (show == null)
+                    return NotFound(ApiResponse<TvShowDto>.FailResponse("Show not found."));
+                return Ok(ApiResponse<TvShowDto>.SuccessResponse(show, "Show retrieved successfully."));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<TvShowDto>.FailResponse("Failed to retrieve show", new List<string> { ex.Message }));
             }
         }
     }

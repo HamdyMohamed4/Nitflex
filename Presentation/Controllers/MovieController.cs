@@ -23,28 +23,7 @@ namespace Presentation.Controllers
             _userService = userService;
         }
 
-        // POST: api/Movie/search
-        [HttpPost("search")]
-        public async Task<ActionResult<ApiResponse<List<MovieDto>>>> Search([FromBody] MovieSearchFilterDto filter)
-        {
-            try
-            {
-                if (filter == null)
-                    return BadRequest(ApiResponse<List<MovieDto>>.FailResponse("Filter data is required."));
-
-                var movies = await _movieService.GetAllByFilter(filter);
-
-                if (movies == null || !movies.Any())
-                    return NotFound(ApiResponse<List<MovieDto>>.FailResponse("No movies found matching your search criteria."));
-
-                return Ok(ApiResponse<List<MovieDto>>.SuccessResponse(movies.ToList(), "Movies retrieved successfully."));
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ApiResponse<List<MovieDto>>.FailResponse(
-                    "An error occurred while searching for movies.", new List<string> { ex.Message }));
-            }
-        }
+      
 
         // GET: api/Movie/genre/{genreId}?page=1&pageSize=20
         [HttpGet("genre/{genreId:guid}")]
@@ -165,28 +144,28 @@ namespace Presentation.Controllers
 
         // GET: api/Movie/{id}/play
         // Returns a streaming locator for the movie. Requires authenticated user.
-        [HttpGet("{id:guid}/play")]
-        [Authorize(Roles = "User")]
-        public async Task<ActionResult<ApiResponse<string>>> Play(Guid id)
-        {
-            try
-            {
-                if (id == Guid.Empty)
-                    return BadRequest(ApiResponse<string>.FailResponse("Invalid movie id"));
+        //[HttpGet("{id:guid}/play")]
+        ////[Authorize(Roles = "User")]
+        //public async Task<ActionResult<ApiResponse<string>>> Play(Guid id)
+        //{
+        //    try
+        //    {
+        //        if (id == Guid.Empty)
+        //            return BadRequest(ApiResponse<string>.FailResponse("Invalid movie id"));
 
-                var profileId = _userService.GetLoggedInUser();
-                var url = await _movieService.GetStreamingUrlAsync(id, profileId);
+        //        var profileId = _userService.GetLoggedInUser();
+        //        var url = await _movieService.GetStreamingUrlAsync(id, profileId);
 
-                if (string.IsNullOrWhiteSpace(url))
-                    return NotFound(ApiResponse<string>.FailResponse("Streaming URL not available for this movie."));
+        //        if (string.IsNullOrWhiteSpace(url))
+        //            return NotFound(ApiResponse<string>.FailResponse("Streaming URL not available for this movie."));
 
-                return Ok(ApiResponse<string>.SuccessResponse(url, "Streaming URL retrieved."));
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ApiResponse<string>.FailResponse("Failed to get streaming URL", new List<string> { ex.Message }));
-            }
-        }
+        //        return Ok(ApiResponse<string>.SuccessResponse(url, "Streaming URL retrieved."));
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return BadRequest(ApiResponse<string>.FailResponse("Failed to get streaming URL", new List<string> { ex.Message }));
+        //    }
+        //}
 
         //// GET: api/Movie/featured?limit=10
         //[HttpGet("featured")]

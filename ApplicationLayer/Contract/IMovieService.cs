@@ -67,5 +67,7 @@ namespace ApplicationLayer.Contract
 
         Task<List<MovieDto>> GetFeaturedWithTrailersAsync(int limit = 10);
         Task<MovieDto?> GetTrailerByIdAsync(Guid id);
+
+        Task<AllMediaDto> GetAllMediaAsync();
     }
 }

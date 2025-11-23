@@ -22,15 +22,35 @@ namespace ApplicationLayer.Services
         }
 
         // حفظ OTP مرتبط بالـ email
+  
+
         public async Task SaveOtpAsync(string email, string code, DateTime expires)
         {
             var otp = new EmailOtp
             {
-                Email = email,                 // مهم جدًا
+                Email = email,
                 OtpCode = code,
                 ExpirationDate = expires,
                 CreatedDate = DateTime.UtcNow,
-                IsUsed = false
+                IsUsed = false,
+                Type = "ResetPassword" // <--- هنا مهم جدًا
+            };
+            await _db.EmailOtp.AddAsync(otp);
+            await _db.SaveChangesAsync();
+        }
+
+
+
+        public async Task SaveOtpAsync(string email, string code, DateTime expires, string type)
+        {
+            var otp = new EmailOtp
+            {
+                Email = email,
+                OtpCode = code,
+                ExpirationDate = expires,
+                CreatedDate = DateTime.UtcNow,
+                IsUsed = false,
+                Type = type      // جديد: PasswordReset أو MagicLink
             };
 
             await _db.EmailOtp.AddAsync(otp);
@@ -50,6 +70,84 @@ namespace ApplicationLayer.Services
 
             return _mapper.Map<OtpDto>(otp);
         }
+
+
+        public async Task MarkOtpAsUsedAsync(string otpId)
+        {
+            var otp = await _db.EmailOtp.FindAsync(otpId);
+            if (otp != null)
+            {
+                otp.IsUsed = true;
+                await _db.SaveChangesAsync();
+            }
+        }
+
+
+        public async Task<OtpDto?> GetValidOtpAsync(string email, string code, string type)
+        {
+            var otp = await _db.EmailOtp
+                .Where(x => x.Email == email 
+                         && x.OtpCode == code 
+                         && x.Type == type 
+                         && !x.IsUsed)
+                .OrderByDescending(x => x.ExpirationDate)
+                .FirstOrDefaultAsync();
+        
+            if (otp == null || otp.ExpirationDate < DateTime.UtcNow)
+                return null;
+        
+            return _mapper.Map<OtpDto>(otp);
+        }
+
+
+
+        public async Task MarkOtpAsUsedAsync(Guid otpId)
+        {
+            var otp = await _db.EmailOtp.FindAsync(otpId);
+            if (otp != null)
+            {
+                otp.IsUsed = true;
+                await _db.SaveChangesAsync();
+            }
+        }
+
+
+        public async Task MarkOtpAsUsedAsync(string email, string code)
+        {
+            var otp = await _db.EmailOtp
+                .FirstOrDefaultAsync(x => x.Email == email && x.OtpCode == code && !x.IsUsed);
+
+            if (otp != null)
+            {
+                otp.IsUsed = true;
+                await _db.SaveChangesAsync();
+            }
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         // وضع OTP كمستخدم بعد النجاح
         public async Task MarkOtpUsedAsync(string email, string code)
@@ -76,6 +174,11 @@ namespace ApplicationLayer.Services
             if (otp.ExpirationDate < DateTime.UtcNow) return false;
 
             return true;
+        }
+
+        public Task<bool> ValidateOtpAsync(string email)
+        {
+            throw new NotImplementedException();
         }
 
         //public Task<OtpDto?> GetOtpAsync(string emailOrUserId)
