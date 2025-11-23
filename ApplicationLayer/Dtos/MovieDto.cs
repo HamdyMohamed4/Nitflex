@@ -17,6 +17,7 @@ namespace ApplicationLayer.Dtos
         public string? VideoUrl { get; set; }
         public string? TrailerUrl { get; set; }
         public bool IsFeatured { get; set; }
+        public string? Type { get; set; }
         public string? Language { get; set; }
         public string? AudioType { get; set; }  // Original / Dubbed / Subtitled
 
