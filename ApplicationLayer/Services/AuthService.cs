@@ -129,11 +129,6 @@ namespace ApplicationLayer.Services
             return otp;
         }
 
-        //public async Task SendPasswordResetEmailAsync(string email, string token)
-        //{
-        //    var resetLink = $"https://localhost:4200/reset-password?email={email}&token={Uri.EscapeDataString(token)}";
-        //    await _emailService.SendEmailAsync(email, "Password Reset", $"Click this link to reset your password: {resetLink}");
-        //}
 
         public async Task<bool> ResetPasswordAsync(string email, string token, string newPassword)
         {
@@ -200,7 +195,7 @@ namespace ApplicationLayer.Services
         {
             var token = Convert.ToBase64String(Guid.NewGuid().ToByteArray());
 
-            await _otpRepository.SaveOtpAsync(email,token, DateTime.UtcNow.AddMinutes(10));
+            await _otpRepository.SaveOtpAsync(email, token, DateTime.UtcNow.AddMinutes(10));
 
             var frontendUrl = _config["Frontend:BaseUrl"];
             var magicLink = $"{frontendUrl}?email={email}&token={Uri.EscapeDataString(token)}";
@@ -339,22 +334,6 @@ namespace ApplicationLayer.Services
         }
 
 
-
-        //public async Task<string?> GeneratePasswordResetTokenAsync(string email)
-        //{
-        //    if (string.IsNullOrEmpty(email))
-        //        return null;
-
-        //    var token = Convert.ToBase64String(Guid.NewGuid().ToByteArray());
-        //    var expires = DateTime.UtcNow.AddHours(1);
-
-        //    await _otpRepository.SaveOtpAsync(email, token, expires, "PasswordReset");
-
-        //    return token;
-        //}
-
-
-
         public async Task<bool> ChangePasswordAsync(string userId, string oldPassword, string newPassword)
         {
             // 1. جلب المستخدم من قاعدة البيانات
@@ -431,17 +410,13 @@ namespace ApplicationLayer.Services
             }
 
             // 3️⃣ تعليم OTP كمستخدم
-            await _otpRepository.MarkOtpAsUsedAsync(email,token);
+            await _otpRepository.MarkOtpAsUsedAsync(email, token);
 
             // 4️⃣ توليد التوكنات
             var response = await GenerateTokensForUserAsync(user);
 
             return response;
         }
-
-
-
-
 
 
 
@@ -609,35 +584,5 @@ namespace ApplicationLayer.Services
             => throw new NotImplementedException();
     }
 
-
-        //public Task<LoginResponseDto?> RegisterUserFromMagicLinkAsync(string userId, string token)
-        //{
-        //    throw new NotImplementedException();
-        //}
-
-        //public Task<LoginResponseDto?> RegisterWithPasswordAsync(RegisterDto model)
-        //{
-        //    throw new NotImplementedException();
-        //}
-
-        //public Task<LoginResponseDto?> LoginAsync(string email, string password)
-        //{
-        //    throw new NotImplementedException();
-        //}
-
-        //public Task<(Claim[] Claims, RegisterDto User)> GetUserWithRoles(string email)
-        //{
-        //    throw new NotImplementedException();
-        //}
-
-        //public Task<LoginResponseDto> GenerateTokensForUserAsync(ApplicationUser user)
-        //{
-        //    throw new NotImplementedException();
-        //}
-
-        //Task<string> IAuthService.GenerateAndSendOtpAsync(string email)
-        //{
-        //    throw new NotImplementedException();
-        //}
-    }
+}
 

@@ -36,5 +36,9 @@ namespace InfrastructureLayer.Contracts
             Expression<Func<T, object>>? orderBy = null,
             bool isDescending = false,
             params Expression<Func<T, object>>[] includers);
+
+
+
+        IQueryable<T> GetAllQueryable();
     }
 }

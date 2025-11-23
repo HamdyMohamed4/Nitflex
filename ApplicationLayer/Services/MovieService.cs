@@ -32,6 +32,39 @@ namespace ApplicationLayer.Services
             _userService = userService;
         }
 
+
+
+
+        public async Task<List<AllMediaDto>> GetRandomMediaAsync(int count)
+        {
+            // Step 1: Get random movies
+            var randomMovies = await _repo.GetAllQueryable()
+                .OrderBy(m => Guid.NewGuid())
+                .Take(count)
+                .ToListAsync();
+
+            // Step 2: Get random TV shows
+            var randomShows = await _repo.GetAllQueryable()
+                .OrderBy(s => Guid.NewGuid())
+                .Take(count)
+                .ToListAsync();
+
+            // Step 3: Merge results
+            var combined = new List<AllMediaDto>();
+
+            combined.AddRange(_mapper.Map<List<AllMediaDto>>(randomMovies));
+            combined.AddRange(_mapper.Map<List<AllMediaDto>>(randomShows));
+
+            // Step 4: Shuffle again and limit to requested count
+            var result = combined
+                .OrderBy(x => Guid.NewGuid())
+                .Take(count)
+                .ToList();
+
+            return result;
+        }
+
+
         // ====================================
         // Get All Movie with Simple Filters
         // ====================================
@@ -151,6 +184,42 @@ namespace ApplicationLayer.Services
                 PageSize = pageSize
             };
         }
+
+
+
+
+        public async Task<GenreMoviesResponseDto> GetMoviesByGenreNameAsync(string genreName, int page = 1, int pageSize = 20)
+        {
+            var genreRepo = _unitOfWork.Repository<Genre>();
+            var genre = await genreRepo.GetFirstOrDefault(g => g.Name.ToLower() == genreName.ToLower());
+
+            if (genre == null)
+                return null;
+
+            var paged = await _repo.GetPagedList<Movie>(
+                pageNumber: page,
+                pageSize: pageSize,
+                filter: m => m.CurrentState == 1 && m.MovieGenres.Any(mg => mg.GenreId == genre.Id),
+                selector: null,
+                orderBy: m => m.ReleaseYear,
+                isDescending: true,
+                m => m.MovieGenres,
+                m => m.Castings
+            );
+
+            var moviesDto = _mapper.Map<List<MovieDto>>(paged.Items);
+
+            return new GenreMoviesResponseDto
+            {
+                GenreId = genre.Id,
+                GenreName = genre.Name,
+                Movies = moviesDto,
+                TotalCount = paged.TotalCount,
+                Page = page,
+                PageSize = pageSize
+            };
+        }
+
 
         // ===========================
         // Create

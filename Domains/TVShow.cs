@@ -19,6 +19,8 @@ namespace Domains
         [MaxLength(500)]
         public string BannerUrl { get; set; } = string.Empty;
 
+        public string? Type { get; set; } = string.Empty;
+
         public ICollection<Season> Seasons { get; set; } = new List<Season>();
         public ICollection<TVShowGenre> TVShowGenres { get; set; } = new List<TVShowGenre>();
         public ICollection<TvShowCast> Castings { get; set; } = new List<TvShowCast>();

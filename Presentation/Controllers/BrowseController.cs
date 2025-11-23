@@ -64,6 +64,32 @@ public class BrowseController : ControllerBase
 
 
 
+    // i need endpoint to get all 12 random movies and tvshows 
+    [HttpGet]
+    [Route("random")]
+    public async Task<ActionResult<ApiResponse<List<AllMediaDto>>>> GetRandomMedia()
+    {
+        try
+        {
+            var media = await _movieService.GetRandomMediaAsync(12);
+
+            return Ok(ApiResponse<List<AllMediaDto>>.SuccessResponse(media, "Random media loaded successfully"));
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(
+                ApiResponse<List<AllMediaDto>>.FailResponse(
+                    "Failed to get random media",
+                    new List<string> { ex.Message }
+                )
+            );
+        }
+    }
+
+
+
+
+
 
 
 
