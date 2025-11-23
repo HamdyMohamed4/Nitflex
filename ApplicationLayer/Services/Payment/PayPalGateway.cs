@@ -42,7 +42,78 @@ namespace ApplicationLayer.Services.Payment
             return token;
         }
 
-        public async Task<(string, bool)> CreateOrder(CreatePaymentRequest requestData)
+        //public async Task<(string, bool)> CreateOrder(CreatePaymentRequest requestData)
+        //{
+        //    try
+        //    {
+        //        var env = _config["PayPal:Environment"];
+        //        var url = env == "live"
+        //            ? "https://api.paypal.com/v2/checkout/orders"
+        //            : "https://api-m.sandbox.paypal.com/v2/checkout/orders";
+
+        //        var accessToken = await GetAccessTokenAsync();
+        //        var request = new HttpRequestMessage(HttpMethod.Post, url);
+        //        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+        //        // 🧮 Calculate total amount
+        //        var total = requestData.Items.Sum(item => item.Price * item.Quantity);
+
+        //        // 🧾 Convert to PayPal items
+        //        var items = requestData.Items.Select(item => new
+        //        {
+        //            name = item.Name,
+        //            description = item.Description,
+        //            unit_amount = new
+        //            {
+        //                currency_code = "USD",
+        //                value = item.Price.ToString("F2")
+        //            },
+        //            quantity = item.Quantity.ToString(),
+        //            category = "PHYSICAL_GOODS"
+        //        });
+
+        //        var body = new
+        //        {
+        //            intent = "CAPTURE",
+        //            purchase_units = new[]
+        //            {
+        //            new
+        //            {
+        //                amount = new
+        //                {
+        //                    currency_code = "USD",
+        //                    value = total.ToString("F2"),
+        //                    breakdown = new
+        //                    {
+        //                        item_total = new
+        //                        {
+        //                            currency_code = "USD",
+        //                            value = total.ToString("F2")
+        //                        }
+        //                    }
+        //                },
+        //                items = items,
+        //            }
+        //        }
+        //        };
+
+        //        request.Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
+
+        //        var response = await _client.SendAsync(request);
+        //        var result = await response.Content.ReadAsStringAsync();
+        //        var json = JsonSerializer.Deserialize<JsonElement>(result);
+
+        //        string orderId = json.GetProperty("id").GetString();
+        //        return (orderId, response.IsSuccessStatusCode);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return (ex.Message, false);
+        //    }
+        //}
+
+
+        public async Task<(string orderId, string approvalUrl, bool success)> CreateOrder(CreatePaymentRequest requestData)
         {
             try
             {
@@ -55,60 +126,45 @@ namespace ApplicationLayer.Services.Payment
                 var request = new HttpRequestMessage(HttpMethod.Post, url);
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
-                // 🧮 Calculate total amount
-                var total = requestData.Items.Sum(item => item.Price * item.Quantity);
-
-                // 🧾 Convert to PayPal items
-                var items = requestData.Items.Select(item => new
-                {
-                    name = item.Name,
-                    description = item.Description,
-                    unit_amount = new
-                    {
-                        currency_code = "USD",
-                        value = item.Price.ToString("F2")
-                    },
-                    quantity = item.Quantity.ToString(),
-                    category = "PHYSICAL_GOODS"
-                });
+                var total = requestData.Items.Sum(x => x.Price * x.Quantity);
 
                 var body = new
                 {
                     intent = "CAPTURE",
                     purchase_units = new[]
                     {
-                    new
+                new
+                {
+                    amount = new
                     {
-                        amount = new
-                        {
-                            currency_code = "USD",
-                            value = total.ToString("F2"),
-                            breakdown = new
-                            {
-                                item_total = new
-                                {
-                                    currency_code = "USD",
-                                    value = total.ToString("F2")
-                                }
-                            }
-                        },
-                        items = items,
+                        currency_code = "USD",
+                        value = total.ToString("F2")
                     }
                 }
+            },
+                    application_context = new
+                    {
+                        return_url = requestData.SuccessUrl,
+                        cancel_url = requestData.CancelUrl
+                    }
                 };
 
                 request.Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
-
                 var response = await _client.SendAsync(request);
                 var result = await response.Content.ReadAsStringAsync();
-                var json = JsonSerializer.Deserialize<JsonElement>(result);
+                var json = JsonDocument.Parse(result);
 
-                string orderId = json.GetProperty("id").GetString();
-                return (orderId, response.IsSuccessStatusCode);
+                var id = json.RootElement.GetProperty("id").GetString();
+                var approval = json.RootElement.GetProperty("links")
+                    .EnumerateArray()
+                    .First(x => x.GetProperty("rel").GetString() == "approve")
+                    .GetProperty("href").GetString();
+
+                return (id, approval, response.IsSuccessStatusCode);
             }
             catch (Exception ex)
             {
-                return (ex.Message, false);
+                return (ex.Message, null, false);
             }
         }
 

@@ -116,6 +116,7 @@ namespace Presentation.Services
 
 
             builder.Services.AddHttpClient<PayPalGateway>();
+            builder.Services.AddScoped<IPaymentGateway, PayPalGateway>();
             builder.Services.AddHttpClient<PaymobGateway>();
             builder.Services.AddScoped<PaymentFactory>();
 

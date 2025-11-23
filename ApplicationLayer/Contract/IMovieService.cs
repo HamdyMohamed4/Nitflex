@@ -13,6 +13,8 @@ namespace ApplicationLayer.Contract
     /// </summary>
     public interface IMovieService : IBaseService<Movie, MovieDto>
     {
+        Task<List<AllMediaDto>> GetRandomMediaAsync(int count);
+        Task<GenreMoviesResponseDto> GetMoviesByGenreNameAsync(string genreName, int page = 1, int pageSize = 20);
         /// <summary>
         /// Get all movies optionally filtered by genre and/or search term.
         /// </summary>
@@ -67,5 +69,7 @@ namespace ApplicationLayer.Contract
 
         Task<List<MovieDto>> GetFeaturedWithTrailersAsync(int limit = 10);
         Task<MovieDto?> GetTrailerByIdAsync(Guid id);
+
+        Task<AllMediaDto> GetAllMediaAsync();
     }
 }

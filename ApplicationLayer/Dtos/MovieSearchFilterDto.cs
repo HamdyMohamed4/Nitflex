@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ApplicationLayer.Dtos
 {
-    public class MovieSearchFilterDto : BaseDto
+    public class MovieSearchFilterDto
     {
         public string? SearchTerm { get; set; }    // Search Title, Description, Actor, Genre
         public string? Language { get; set; }      // English / Arabic / Spanish

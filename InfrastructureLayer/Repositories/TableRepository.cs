@@ -25,6 +25,12 @@ namespace InfrastructureLayer.Repositories
             _logger = logger;
         }
 
+
+        public IQueryable<T> GetAllQueryable()
+        {
+            return _dbSet.AsQueryable();
+        }
+
         public async Task<List<T>> GetAll()
         {
             try

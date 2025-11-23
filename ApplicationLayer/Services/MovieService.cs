@@ -19,6 +19,7 @@ namespace ApplicationLayer.Services
         private readonly IUserService _userService;
         private readonly IUnitOfWork _unitOfWork;
 
+
         public MovieService(
             IUnitOfWork unitOfWork,
             IMapper mapper,
@@ -30,6 +31,39 @@ namespace ApplicationLayer.Services
             _mapper = mapper;
             _userService = userService;
         }
+
+
+
+
+        public async Task<List<AllMediaDto>> GetRandomMediaAsync(int count)
+        {
+            // Step 1: Get random movies
+            var randomMovies = await _repo.GetAllQueryable()
+                .OrderBy(m => Guid.NewGuid())
+                .Take(count)
+                .ToListAsync();
+
+            // Step 2: Get random TV shows
+            var randomShows = await _repo.GetAllQueryable()
+                .OrderBy(s => Guid.NewGuid())
+                .Take(count)
+                .ToListAsync();
+
+            // Step 3: Merge results
+            var combined = new List<AllMediaDto>();
+
+            combined.AddRange(_mapper.Map<List<AllMediaDto>>(randomMovies));
+            combined.AddRange(_mapper.Map<List<AllMediaDto>>(randomShows));
+
+            // Step 4: Shuffle again and limit to requested count
+            var result = combined
+                .OrderBy(x => Guid.NewGuid())
+                .Take(count)
+                .ToList();
+
+            return result;
+        }
+
 
         // ====================================
         // Get All Movie with Simple Filters
@@ -151,6 +185,42 @@ namespace ApplicationLayer.Services
             };
         }
 
+
+
+
+        public async Task<GenreMoviesResponseDto> GetMoviesByGenreNameAsync(string genreName, int page = 1, int pageSize = 20)
+        {
+            var genreRepo = _unitOfWork.Repository<Genre>();
+            var genre = await genreRepo.GetFirstOrDefault(g => g.Name.ToLower() == genreName.ToLower());
+
+            if (genre == null)
+                return null;
+
+            var paged = await _repo.GetPagedList<Movie>(
+                pageNumber: page,
+                pageSize: pageSize,
+                filter: m => m.CurrentState == 1 && m.MovieGenres.Any(mg => mg.GenreId == genre.Id),
+                selector: null,
+                orderBy: m => m.ReleaseYear,
+                isDescending: true,
+                m => m.MovieGenres,
+                m => m.Castings
+            );
+
+            var moviesDto = _mapper.Map<List<MovieDto>>(paged.Items);
+
+            return new GenreMoviesResponseDto
+            {
+                GenreId = genre.Id,
+                GenreName = genre.Name,
+                Movies = moviesDto,
+                TotalCount = paged.TotalCount,
+                Page = page,
+                PageSize = pageSize
+            };
+        }
+
+
         // ===========================
         // Create
         // ===========================
@@ -241,6 +311,25 @@ namespace ApplicationLayer.Services
             var list = await _repo.GetList(m => m.CurrentState == 1 && m.MovieGenres.Any(mg => ids.Contains(mg.GenreId)));
             var ordered = list.OrderByDescending(m => m.ReleaseYear).Take(limit).ToList();
             return _mapper.Map<IEnumerable<MovieDto>>(ordered);
+        }
+
+
+
+        // i need impelemention of this method GetAllMediaAsync that retures all movies and all Tvshows
+        public async Task<AllMediaDto> GetAllMediaAsync()
+        {
+            var movieRepo = _unitOfWork.Repository<Movie>();
+            var tvShowRepo = _unitOfWork.Repository<TVShow>();
+            var movies = await movieRepo.GetList(m => m.CurrentState == 1);
+            var tvShows = await tvShowRepo.GetList(t => t.CurrentState == 1);
+            var moviesDto = _mapper.Map<List<MovieDto>>(movies);
+            var tvShowsDto = _mapper.Map<List<TvShowDto>>(tvShows);
+            return new AllMediaDto
+            {
+                Movies = moviesDto,
+                TvShows = tvShowsDto
+            };
+
         }
     }
 }

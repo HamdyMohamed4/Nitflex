@@ -19,14 +19,7 @@ namespace ApplicationLayer.Dtos
         public int? ReleaseYear { get; set; }
         public bool IsFeatured { get; set; }
 
-        // Genre information (IDs for lightweight filters + full DTOs for UI)
-        public Guid? PrimaryGenreId { get; set; }
-        public List<Guid> GenreIds { get; set; } = new();
         public List<GenreDto> Genres { get; set; } = new();
-
-        // Aggregated show data (useful for listing pages)
-        public int NumberOfSeasons { get; set; }
-        public int NumberOfEpisodes { get; set; }
 
         // Streaming locator exposed to the client when user clicks Play
         public string? StreamingUrl { get; set; }
@@ -36,5 +29,9 @@ namespace ApplicationLayer.Dtos
 
         // Optional: whether the show has been marked complete / ended
         public bool IsEnded { get; set; }
+
+
+        // ⬇️ بديل NumberOfEpisodes و NumberOfSeasons
+        public List<SeasonWithEpisodesDto> Seasons { get; set; } = new();
     }
 }

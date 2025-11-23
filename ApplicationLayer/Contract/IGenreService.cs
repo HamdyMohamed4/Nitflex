@@ -12,8 +12,8 @@ namespace ApplicationLayer.Contract
     {
         Task<List<GenreDto>> GetAllAsync();
         Task<GenreDto?> GetByIdAsync(Guid id);
-        Task<GenreDto> CreateAsync(CreateGenreDto dto);
-        Task<GenreDto?> UpdateAsync(Guid id, UpdateGenreDto dto);
+        Task<GenreDto> CreateAsync(GenreDto dto);
+        Task<GenreDto?> UpdateAsync(Guid id, GenreDto dto);
         Task<bool> DeleteAsync(Guid id);
     }
 }

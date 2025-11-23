@@ -6,8 +6,10 @@ using System.Threading.Tasks;
 
 namespace ApplicationLayer.Dtos
 {
-    public class GenreDto
+    public class SeasonWithEpisodesDto
     {
-        public string Name { get; set; } = null!;
+        public int SeasonNumber { get; set; }
+        public List<EpisodeDto> Episodes { get; set; } = new();
     }
+
 }
