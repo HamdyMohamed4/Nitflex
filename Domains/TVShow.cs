@@ -14,6 +14,8 @@ namespace Domains
         public string Description { get; set; } = string.Empty;
         public AgeRating AgeRating { get; set; }
 
+        public string? Language { get; set; }
+
         [MaxLength(500)]
         public string PosterUrl { get; set; } = string.Empty;
         [MaxLength(500)]

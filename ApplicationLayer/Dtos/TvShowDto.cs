@@ -20,6 +20,7 @@ namespace ApplicationLayer.Dtos
         public bool IsFeatured { get; set; }
 
         public string? Language { get; set; }
+        public string? Type { get; set; }
 
         public List<GenreDto> Genres { get; set; } = new();
 
