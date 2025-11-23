@@ -19,6 +19,8 @@ namespace ApplicationLayer.Dtos
         public int? ReleaseYear { get; set; }
         public bool IsFeatured { get; set; }
 
+        public string? Language { get; set; }
+
         public List<GenreDto> Genres { get; set; } = new();
 
         // Streaming locator exposed to the client when user clicks Play
