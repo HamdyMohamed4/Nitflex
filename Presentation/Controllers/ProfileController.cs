@@ -1,6 +1,7 @@
 using ApplicationLayer.Contract;
 using ApplicationLayer.Dtos;
 using Microsoft.AspNetCore.Mvc;
+using Presentation.ExtensionMethods;
 using Presentation.Models;
 
 namespace Presentation.Controllers;
@@ -10,10 +11,12 @@ namespace Presentation.Controllers;
 public class ProfileController : ControllerBase
 {
     private readonly IProfileService _profileService;
+    private readonly IFileService _fileService;
 
-    public ProfileController(IProfileService profileService)
+    public ProfileController(IProfileService profileService, IFileService fileService)
     {
         _profileService = profileService;
+        _fileService = fileService;
     }
 
     [HttpGet]
@@ -105,6 +108,47 @@ public class ProfileController : ControllerBase
     public async Task<ActionResult<ApiResponse<bool>>> DeleteProfile(Guid userId, Guid profileId)
     {
         var response = await _profileService.DeleteProfileByUserId(userId, profileId);
+
+        if (!response.Status)
+        {
+            if (response.Message.Contains("Not Found"))
+                return NotFound(ApiResponse<bool>.FailResponse(response.Message));
+
+            return BadRequest(ApiResponse<bool>.FailResponse(response.Message));
+        }
+
+        else
+        {
+            return Ok(ApiResponse<bool>.SuccessResponse(true, response.Message));
+        }
+    }
+
+    [HttpPost]
+    [Route("UploadProfilePicture/{userId}/{profileId}")]
+    public async Task<ActionResult<ApiResponse<bool>>> UploadProfilePicture(Guid userId, Guid profileId, IFormFile file)
+    {
+        FileUploadDto fileUploadDto = file.ToFileUploadDto();
+        var response = await _profileService.UploadProfilePicture(userId, profileId, fileUploadDto);
+
+        if (!response.Status)
+        {
+            if (response.Message.Contains("Not Found"))
+                return NotFound(ApiResponse<bool>.FailResponse(response.Message));
+
+            return BadRequest(ApiResponse<bool>.FailResponse(response.Message));
+        }
+
+        else
+        {
+            return Ok(ApiResponse<bool>.SuccessResponse(true, response.Message));
+        }
+    }
+
+    [HttpPost]
+    [Route("DeleteProfilePicture/{userId}/{profileId}/{profilePicturePath}")]
+    public async Task<IActionResult> DeleteProfilePicture(Guid userId, Guid profileId, string profilePicturePath)
+    {
+        var response = await _profileService.DeleteProfilePicture(userId, profileId, profilePicturePath);
 
         if (!response.Status)
         {

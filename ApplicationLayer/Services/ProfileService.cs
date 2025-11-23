@@ -11,8 +11,12 @@ namespace ApplicationLayer.Services;
 
 public class ProfileService : BaseService<UserProfile, UserProfileDto>, IProfileService
 {
-    public ProfileService(IGenericRepository<UserProfile> repo, IMapper mapper, IUserService userService)
-        : base(repo, mapper, userService) { }
+    private readonly IFileService _fileService;
+    public ProfileService(IGenericRepository<UserProfile> repo, IMapper mapper, IUserService userService, IFileService fileService)
+        : base(repo, mapper, userService)
+    {
+        _fileService = fileService;
+    }
 
     public async Task<(bool Status, string Message, IEnumerable<UserProfileDto> Response)> GetAllProfilesByUserIdAsync(Guid userId)
     {
@@ -122,5 +126,53 @@ public class ProfileService : BaseService<UserProfile, UserProfileDto>, IProfile
         List<UserHistoryDto> userHistoryListDto = _mapper.Map<List<UserHistoryDto>>(userHistory);
 
         return (true, "Success", userHistoryListDto);
+    }
+
+    public async Task<(bool Status, string Message)> UploadProfilePicture(Guid userId, Guid profileId, FileUploadDto fileUploadDto)
+    {
+        ApplicationUser? user = await _userService.GetUserByIdWithProfilesWithHistoriesAsync(userId.ToString());
+
+        if (user is null)
+            return (false, "User Not Found");
+
+        UserProfile? profile = user.Profiles.FirstOrDefault(x => x.Id == profileId);
+
+        if (profile is null)
+            return (false, "Profile Not Found");
+
+        if (!string.IsNullOrEmpty(profile.ProfilePicturePath))
+        {
+            await _fileService.DeleteProfilePictureAsync(profile.ProfilePicturePath);
+        }
+
+        profile.ProfilePicturePath = await _fileService.UplaodProfilePictureAsync(fileUploadDto);
+
+        await _repo.Update(profile);
+
+        return (true, profile.ProfilePicturePath);
+    }
+
+    public async Task<(bool Status, string Message)> DeleteProfilePicture(Guid userId, Guid profileId, string profilePicturePath)
+    {
+        ApplicationUser? user = await _userService.GetUserByIdWithProfilesWithHistoriesAsync(userId.ToString());
+
+        if (user is null)
+            return (false, "User Not Found");
+
+        UserProfile? profile = user.Profiles.FirstOrDefault(x => x.Id == profileId);
+
+        if (profile is null)
+            return (false, "Profile Not Found");
+
+        if (!string.IsNullOrEmpty(profile.ProfilePicturePath))
+        {
+            await _fileService.DeleteProfilePictureAsync(profilePicturePath);
+        }
+
+        profile.ProfilePicturePath = null;
+
+        await _repo.Update(profile);
+
+        return (true, "Deleted Profile Picture");
     }
 }

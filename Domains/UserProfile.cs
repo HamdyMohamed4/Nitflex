@@ -12,14 +12,11 @@ namespace Domains
     {
         [MaxLength(100)]
         public string ProfileName { get; set; } = string.Empty;
-
-        public Guid UserId { get; set; }        // الربط بالـ User
+        public Guid UserId { get; set; }
         public ApplicationUser User { get; set; } = default!;
-
-        // الحاجات الشخصية المرتبطة بالبروفايل
+        public string? ProfilePicturePath { get; set; }
         public ICollection<UserWatchlist> WatchlistItems { get; set; } = new List<UserWatchlist>();
         public ICollection<UserRating> Ratings { get; set; } = new List<UserRating>();
         public ICollection<UserHistory> Histories { get; set; } = new List<UserHistory>();
     }
-
 }

@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Microsoft.SemanticKernel;
 using Presentation.Services;
 using System.Text;
 
@@ -51,6 +52,7 @@ namespace Presentation.Services
 
 
             builder.Services.AddScoped<IProfileService, ProfileService>();
+            builder.Services.AddScoped<IFileService, FileService>();
 
 
             // DbContext
@@ -122,12 +124,37 @@ namespace Presentation.Services
 
             builder.Services.AddSingleton<EmailService>();
 
+            // Register semantic kernel services
+            builder.Services.AddSingleton<IChatHistoryService, ChatHistoryService>();
+            builder.Services.AddSingleton<IChatService, ChatService>();
 
+            builder.Services.AddHttpClient("gemini", client =>
+            {
+                client.BaseAddress = new Uri("https://generativelanguage.googleapis.com/v1beta/");
+                client.DefaultRequestHeaders.Add("x-goog-api-key", builder.Configuration["GeminiApiKey"]);
+            });
 
+            builder.Services.AddSingleton<Kernel>(options =>
+            {
+                var kernelBuilder = Kernel.CreateBuilder();
 
+                var httpClient = options.GetRequiredService<IHttpClientFactory>().CreateClient("gemini");
 
+                kernelBuilder.AddOpenAIChatCompletion(
+                    modelId: "models/gemini-2.0-flash",
+                    serviceId: "gemini-pro",
+                    apiKey: builder.Configuration["GeminiApiKey"]!,
+                    httpClient: httpClient
+                );
 
+                kernelBuilder.Services.AddLogging(loggingBuilder =>
+                {
+                    loggingBuilder.AddConsole();
+                    loggingBuilder.SetMinimumLevel(LogLevel.Information);
+                });
 
+                return kernelBuilder.Build();
+            });
         }
     }
 }
