@@ -35,7 +35,7 @@ namespace Presentation.Controllers
                 if (genreId == Guid.Empty) return
                         BadRequest(ApiResponse<GenreMoviesResponseDto>.FailResponse("Invalid genre id."));
                 var result = await _movieService.GetMoviesByGenreAsync(genreId, page, pageSize);
-                if (result == null || result.Movies == null || result.Movies.Count == 0)
+                if (result == null || result.MediaData == null || result.MediaData.Count == 0)
                     return NotFound(ApiResponse<GenreMoviesResponseDto>.FailResponse("No movies found for the specified genre.")); 
                 return Ok(ApiResponse<GenreMoviesResponseDto>.SuccessResponse(result, "Movies by genre retrieved successfully.")); } 
             catch (Exception ex) { return BadRequest(ApiResponse<GenreMoviesResponseDto>.FailResponse("Failed to retrieve movies by genre", new List<string> { ex.Message })); 
@@ -53,7 +53,7 @@ namespace Presentation.Controllers
 
                 var result = await _movieService.GetMoviesByGenreNameAsync(genreName, page, pageSize);
 
-                if (result == null || result.Movies == null || result.Movies.Count == 0)
+                if (result == null || result.MediaData == null || result.MediaData.Count == 0)
                     return NotFound(ApiResponse<GenreMoviesResponseDto>.FailResponse("No movies found for this genre."));
 
                 return Ok(ApiResponse<GenreMoviesResponseDto>.SuccessResponse(result, "Movies filtered by genre name retrieved successfully."));
@@ -157,6 +157,57 @@ namespace Presentation.Controllers
                 return BadRequest(ApiResponse<MovieDto>.FailResponse("Failed to retrieve movie details", new List<string> { ex.Message }));
             }
         }
+
+
+        // POST: api/tmdbimport/import-all
+        [HttpPost("import-all")]
+        public async Task<IActionResult> ImportAll()
+        {
+            // 1. Import Genres
+            await _movieService.ImportGenresAsync();
+
+            // 2. Import Top Rated Movies
+            await _movieService.ImportTopRatedMoviesAsync();
+
+            // 3. Import Cast for each movie
+            var allMovies = await _movieService.GetAllImportedMoviesAsync();
+            foreach (var movie in allMovies)
+            {
+                await _movieService.ImportCastForMovieAsync(movie, movie.TmdbId); // لازم تضيف TmdbId للـ Movie
+            }
+
+            return Ok("All data imported successfully!");
+        }
+
+
+
+
+        //[HttpPost("genres")]
+        //public async Task<IActionResult> ImportGenres()
+        //{
+        //    await _movieService.ImportGenresAsync();
+        //    return Ok("Genres imported.");
+        //}
+
+        //[HttpPost("movies/top-rated")]
+        //public async Task<IActionResult> ImportTopRatedMovies()
+        //{
+        //    await _movieService.ImportTopRatedMoviesAsync();
+        //    return Ok("Top rated movies imported.");
+        //}
+
+
+        //[HttpPost("import/popular")]
+        //public async Task<IActionResult> ImportPopularMovies()
+        //{
+        //    var count = await _movieService.ImportPopularMoviesAsync();
+
+        //    return Ok(new
+        //    {
+        //        Message = $"Imported {count} movies successfully!"
+        //    });
+        //}
+
 
 
 

@@ -9,7 +9,7 @@ namespace ApplicationLayer.Dtos
         public string GenreName { get; set; } = string.Empty;
 
         // Shows belonging to this genre (page / preview)
-        public List<TvShowDto> Shows { get; set; } = new();
+        public List<TvShowDto> MediaData { get; set; } = new();
 
         // Pagination / metadata
         public int TotalCount { get; set; }

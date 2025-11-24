@@ -14,6 +14,7 @@ namespace Domains
         public string Description { get; set; } = string.Empty;
         public int ReleaseYear { get; set; }
         public int DurationMinutes { get; set; }
+        public int TmdbId { get; set; }
         public AgeRating AgeRating { get; set; }
 
         [MaxLength(500)]

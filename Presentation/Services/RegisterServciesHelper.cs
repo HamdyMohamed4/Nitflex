@@ -128,7 +128,8 @@ namespace Presentation.Services
             builder.Services.AddScoped<IMovieService, MovieService>();
             builder.Services.AddScoped<ITvShowService, TvShowService>();
             builder.Services.AddScoped<IAdminUserService, AdminUserService>();
-            
+            builder.Services.AddScoped<ITmdbService, TmdbService>();
+
 
 
 

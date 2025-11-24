@@ -1,5 +1,6 @@
 ﻿using ApplicationLayer.Contract;
 using ApplicationLayer.Dtos;
+using ApplicationLayer.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Presentation.Models;
@@ -16,10 +17,12 @@ namespace Presentation.Controllers
     public class AdminUserController : ControllerBase
     {
         private readonly IAdminUserService _adminUserService;
+        private readonly ITvShowService _tvShowService;
 
-        public AdminUserController(IAdminUserService adminUserService)
+        public AdminUserController(IAdminUserService adminUserService, ITvShowService tvShowService)
         {
             _adminUserService = adminUserService;
+            _tvShowService = tvShowService;
         }
 
         // ===========================
@@ -142,23 +145,44 @@ namespace Presentation.Controllers
             }
         }
 
-        // GET: api/AdminUser/blocked
-        [HttpGet("blocked")]
-        public async Task<ActionResult<ApiResponse<List<UserDto>>>> GetBlockedUsers()
-        {
-            try
-            {
-                var users = await _adminUserService.GetAllUsersBlockedAsync();
+        //// GET: api/AdminUser/blocked
+        //[HttpGet("blocked")]
+        //public async Task<ActionResult<ApiResponse<List<UserDto>>>> GetBlockedUsers()
+        //{
+        //    try
+        //    {
+        //        var users = await _adminUserService.GetAllUsersBlockedAsync();
 
-                if (users == null || !users.Any())
-                    return NotFound(ApiResponse<List<UserDto>>.FailResponse("No blocked users found."));
+        //        if (users == null || !users.Any())
+        //            return NotFound(ApiResponse<List<UserDto>>.FailResponse("No blocked users found."));
 
-                return Ok(ApiResponse<List<UserDto>>.SuccessResponse(users.ToList(), "Blocked users retrieved successfully."));
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ApiResponse<List<UserDto>>.FailResponse("Failed to retrieve blocked users.", new List<string> { ex.Message }));
-            }
-        }
+        //        return Ok(ApiResponse<List<UserDto>>.SuccessResponse(users.ToList(), "Blocked users retrieved successfully."));
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return BadRequest(ApiResponse<List<UserDto>>.FailResponse("Failed to retrieve blocked users.", new List<string> { ex.Message }));
+        //    }
+        //}
+
+
+
+        //// GET: api/AdminTvShow/{tvShowId}/episodes/all
+        //[HttpGet("{tvShowId:guid}/episodes/all")]
+        //public async Task<ActionResult<ApiResponse<List<EpisodeDto>>>> GetAllEpisodesByTvShow(Guid tvShowId)
+        //{
+        //    try
+        //    {
+        //        var episodes = await _tvShowService.GetAllEpisodesByTvShowIdAsync(tvShowId);
+
+        //        if (episodes == null || !episodes.Any())
+        //            return NotFound(ApiResponse<List<EpisodeDto>>.FailResponse("No episodes found."));
+
+        //        return Ok(ApiResponse<List<EpisodeDto>>.SuccessResponse(episodes, "Episodes retrieved successfully."));
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return BadRequest(ApiResponse<List<EpisodeDto>>.FailResponse("Failed to retrieve episodes.", new List<string> { ex.Message }));
+        //    }
+        //}
     }
 }

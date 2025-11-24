@@ -181,7 +181,7 @@ namespace ApplicationLayer.Services
             {
                 GenreId = genreId,
                 GenreName = genre?.Name ?? string.Empty,
-                Shows = shows,
+                MediaData = shows,
                 TotalCount = paged.TotalCount,
                 Page = page,
                 PageSize = pageSize
@@ -224,7 +224,7 @@ namespace ApplicationLayer.Services
             {
                 GenreId = genre.Id,
                 GenreName = genre.Name,
-                Shows = shows,
+                MediaData = shows,
                 TotalCount = paged.TotalCount,
                 Page = page,
                 PageSize = pageSize

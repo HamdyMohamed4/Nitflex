@@ -20,7 +20,7 @@ namespace ApplicationLayer.Services.Payment
         public IPaymentGateway GetPaymentGateway(string countryCode)
         {
             if (countryCode == "EG")
-                return _serviceProvider.GetRequiredService<PaymobGateway>();
+                return _serviceProvider.GetRequiredService<PayPalGateway>();
             else
                 return _serviceProvider.GetRequiredService<PayPalGateway>();
         }

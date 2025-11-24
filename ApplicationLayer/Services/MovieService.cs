@@ -1,13 +1,14 @@
-﻿using AutoMapper;
-using ApplicationLayer.Contract;
+﻿using ApplicationLayer.Contract;
 using ApplicationLayer.Dtos;
-using InfrastructureLayer.Contracts;
+using AutoMapper;
 using Domains;
+using InfrastructureLayer.Contracts;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 
 namespace ApplicationLayer.Services
@@ -19,6 +20,7 @@ namespace ApplicationLayer.Services
         private readonly IMapper _mapper;
         private readonly IUserService _userService;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly ITmdbService _tmdbService;
 
 
         public MovieService(
@@ -26,7 +28,9 @@ namespace ApplicationLayer.Services
             IMapper mapper,
             IUserService userService,
             IGenericRepository<TVShow> showRepo,
-            IGenericRepository<Movie> repo
+            IGenericRepository<Movie> repo,
+            ITmdbService tmdbService
+
 
         ) : base(unitOfWork, mapper, userService)
         {
@@ -36,6 +40,7 @@ namespace ApplicationLayer.Services
             _repo = _unitOfWork.Repository<Movie>();
             _mapper = mapper;
             _userService = userService;
+            _tmdbService = tmdbService;
         }
 
 
@@ -184,7 +189,7 @@ namespace ApplicationLayer.Services
             {
                 GenreId = genreId,
                 GenreName = genre?.Name ?? string.Empty,
-                Movies = moviesDto,
+                MediaData = moviesDto,
                 TotalCount = paged.TotalCount,
                 Page = page,
                 PageSize = pageSize
@@ -217,7 +222,7 @@ namespace ApplicationLayer.Services
             {
                 GenreId = genre.Id,
                 GenreName = genre.Name,
-                Movies = moviesDto,
+                MediaData = moviesDto,
                 TotalCount = paged.TotalCount,
                 Page = page,
                 PageSize = pageSize
@@ -333,6 +338,141 @@ namespace ApplicationLayer.Services
 
 
 
+
+
+
+
+
+
+        // ===========================
+        // import data from tmdb
+
+
+        public async Task ImportGenresAsync()
+        {
+            var genresResponse = await _tmdbService.GetGenresAsync();
+            if (genresResponse?.genres == null) return;
+
+            foreach (var g in genresResponse.genres)
+            {
+
+                var genre = (await _unitOfWork.Repository<Genre>().GetAll())
+                .FirstOrDefault(x => x.TmdbId == g.id);
+                if (genre != null)
+                {
+                    await _unitOfWork.Repository<Genre>().Add(new Genre
+                    {
+                        Id = Guid.NewGuid(),
+                        Name = g.name,
+                        TmdbId = g.id
+                    });
+                }
+            }
+
+            await _unitOfWork.SaveChangesAsync();
+        }
+
+        public async Task ImportTopRatedMoviesAsync()
+        {
+            var moviesResponse = await _tmdbService.GetTopRatedMoviesAsync();
+            if (moviesResponse?.results == null) return;
+
+            foreach (var m in moviesResponse.results)
+            {
+                var trailer = await _tmdbService.GetMovieVideosAsync(m.id);
+                var trailerKey = trailer?.results.FirstOrDefault(v => v.type == "Trailer" && v.site == "YouTube")?.key;
+
+                var movie = new Movie
+                {
+                    Title = m.title,
+                    Description = m.overview,
+                    PosterUrl = m.poster_path != null ? $"https://image.tmdb.org/t/p/w500{m.poster_path}" : "",
+                    VideoUrl = trailerKey != null ? $"https://www.youtube.com/watch?v={trailerKey}" : "",
+                    TrailerUrl = trailerKey != null ? $"https://www.youtube.com/watch?v={trailerKey}" : "",
+                    ReleaseYear = int.TryParse(m.release_date?.Split('-')[0], out int y) ? y : 0,
+                };
+
+                // Genres
+                if (m.genre_ids != null)
+                {
+                    foreach (var gid in m.genre_ids)
+                    {
+                        //var genre = _unitOfWork.Repository<Genre>().Query().FirstOrDefault(x => x.TmdbId == gid);
+                        var genre = (await _unitOfWork.Repository<Genre>().GetAll())
+                                .FirstOrDefault(x => x.TmdbId == gid);
+                        //var genre = _unitOfWork.Repository<Genre>().GetAll().Result.FirstOrDefault(x => x.TmdbId == gid);
+
+                        if (genre != null)
+                        {
+                            movie.MovieGenres.Add(new MovieGenre
+                            {
+                                Genre = genre,
+                                GenreId = genre.Id
+                            });
+                        }
+                    }
+                }
+
+                await _unitOfWork.Repository<Movie>().Add(movie);
+            }
+
+            await _unitOfWork.SaveChangesAsync();
+        }
+
+        public async Task ImportCastForMovieAsync(Movie movie, int tmdbMovieId)
+        {
+            var credits = await _tmdbService.GetMovieCreditsAsync(tmdbMovieId);
+            if (credits?.cast == null) return;
+
+            foreach (var c in credits.cast)
+            {
+                var castMember = (await _unitOfWork.Repository<CastMember>().GetAll())
+                                 .FirstOrDefault(x => x.TmdbId == c.id);
+
+                if (castMember == null)
+                {
+                    castMember = new CastMember
+                    {
+                        Id = Guid.NewGuid(),
+                        Name = c.name,
+                        PhotoUrl = c.profile_path != null ? $"https://image.tmdb.org/t/p/w500{c.profile_path}" : "",
+                        Bio = "",
+                        TmdbId = c.id
+                    };
+                    await _unitOfWork.Repository<CastMember>().Add(castMember);
+                }
+
+                movie.Castings.Add(new MovieCast
+                {
+                    Movie = movie,
+                    CastMember = castMember,
+                    CharacterName = c.character
+                });
+            }
+
+
+            await _unitOfWork.SaveChangesAsync();
+        }
+
+
+        public async Task<List<Movie>> GetAllImportedMoviesAsync()
+        {
+            // هنا ممكن تضيف شرط لو عايز تجيب بس الأفلام اللي لسه ما اتعملش لها cast
+            return await _unitOfWork.Repository<Movie>().GetAll();
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
         public async Task<AllMediaDto> GetMediaByGenreIdAsync(Guid genreId)
         {
             // Fetch Movies based on genre
@@ -360,8 +500,6 @@ namespace ApplicationLayer.Services
                 TvShows = showDtos
             };
         }
-
-
 
 
 

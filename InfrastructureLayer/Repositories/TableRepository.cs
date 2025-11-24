@@ -31,6 +31,7 @@ namespace InfrastructureLayer.Repositories
             return _dbSet.AsQueryable();
         }
 
+
         public async Task<List<T>> GetAll()
         {
             try
