@@ -35,7 +35,7 @@ namespace Presentation.Controllers
                 if (genreId == Guid.Empty)
                     return BadRequest(ApiResponse<GenreShowsResponseDto>.FailResponse("Invalid genre id."));
                 var result = await _tvShowService.GetShowsByGenreAsync(genreId, page, pageSize);
-                if (result == null || result.Shows == null || !result.Shows.Any())
+                if (result == null || result.MediaData == null || !result.MediaData.Any())
                     return NotFound(ApiResponse<GenreShowsResponseDto>.FailResponse("No shows found for the specified genre."));
                 return Ok(ApiResponse<GenreShowsResponseDto>.SuccessResponse(result, "Shows by genre retrieved successfully."));
             }
@@ -56,7 +56,7 @@ namespace Presentation.Controllers
 
                 var result = await _tvShowService.GetShowsByGenreNameAsync(genreName, page, pageSize);
 
-                if (result == null || result.Shows == null || !result.Shows.Any())
+                if (result == null || result.MediaData == null || !result.MediaData.Any())
                     return NotFound(ApiResponse<GenreShowsResponseDto>.FailResponse("No shows found for this genre."));
 
                 return Ok(ApiResponse<GenreShowsResponseDto>.SuccessResponse(result, "Shows filtered by genre name retrieved successfully."));

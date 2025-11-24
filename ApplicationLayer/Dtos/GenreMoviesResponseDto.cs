@@ -9,7 +9,7 @@ namespace ApplicationLayer.Dtos
         public string GenreName { get; set; } = string.Empty;
 
         // Movies belonging to this genre (page / preview)
-        public List<MovieDto> Movies { get; set; } = new();
+        public List<MovieDto> MediaData { get; set; } = new();
 
         // Pagination / metadata
         public int TotalCount { get; set; }

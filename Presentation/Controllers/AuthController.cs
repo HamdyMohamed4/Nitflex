@@ -66,21 +66,11 @@ namespace Presentation.Controllers
         public async Task<ActionResult<ApiResponse<object>>> SendMagicLink([FromBody] EmailRequestDto model)
         {
 
-            var usert = await _userService.GetUserByEmailAsync(model.Email);
-
-            // إذا كان المستخدم محظورًا
-            if (usert == null)
-            {
-                // إرجاع رسالة تفيد بأن المستخدم محظور
-                return BadRequest(ApiResponse<object>.FailResponse("User is blocked.", new List<string> { "This user is blocked and cannot proceed." }));
-            }
-
             if (!ModelState.IsValid)
             {
                 var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
                 return BadRequest(ApiResponse<object>.FailResponse("Validation failed.", errors));
             }
-
 
             var success = await _authService.SendMagicLinkAsync(model.Email);
             if (!success)
@@ -137,35 +127,32 @@ namespace Presentation.Controllers
             return Ok(ApiResponse<LoginResponseDto>.SuccessResponse(user, "User registered successfully."));
         }
 
-        // ============================
-        // Login
-        // ============================
+
         [HttpPost("login")]
         public async Task<ActionResult<ApiResponse<LoginResponseDto>>> Login([FromBody] LoginDto dto)
         {
-            var usert = await _userService.GetUserByEmailAsync(dto.Email);
-
-            // إذا كان المستخدم محظورًا
-            if (usert == null)
-            {
-                // إرجاع رسالة تفيد بأن المستخدم محظور
-                return BadRequest(ApiResponse<object>.FailResponse("User is blocked.", new List<string> { "This user is blocked and cannot proceed." }));
-            }
             if (!ModelState.IsValid)
                 return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Invalid input"));
 
-            var user = await _authService.LoginAndGenerateTokensAsync(dto.Email, dto.Password);
-            if (user == null)
-                return Unauthorized(ApiResponse<LoginResponseDto>.FailResponse("Invalid credentials"));
+            var validation = await _userService.ValidateLoginAsync(dto.Email, dto.Password);
 
-            SetRefreshTokenCookie(user.RefreshToken);
-            return Ok(ApiResponse<LoginResponseDto>.SuccessResponse(user, "Login successful."));
+            if (!validation.IsValid)
+            {
+                return StatusCode(StatusCodes.Status401Unauthorized,
+                    ApiResponse<LoginResponseDto>.FailResponse(validation.ErrorMessage));
+            }
+
+            var tokenInfo = await _authService.LoginAndGenerateTokensAsync(dto.Email, dto.Password);
+
+            if (tokenInfo == null)
+                return StatusCode(StatusCodes.Status401Unauthorized,
+                    ApiResponse<LoginResponseDto>.FailResponse("Invalid credentials"));
+
+            SetRefreshTokenCookie(tokenInfo.RefreshToken);
+
+            return Ok(ApiResponse<LoginResponseDto>.SuccessResponse(tokenInfo, "Login successful"));
         }
 
-
-
-        // Logout (JWT) - invalidate refresh token server-side and remove cookie
-        // ============================
         [HttpPost("logout")]
         public async Task<ActionResult<ApiResponse<object>>> Logout()
         {
@@ -203,13 +190,15 @@ namespace Presentation.Controllers
         public async Task<ActionResult<ApiResponse<object>>> RequestOtp([FromBody] EmailRequestDto model)
         {
 
-            var usert = await _userService.GetUserByEmailAsync(model.Email);
+            if (!ModelState.IsValid)
+                return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Invalid input"));
 
-            // إذا كان المستخدم محظورًا
-            if (usert == null)
+            var validation = await _userService.ValidateLoginAsync(model.Email, "");
+
+            if (!validation.IsValid)
             {
-                // إرجاع رسالة تفيد بأن المستخدم محظور
-                return BadRequest(ApiResponse<object>.FailResponse("User is blocked.", new List<string> { "This user is blocked and cannot proceed." }));
+                return StatusCode(StatusCodes.Status401Unauthorized,
+                    ApiResponse<LoginResponseDto>.FailResponse(validation.ErrorMessage));
             }
             if (!ModelState.IsValid)
             {
@@ -291,8 +280,6 @@ namespace Presentation.Controllers
 
 
 
-
-        [Authorize(Roles = "User")]
         [HttpPost("forgot-password")]
         public async Task<ActionResult<ApiResponse<object>>> ForgotPassword([FromBody] EmailRequestDto model)
         {
@@ -314,7 +301,6 @@ namespace Presentation.Controllers
 
 
 
-        [Authorize(Roles = "User")]
         [HttpPost("reset-password")]
         public async Task<ActionResult<ApiResponse<object>>> ResetPassword([FromBody] ResetPasswordDto dto)
         {

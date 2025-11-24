@@ -14,6 +14,8 @@ namespace Domains
         [MaxLength(500)]
         public string PhotoUrl { get; set; } = string.Empty;
         public string Bio { get; set; } = string.Empty;
+
+        public int TmdbId { get; set; } // ده اللي كان ناقص
     }
 
 }

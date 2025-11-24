@@ -142,18 +142,46 @@ namespace Presentation.Services
 
         public async Task LogoutAsync() => await _signInManager.SignOutAsync();
 
-        public async Task<ApplicationUser?> GetUserByEmailAsync(string email)
+        //public async Task<ApplicationUser?> GetUserByEmailAsync(string email)
+        //{
+        //    var user = await _userManager.FindByEmailAsync(email);
+
+        //    if (user == null)
+        //        return null;
+
+        //    if (user.IsBlocked)
+        //        return null;
+
+        //    return user;
+        //}
+
+
+        public async Task<(bool IsValid, string ErrorMessage, ApplicationUser? User)> ValidateLoginAsync(string email, string password)
         {
             var user = await _userManager.FindByEmailAsync(email);
 
             if (user == null)
-                return null;
+                return (false, "User Is Not Exist", null);
 
             if (user.IsBlocked)
-                return null;
+                return (false, "User is blocked", null);
 
-            return user;
+            //if (!user.EmailConfirmed)
+            //    return (false, "Email is not verified", null);
+
+            var passwordValid = await _userManager.CheckPasswordAsync(user, password);
+
+            if (!passwordValid)
+                return (false, "Invalid credentials", null);
+
+            return (true, string.Empty, user);
         }
+
+        public async Task<ApplicationUser?> GetUserByEmailAsync(string email)
+        {
+            return await _userManager.FindByEmailAsync(email);
+        }
+
 
 
 

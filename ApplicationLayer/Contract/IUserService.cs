@@ -12,6 +12,8 @@ namespace ApplicationLayer.Contract
         Task<UserResultDto> RegisterAsync(RegisterDto registerDto);
         Task<UserResultDto> LoginAsync(LoginDto loginDto);
         Task LogoutAsync();
+
+        Task<(bool IsValid, string ErrorMessage, ApplicationUser? User)> ValidateLoginAsync(string email, string password);
         Task<RegisterDto> GetUserByIdAsync(string userId);
         //Task<RegisterDto> GetUserByEmailAsync(string email);
         Task<ApplicationUser?> GetUserByEmailAsync(string email);
