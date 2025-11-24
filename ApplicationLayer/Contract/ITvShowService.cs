@@ -38,6 +38,7 @@ namespace ApplicationLayer.Contract
         // Episodes
         Task<EpisodeDto?> GetEpisodeByIdAsync(Guid episodeId);
         Task<List<EpisodeDto>> GetAllEpisodesBySeasonIdAsync(Guid seasonId);
+        Task<List<EpisodeDto>> GetAllEpisodesByTvShowIdAsync(Guid tvShowId);
         Task<EpisodeDto?> CreateEpisodeAsync(Guid tvShowId, Guid seasonId, CreateEpisodeDto dto);
         Task<bool> UpdateEpisodeAsync(Guid tvShowId, Guid seasonId, Guid episodeId, UpdateEpisodeDto dto);
         Task<bool> DeleteEpisodeAsync(Guid tvShowId, Guid seasonId, Guid episodeId);
