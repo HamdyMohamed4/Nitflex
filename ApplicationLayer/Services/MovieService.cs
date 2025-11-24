@@ -15,6 +15,7 @@ namespace ApplicationLayer.Services
     public class MovieService : BaseService<Movie, MovieDto>, IMovieService
     {
         private readonly IGenericRepository<Movie> _repo;
+        private readonly IGenericRepository<TVShow> _showRepo;
         private readonly IMapper _mapper;
         private readonly IUserService _userService;
         private readonly IUnitOfWork _unitOfWork;
@@ -23,9 +24,14 @@ namespace ApplicationLayer.Services
         public MovieService(
             IUnitOfWork unitOfWork,
             IMapper mapper,
-            IUserService userService
+            IUserService userService,
+            IGenericRepository<TVShow> showRepo,
+            IGenericRepository<Movie> repo
+
         ) : base(unitOfWork, mapper, userService)
         {
+            _repo = repo;
+            _showRepo = showRepo;
             _unitOfWork = unitOfWork;
             _repo = _unitOfWork.Repository<Movie>();
             _mapper = mapper;
@@ -310,6 +316,42 @@ namespace ApplicationLayer.Services
             var ordered = list.OrderByDescending(m => m.ReleaseYear).Take(limit).ToList();
             return _mapper.Map<IEnumerable<MovieDto>>(ordered);
         }
+
+
+
+
+
+
+
+        public async Task<AllMediaDto> GetMediaByGenreIdAsync(Guid genreId)
+        {
+            // Fetch Movies based on genre
+            var moviesQuery = _repo.GetAllQueryable()
+                .Where(m => m.CurrentState == 1 && m.MovieGenres.Any(g => g.GenreId == genreId))
+                .Include(m => m.MovieGenres)
+                .ThenInclude(g => g.Genre);
+
+            var movies = await moviesQuery.ToListAsync();
+            var movieDtos = _mapper.Map<List<MovieDto>>(movies);
+
+            // Fetch TV Shows based on genre
+            var showsQuery = _showRepo.GetAllQueryable()
+                .Where(s => s.CurrentState == 1 && s.TVShowGenres.Any(g => g.GenreId == genreId))
+                .Include(s => s.TVShowGenres)
+                .ThenInclude(g => g.Genre)
+                .Include(s => s.Seasons); // Optional لو هتعرض عدد المواسم
+
+            var shows = await showsQuery.ToListAsync();
+            var showDtos = _mapper.Map<List<TvShowDto>>(shows);
+
+            return new AllMediaDto
+            {
+                Movies = movieDtos,
+                TvShows = showDtos
+            };
+        }
+
+
 
 
 
