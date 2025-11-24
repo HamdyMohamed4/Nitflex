@@ -141,5 +141,24 @@ namespace Presentation.Controllers
                 return BadRequest(ApiResponse<bool>.FailResponse("Failed to block/unblock user.", new List<string> { ex.Message }));
             }
         }
+
+        // GET: api/AdminUser/blocked
+        [HttpGet("blocked")]
+        public async Task<ActionResult<ApiResponse<List<UserDto>>>> GetBlockedUsers()
+        {
+            try
+            {
+                var users = await _adminUserService.GetAllUsersBlockedAsync();
+
+                if (users == null || !users.Any())
+                    return NotFound(ApiResponse<List<UserDto>>.FailResponse("No blocked users found."));
+
+                return Ok(ApiResponse<List<UserDto>>.SuccessResponse(users.ToList(), "Blocked users retrieved successfully."));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<List<UserDto>>.FailResponse("Failed to retrieve blocked users.", new List<string> { ex.Message }));
+            }
+        }
     }
 }

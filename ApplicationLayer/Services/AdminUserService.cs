@@ -133,4 +133,17 @@ public class AdminUserService : IAdminUserService
         return result.Succeeded;
 
     }
+
+    // ===========================
+    // Get all blocked users
+    // ===========================
+    public async Task<IEnumerable<UserDto>> GetAllUsersBlockedAsync()
+    {
+        var users = _userManager.Users
+                                .Where(u => u.CurrentState == 1 && u.IsBlocked)
+                                .ToList();
+
+        return _mapper.Map<IEnumerable<UserDto>>(users);
+    }
+
 }

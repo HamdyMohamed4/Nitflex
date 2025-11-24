@@ -15,6 +15,7 @@ namespace ApplicationLayer.Contract
         Task<bool> UpdateAsync(Guid userId, UpdateUserDto dto);
         Task<bool> DeleteAsync(Guid userId);
         Task<bool> BlockAsync(Guid userId, UserBlockDto dto);
+        Task<IEnumerable<UserDto>> GetAllUsersBlockedAsync();
     }
 
 }

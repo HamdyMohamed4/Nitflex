@@ -46,7 +46,6 @@ namespace Presentation.Controllers
             }
         }
 
-
         // GET: api/AdminTvShow/{id}
         [HttpGet("{id:guid}")]
         public async Task<ActionResult<ApiResponse<TvShowDetailsDto>>> GetById(Guid id)
@@ -164,7 +163,6 @@ namespace Presentation.Controllers
             }
         }
 
-
         // POST: api/AdminTvShow/{tvShowId}/seasons
         [HttpPost("{tvShowId:guid}/seasons")]
         public async Task<ActionResult<ApiResponse<SeasonDto>>> CreateSeason(Guid tvShowId, [FromBody] CreateSeasonDto dto)
@@ -263,6 +261,24 @@ namespace Presentation.Controllers
             }
         }
 
+        // GET: api/AdminTvShow/{tvShowId}/episodes/all
+        [HttpGet("{tvShowId:guid}/episodes/all")]
+        public async Task<ActionResult<ApiResponse<List<EpisodeDto>>>> GetAllEpisodesByTvShow(Guid tvShowId)
+        {
+            try
+            {
+                var episodes = await _tvShowService.GetAllEpisodesByTvShowIdAsync(tvShowId);
+
+                if (episodes == null || !episodes.Any())
+                    return NotFound(ApiResponse<List<EpisodeDto>>.FailResponse("No episodes found."));
+
+                return Ok(ApiResponse<List<EpisodeDto>>.SuccessResponse(episodes, "Episodes retrieved successfully."));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<List<EpisodeDto>>.FailResponse("Failed to retrieve episodes.", new List<string> { ex.Message }));
+            }
+        }
 
         // POST: api/AdminTvShow/{tvShowId}/seasons/{seasonId}/episodes
         [HttpPost("{tvShowId:guid}/seasons/{seasonId:guid}/episodes")]
@@ -279,7 +295,6 @@ namespace Presentation.Controllers
                 return BadRequest(ApiResponse<EpisodeDto>.FailResponse("Failed to create episode.", new List<string> { ex.Message }));
             }
         }
-
 
         // PUT: api/AdminTvShow/{tvShowId}/seasons/{seasonId}/episodes/{episodeId}
         [HttpPut("{tvShowId:guid}/seasons/{seasonId:guid}/episodes/{episodeId:guid}")]

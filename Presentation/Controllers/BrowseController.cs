@@ -88,6 +88,42 @@ public class BrowseController : ControllerBase
 
 
 
+    // i need endpoint to get all movies and tvshows by genre id
+    [HttpGet]
+    [Route("genre/{genreId}")]
+    public async Task<ActionResult<ApiResponse<AllMediaDto>>> GetMediaByGenreId(Guid genreId)
+    {
+        try
+        {
+            var media = await _movieService.GetMediaByGenreIdAsync(genreId);
+
+            if (media == null ||
+                ((media.Movies == null || !media.Movies.Any()) &&
+                 (media.TvShows == null || !media.TvShows.Any())))
+            {
+                return NotFound(
+                    ApiResponse<AllMediaDto>.FailResponse("No media found for the specified genre.")
+                );
+            }
+
+            return Ok(
+                ApiResponse<AllMediaDto>.SuccessResponse(media, "Media loaded successfully by genre.")
+            );
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(
+                ApiResponse<AllMediaDto>.FailResponse(
+                    "Failed to get media by genre",
+                    new List<string> { ex.Message }
+                )
+            );
+        }
+    }
+
+
+
+
 
 
 
