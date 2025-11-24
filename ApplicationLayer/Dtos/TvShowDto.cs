@@ -24,6 +24,8 @@ namespace ApplicationLayer.Dtos
 
         public List<GenreDto> Genres { get; set; } = new();
 
+        public List<Guid> GenreIds { get; set; } = new();
+
         // Streaming locator exposed to the client when user clicks Play
         public string? StreamingUrl { get; set; }
 
