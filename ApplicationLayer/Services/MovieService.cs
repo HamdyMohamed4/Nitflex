@@ -186,8 +186,6 @@ namespace ApplicationLayer.Services
         }
 
 
-
-
         public async Task<GenreMoviesResponseDto> GetMoviesByGenreNameAsync(string genreName, int page = 1, int pageSize = 20)
         {
             var genreRepo = _unitOfWork.Repository<Genre>();

@@ -1,5 +1,6 @@
 ﻿using ApplicationLayer.Contract;
 using ApplicationLayer.Dtos;
+using ApplicationLayer.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Presentation.Models;
@@ -26,6 +27,21 @@ namespace Presentation.Controllers
 
 
         // GET: api/Movie/genre/{genreId}?page=1&pageSize=20
+        [HttpGet("genre/{genreId:guid}")]
+        public async Task<ActionResult<ApiResponse<GenreMoviesResponseDto>>> GetByGenre(Guid genreId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+        { 
+            try 
+            {
+                if (genreId == Guid.Empty) return
+                        BadRequest(ApiResponse<GenreMoviesResponseDto>.FailResponse("Invalid genre id."));
+                var result = await _movieService.GetMoviesByGenreAsync(genreId, page, pageSize);
+                if (result == null || result.Movies == null || result.Movies.Count == 0)
+                    return NotFound(ApiResponse<GenreMoviesResponseDto>.FailResponse("No movies found for the specified genre.")); 
+                return Ok(ApiResponse<GenreMoviesResponseDto>.SuccessResponse(result, "Movies by genre retrieved successfully.")); } 
+            catch (Exception ex) { return BadRequest(ApiResponse<GenreMoviesResponseDto>.FailResponse("Failed to retrieve movies by genre", new List<string> { ex.Message })); 
+            }
+        }
+
         // GET: api/Movie/genre/name/{genreName}?page=1&pageSize=20
         [HttpGet("genre/name/{genreName}")]
         public async Task<ActionResult<ApiResponse<GenreMoviesResponseDto>>> GetByGenreName(string genreName, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)

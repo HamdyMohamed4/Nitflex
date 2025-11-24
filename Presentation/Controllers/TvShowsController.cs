@@ -24,6 +24,28 @@ namespace Presentation.Controllers
         }
 
 
+
+
+        // GET: api/TvShows/genre/{genreId}?page=1&pageSize=20
+        [HttpGet("genre/{genreId:guid}")]
+        public async Task<ActionResult<ApiResponse<GenreShowsResponseDto>>> GetByGenre(Guid genreId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+        {
+            try
+            {
+                if (genreId == Guid.Empty)
+                    return BadRequest(ApiResponse<GenreShowsResponseDto>.FailResponse("Invalid genre id."));
+                var result = await _tvShowService.GetShowsByGenreAsync(genreId, page, pageSize);
+                if (result == null || result.Shows == null || !result.Shows.Any())
+                    return NotFound(ApiResponse<GenreShowsResponseDto>.FailResponse("No shows found for the specified genre."));
+                return Ok(ApiResponse<GenreShowsResponseDto>.SuccessResponse(result, "Shows by genre retrieved successfully."));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<GenreShowsResponseDto>.FailResponse("Failed to retrieve shows by genre", new List<string> { ex.Message }));
+            }
+        }
+
+
         [HttpGet("genre/name/{genreName}")]
         public async Task<ActionResult<ApiResponse<GenreShowsResponseDto>>> GetByGenreName(string genreName, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
         {
