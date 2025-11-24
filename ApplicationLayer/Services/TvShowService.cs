@@ -1,8 +1,9 @@
-﻿using AutoMapper;
-using ApplicationLayer.Contract;
+﻿using ApplicationLayer.Contract;
 using ApplicationLayer.Dtos;
-using InfrastructureLayer.Contracts;
+using AutoMapper;
 using Domains;
+using InfrastructureLayer.Contracts;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -37,6 +38,8 @@ namespace ApplicationLayer.Services
         // ===========================
         // TvShow: Basic CRUD & listing
         // ===========================
+
+        // Get all TV shows
         public async Task<List<TvShowDto>> GetAllAsync(Guid? genreId = null, string? search = null)
         {
             var list = await _tvShowRepo.GetList(s => s.CurrentState == 1);
@@ -47,28 +50,69 @@ namespace ApplicationLayer.Services
             if (!string.IsNullOrWhiteSpace(search))
                 list = list.Where(s => s.Title.Contains(search, StringComparison.OrdinalIgnoreCase)).ToList();
 
-            return _mapper.Map<List<TvShowDto>>(list);
+            foreach (var tvShow in list)
+            {
+                tvShow.Seasons = tvShow.Seasons
+                    .Where(se => se.CurrentState == 1)
+                    .OrderBy(se => se.SeasonNumber)
+                    .ToList();
+
+                foreach (var season in tvShow.Seasons)
+                {
+                    season.Episodes = season.Episodes
+                        .Where(ep => ep.CurrentState == 1)
+                        .OrderBy(ep => ep.EpisodeNumber)
+                        .ToList();
+                }
+            }
+
+            var orderedList = list
+               .OrderByDescending(s => s.CreatedDate)
+               .ToList();
+
+            return _mapper.Map<List<TvShowDto>>(orderedList);
         }
 
+        // Get TV show by id
         public async Task<TvShowDetailsDto?> GetByIdAsync(Guid id)
         {
             var tvShow = await _tvShowRepo.GetById(id);
             if (tvShow == null) return null;
 
             // load seasons and their episodes
-            var seasons = await _seasonRepo.GetList(s => s.TvShowId == id);
-            foreach (var season in seasons)
+            var seasons = await _seasonRepo.GetList(s => s.TvShowId == id && s.CurrentState == 1);
+
+            if (!seasons.Any())
             {
-                var episodes = await _episodeRepo.GetList(e => e.SeasonId == season.Id);
-                season.Episodes = episodes;
+                var emptyDto = _mapper.Map<TvShowDetailsDto>(tvShow);
+                emptyDto.Seasons = new List<SeasonDto>();
+                return emptyDto;
             }
 
+            await Task.WhenAll(seasons.Select(async season =>
+            {
+                var episodes = await _episodeRepo.GetList(
+                    e => e.SeasonId == season.Id && e.CurrentState == 1
+                );
+                
+                season.Episodes = episodes
+                    .OrderBy(e => e.EpisodeNumber)
+                    .ToList();
+            }));
+
+            
+            var orderedSeasons = seasons
+                .OrderBy(s => s.SeasonNumber)
+                .ToList();
+
             var dto = _mapper.Map<TvShowDetailsDto>(tvShow);
-            dto.Seasons = _mapper.Map<List<SeasonDto>>(seasons);
+            dto.Seasons = _mapper.Map<List<SeasonDto>>(orderedSeasons);
 
             return dto;
+
         }
 
+        // Create TV show
         public async Task<TvShowDto> CreateAsync(CreateTvShowDto dto)
         {
             var entity = _mapper.Map<TVShow>(dto);
@@ -78,9 +122,11 @@ namespace ApplicationLayer.Services
             entity.CurrentState = 1;
 
             await _tvShowRepo.Add(entity);
+            await _unitOfWork.SaveChangesAsync();
             return _mapper.Map<TvShowDto>(entity);
         }
 
+        // Update TV show
         public async Task<bool> UpdateAsync(Guid id, UpdateTvShowDto dto)
         {
             var entity = await _tvShowRepo.GetById(id);
@@ -90,13 +136,25 @@ namespace ApplicationLayer.Services
             entity.UpdatedBy = _userService.GetLoggedInUser();
             entity.UpdatedDate = DateTime.UtcNow;
 
-            return await _tvShowRepo.Update(entity);
-        }
+            var result = await _tvShowRepo.Update(entity);
+            
+            if (result)
+                await _unitOfWork.SaveChangesAsync();
 
+            return result;
+        }
+    
+        // Delete TV show
         public async Task<bool> DeleteAsync(Guid id)
         {
-            return await _tvShowRepo.ChangeStatus(id, _userService.GetLoggedInUser(), 0);
+            var result = await _tvShowRepo.ChangeStatus(id, _userService.GetLoggedInUser(), 0);
+
+            if (result)
+                await _unitOfWork.SaveChangesAsync();
+
+            return result;
         }
+
 
         // ===========================
         // Genre-based listing
@@ -157,6 +215,7 @@ namespace ApplicationLayer.Services
             return !string.IsNullOrWhiteSpace(show.BannerUrl) ? show.BannerUrl : show.PosterUrl;
         }
 
+
         // ===========================
         // Seasons
         // ===========================
@@ -165,16 +224,42 @@ namespace ApplicationLayer.Services
         public async Task<SeasonDto?> GetSeasonByIdAsync(Guid seasonId)
         {
             var season = await _seasonRepo.GetById(seasonId);
-            return season == null ? null : _mapper.Map<SeasonDto>(season);
+
+            if (season == null) return null;
+
+            var episodes = await _episodeRepo.GetList(
+                e => e.SeasonId == seasonId && e.CurrentState == 1
+            );
+
+            season.Episodes = episodes.OrderBy(e => e.EpisodeNumber).ToList();
+
+            return _mapper.Map<SeasonDto>(season);
         }
 
         // Get all seasons for series
         public async Task<List<SeasonDto>> GetAllSeasonsByTvShowIdAsync(Guid tvShowId)
         {
-            var seasons = await _seasonRepo.GetList(s => s.TvShowId == tvShowId);
-            return _mapper.Map<List<SeasonDto>>(seasons);
-        }
+            var seasons = await _seasonRepo.GetList(
+                s => s.TvShowId == tvShowId && s.CurrentState == 1
+            );
 
+            if (!seasons.Any())
+                return new List<SeasonDto>();
+
+            await Task.WhenAll(seasons.Select(async season =>
+            {
+                var episodes = await _episodeRepo.GetList(
+                    e => e.SeasonId == season.Id && e.CurrentState == 1
+                );
+                season.Episodes = episodes.OrderBy(e => e.EpisodeNumber).ToList();
+            }));
+
+            var orderedSeasons = seasons.OrderBy(s => s.SeasonNumber).ToList();
+
+            return _mapper.Map<List<SeasonDto>>(orderedSeasons);
+        }
+        
+        // Create season
         public async Task<SeasonDto?> CreateSeasonAsync(Guid tvShowId, CreateSeasonDto dto)
         {
             var show = await _tvShowRepo.GetById(tvShowId);
@@ -188,9 +273,11 @@ namespace ApplicationLayer.Services
             season.CurrentState = 1;
 
             await _seasonRepo.Add(season);
+            await _unitOfWork.SaveChangesAsync();
             return _mapper.Map<SeasonDto>(season);
         }
 
+        // Update season
         public async Task<bool> UpdateSeasonAsync(Guid tvShowId, Guid seasonId, UpdateSeasonDto dto)
         {
             var season = await _seasonRepo.GetById(seasonId);
@@ -200,16 +287,28 @@ namespace ApplicationLayer.Services
             season.UpdatedBy = _userService.GetLoggedInUser();
             season.UpdatedDate = DateTime.UtcNow;
 
-            return await _seasonRepo.Update(season);
+            var result = await _seasonRepo.Update(season);
+            
+            if (result)
+                await _unitOfWork.SaveChangesAsync();
+
+            return result;
         }
 
+        // Delete season
         public async Task<bool> DeleteSeasonAsync(Guid tvShowId, Guid seasonId)
         {
             var season = await _seasonRepo.GetById(seasonId);
             if (season == null || season.TvShowId != tvShowId) return false;
 
-            return await _seasonRepo.ChangeStatus(seasonId, _userService.GetLoggedInUser(), 0);
+            var result = await _seasonRepo.ChangeStatus(seasonId, _userService.GetLoggedInUser(), 0);
+
+            if (result)
+                await _unitOfWork.SaveChangesAsync();
+
+            return result;
         }
+
 
         // ===========================
         // Episodes
@@ -225,10 +324,34 @@ namespace ApplicationLayer.Services
         // Get all episodes for season
         public async Task<List<EpisodeDto>> GetAllEpisodesBySeasonIdAsync(Guid seasonId)
         {
-            var episodes = await _episodeRepo.GetList(e => e.SeasonId == seasonId);
-            return _mapper.Map<List<EpisodeDto>>(episodes);
+            var episodes = await _episodeRepo.GetList(e => e.SeasonId == seasonId && e.CurrentState == 1);
+
+            var orderedEpisodes = episodes
+               .OrderBy(e => e.EpisodeNumber) 
+               .ToList();
+
+            return _mapper.Map<List<EpisodeDto>>(orderedEpisodes);
         }
 
+        // Get all episodes for tv show
+        public async Task<List<EpisodeDto>> GetAllEpisodesByTvShowIdAsync(Guid tvShowId)
+        {
+
+            var episodes = await _episodeRepo.GetList(
+                e => e.Season.TvShowId == tvShowId
+                  && e.CurrentState == 1
+                  && e.Season.CurrentState == 1
+            );
+
+            var orderedEpisodes = episodes
+                .OrderBy(e => e.Season.SeasonNumber)
+                .ThenBy(e => e.EpisodeNumber)
+                .ToList();
+
+            return _mapper.Map<List<EpisodeDto>>(orderedEpisodes);
+        }
+
+        // Create episode
         public async Task<EpisodeDto?> CreateEpisodeAsync(Guid tvShowId, Guid seasonId, CreateEpisodeDto dto)
         {
             var season = await _seasonRepo.GetById(seasonId);
@@ -242,9 +365,11 @@ namespace ApplicationLayer.Services
             episode.CurrentState = 1;
 
             await _episodeRepo.Add(episode);
+            await _unitOfWork.SaveChangesAsync();
             return _mapper.Map<EpisodeDto>(episode);
         }
 
+        // Update episode
         public async Task<bool> UpdateEpisodeAsync(Guid tvShowId, Guid seasonId, Guid episodeId, UpdateEpisodeDto dto)
         {
             var episode = await _episodeRepo.GetById(episodeId);
@@ -258,9 +383,15 @@ namespace ApplicationLayer.Services
             episode.UpdatedBy = _userService.GetLoggedInUser();
             episode.UpdatedDate = DateTime.UtcNow;
 
-            return await _episodeRepo.Update(episode);
-        }
+            var result = await _episodeRepo.Update(episode);
 
+            if (result)
+                await _unitOfWork.SaveChangesAsync();
+
+            return result;
+        }
+        
+        // Delete episode
         public async Task<bool> DeleteEpisodeAsync(Guid tvShowId, Guid seasonId, Guid episodeId)
         {
             var episode = await _episodeRepo.GetById(episodeId);
@@ -269,7 +400,12 @@ namespace ApplicationLayer.Services
             var season = await _seasonRepo.GetById(seasonId);
             if (season == null || season.TvShowId != tvShowId) return false;
 
-            return await _episodeRepo.ChangeStatus(episodeId, _userService.GetLoggedInUser(), 0);
+            var result = await _episodeRepo.ChangeStatus(episodeId, _userService.GetLoggedInUser(), 0);
+            
+            if (result)
+                await _unitOfWork.SaveChangesAsync();
+
+            return result;
         }
     }
 }
