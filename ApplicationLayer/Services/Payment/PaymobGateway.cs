@@ -19,5 +19,10 @@ namespace ApplicationLayer.Services.Payment
         {
             throw new NotImplementedException();
         }
+
+        Task<(string orderId, string approvalUrl, bool success)> IPaymentGateway.CreateOrder(CreatePaymentRequest requestData)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

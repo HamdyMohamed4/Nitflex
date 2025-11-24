@@ -195,6 +195,44 @@ namespace ApplicationLayer.Services
             return _mapper.Map<IEnumerable<TvShowDto>>(ordered);
         }
 
+        public async Task<GenreShowsResponseDto?> GetShowsByGenreNameAsync(string genreName, int page = 1, int pageSize = 20)
+        {
+            // First get the genre by name (case insensitive)
+            var genre = await _genreRepo.GetFirstOrDefault(g => g.Name.ToLower() == genreName.ToLower());
+
+            if (genre == null)
+                return null;
+
+            var paged = await _tvShowRepo.GetPagedList<TVShow>(
+                pageNumber: page,
+                pageSize: pageSize,
+                filter: s => s.CurrentState == 1 && s.TVShowGenres.Any(g => g.GenreId == genre.Id),
+                selector: null,
+                orderBy: s => s.CreatedDate,
+                isDescending: true,
+
+                // INCLUDED RELATIONSHIPS (correct way)
+                s => s.Seasons,
+                s => s.Seasons.Select(season => season.Episodes),
+                s => s.TVShowGenres,
+                s => s.Castings
+            );
+
+            var shows = _mapper.Map<List<TvShowDto>>(paged.Items);
+
+            return new GenreShowsResponseDto
+            {
+                GenreId = genre.Id,
+                GenreName = genre.Name,
+                Shows = shows,
+                TotalCount = paged.TotalCount,
+                Page = page,
+                PageSize = pageSize
+            };
+        }
+
+
+
         public async Task<IEnumerable<TvShowDto>> GetByGenreIdsAsync(IEnumerable<Guid> genreIds, int limit = 50)
         {
             var ids = genreIds?.ToList() ?? new List<Guid>();

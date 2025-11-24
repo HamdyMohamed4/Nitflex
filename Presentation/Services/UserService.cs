@@ -28,6 +28,32 @@ namespace Presentation.Services
         }
 
 
+
+        public async Task<bool> ResetPasswordAsync(string email, string code, string token, string newPassword)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null) return false;
+
+            // Validate OTP
+            var isValidOtp = await _otpRepo.ValidateOtpAsync(email, code);
+            if (!isValidOtp) return false;
+
+            token = Uri.UnescapeDataString(token);
+
+            var result = await _userManager.ResetPasswordAsync(user, token, newPassword);
+
+            if (result.Succeeded)
+            {
+                // Mark OTP as used
+                await _otpRepo.MarkOtpAsUsedAsync(email, code);
+                return true;
+            }
+
+            return false;
+        }
+
+
+
         public async Task<LoginResponseDto?> ConfirmSignUpAsync(string email, string token)
         {
             // 1. تحقق من صحة التوكن
@@ -116,20 +142,20 @@ namespace Presentation.Services
 
         public async Task LogoutAsync() => await _signInManager.SignOutAsync();
 
-        public async Task<RegisterDto?> GetUserByEmailAsync(string email)
+        public async Task<ApplicationUser?> GetUserByEmailAsync(string email)
         {
             var user = await _userManager.FindByEmailAsync(email);
-            if (user == null) return null;
 
-            if (user.IsBlocked == true) 
+            if (user == null)
                 return null;
 
-            return new RegisterDto
-            {
-                Email = user.Email ?? string.Empty,
-                Password = string.Empty,
-            };
+            if (user.IsBlocked)
+                return null;
+
+            return user;
         }
+
+
 
         public async Task<LoginDto?> GetUserByLoginAsync(string email)
         {
@@ -148,7 +174,16 @@ namespace Presentation.Services
 
         public async Task<ApplicationUser?> GetUserByEmailAsyncs(string email)
         {
-            return await _userManager.FindByEmailAsync(email);
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null) return null;
+
+            if (user.IsBlocked == true)
+                return null;
+
+            return new ApplicationUser
+            {
+                Email = user.Email ?? string.Empty,
+            };
         }
 
         public async Task<RegisterDto?> GetUserByIdAsync(string userId)
@@ -285,7 +320,7 @@ namespace Presentation.Services
                 return null;
 
             // Mark OTP as used
-            await _otpRepo.MarkOtpUsedAsync(email, otp);
+            await _otpRepo.MarkOtpAsUsedAsync(email, otp);
 
             return new LoginResponseDto
             {
@@ -312,6 +347,31 @@ namespace Presentation.Services
         {
             return await _userManager.Users.Include(x => x.Profiles).ThenInclude(x => x.Histories).AsNoTracking().FirstOrDefaultAsync(x => x.Id.ToString() == userId);
         }
+
+        public async Task<bool> ResetPasswordAsync(string email, string token, string newPassword)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return false;
+
+            var otp = await _otpRepo.GetValidOtpAsync(email, token);
+            if (otp == null)
+                return false;
+
+            // generate a real Identity token
+            var identityToken = await _userManager.GeneratePasswordResetTokenAsync(user);
+
+            var resetResult = await _userManager.ResetPasswordAsync(user, identityToken, newPassword);
+            if (!resetResult.Succeeded)
+                return false;
+
+            await _otpRepo.MarkOtpAsUsedAsync(email, token);
+
+            return true;
+        }
+
+
+
 
 
         //public async Task<(bool Success, string? Id)> CreateUserWithoutPasswordAndGetTokenAsync(string email)

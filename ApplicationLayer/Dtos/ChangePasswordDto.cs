@@ -6,8 +6,9 @@ using System.Threading.Tasks;
 
 namespace ApplicationLayer.Dtos
 {
-    public class CreateGenreDto : BaseDto
+    public class ChangePasswordDto
     {
-        public string Name { get; set; } = null!;
+        public string OldPassword { get; set; }
+        public string NewPassword { get; set; }
     }
 }

@@ -12,14 +12,12 @@ namespace ApplicationLayer.Dtos
 
         // Match domain property name for smoother AutoMapper mapping
         public int DurationMinutes { get; set; }
-
         public AgeRating AgeRating { get; set; }
-
         public string? PosterUrl { get; set; }
         public string? VideoUrl { get; set; }
         public string? TrailerUrl { get; set; }
-
         public bool IsFeatured { get; set; }
+        public string? Type { get; set; }
         public string? Language { get; set; }
         public string? AudioType { get; set; }  // Original / Dubbed / Subtitled
 

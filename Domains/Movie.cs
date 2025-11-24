@@ -29,7 +29,7 @@ namespace Domains
         public string TrailerUrl { get; set; } = string.Empty;
 
         public bool IsFeatured { get; set; } = false;
-        
+        public string? Type { get; set; } = string.Empty;
         public ICollection<MovieGenre> MovieGenres { get; set; } = new List<MovieGenre>();
         public ICollection<MovieCast> Castings { get; set; } = new List<MovieCast>();
     }

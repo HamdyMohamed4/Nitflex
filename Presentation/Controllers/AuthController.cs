@@ -2,6 +2,7 @@
 using ApplicationLayer.Dtos;
 using ApplicationLayer.Services;
 using InfrastructureLayer.UserModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Presentation.Models;
@@ -54,13 +55,6 @@ namespace Presentation.Controllers
 
             var user = await _userService.GetUserByEmailAsync(model.Email);
 
-            // إذا كان المستخدم محظورًا
-            if (user == null)
-            {
-                // إرجاع رسالة تفيد بأن المستخدم محظور
-                return BadRequest(ApiResponse<object>.FailResponse("User is blocked.", new List<string> { "This user is blocked and cannot proceed." }));
-            }
-
             var message = user != null ? "User already exists, redirecting to login." : "Proceeding with registration.";
             return Ok(ApiResponse<object>.SuccessResponse(null, message));
         }
@@ -93,7 +87,7 @@ namespace Presentation.Controllers
                 return BadRequest(ApiResponse<object>.FailResponse("Could not send magic link."));
 
             return Ok(ApiResponse<object>.SuccessResponse(null, $"Sign-up link sent to {model.Email}"));
-            
+
         }
 
 
@@ -131,7 +125,7 @@ namespace Presentation.Controllers
         [HttpPost("register")]
         public async Task<ActionResult<ApiResponse<LoginResponseDto>>> Register([FromBody] RegisterDto dto)
         {
-            
+
             if (!ModelState.IsValid)
                 return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Invalid input"));
 
@@ -160,7 +154,7 @@ namespace Presentation.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Invalid input"));
 
-           var user = await _authService.LoginAndGenerateTokensAsync(dto.Email, dto.Password);
+            var user = await _authService.LoginAndGenerateTokensAsync(dto.Email, dto.Password);
             if (user == null)
                 return Unauthorized(ApiResponse<LoginResponseDto>.FailResponse("Invalid credentials"));
 
@@ -273,5 +267,118 @@ namespace Presentation.Controllers
                 Expires = DateTime.UtcNow.AddDays(7)
             });
         }
+
+
+
+        // i want you to make a new endpoint called change-password that takes in the old password and the new password and changes the password for the logged in user. make sure to validate the old password before changing to the new password. return appropriate responses for success and failure cases.
+        [HttpPost("change-password")]
+        [Authorize(Roles = "User")]
+        public async Task<ActionResult<ApiResponse<object>>> ChangePassword([FromBody] ChangePasswordDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ApiResponse<object>.FailResponse("Invalid input"));
+            // Get the logged-in user's ID from the claims
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized(ApiResponse<object>.FailResponse("User not logged in"));
+            var result = await _authService.ChangePasswordAsync(userId, dto.OldPassword, dto.NewPassword);
+            if (!result)
+                return BadRequest(ApiResponse<object>.FailResponse("Old password is incorrect or password change failed"));
+            return Ok(ApiResponse<object>.SuccessResponse(null, "Password changed successfully"));
+        }
+
+
+
+
+
+
+        [Authorize(Roles = "User")]
+        [HttpPost("forgot-password")]
+        public async Task<ActionResult<ApiResponse<object>>> ForgotPassword([FromBody] EmailRequestDto model)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ApiResponse<object>.FailResponse("Validation failed."));
+
+            var user = await _userService.GetUserByEmailAsync(model.Email);
+            if (user == null)
+                return BadRequest(ApiResponse<object>.FailResponse("User not found."));
+
+            var resetToken = await _authService.GeneratePasswordResetTokenAsync(model.Email);
+            if (string.IsNullOrEmpty(resetToken))
+                return BadRequest(ApiResponse<object>.FailResponse("Could not generate password reset token."));
+
+            await _authService.SendPasswordResetEmailAsync(model.Email, resetToken);
+
+            return Ok(ApiResponse<object>.SuccessResponse(null, $"Password reset token sent to {model.Email}."));
+        }
+
+
+
+        [Authorize(Roles = "User")]
+        [HttpPost("reset-password")]
+        public async Task<ActionResult<ApiResponse<object>>> ResetPassword([FromBody] ResetPasswordDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ApiResponse<object>.FailResponse("Invalid input"));
+
+            // Decode URL encoded token
+            dto.Token = Uri.UnescapeDataString(dto.Token);
+
+            var success = await _authService.ResetPasswordAsync(dto.Email, dto.Token, dto.NewPassword);
+            if (!success)
+                return BadRequest(ApiResponse<object>.FailResponse("Invalid OTP or expired token."));
+
+            return Ok(ApiResponse<object>.SuccessResponse(null, "Password reset successfully."));
+        }
+
+
+
+        //[HttpPost("forgot-password")]
+        //[Authorize(Roles = "User")]
+        //public async Task<ActionResult<ApiResponse<object>>> ForgotPassword([FromBody] EmailRequestDto model)
+        //{
+        //    if (!ModelState.IsValid)
+        //    {
+        //        var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+        //        return BadRequest(ApiResponse<object>.FailResponse("Validation failed.", errors));
+        //    }
+        //    var user = await _userService.GetUserByEmailAsync(model.Email);
+        //    if (user == null)
+        //        return BadRequest(ApiResponse<object>.FailResponse("User not found."));
+        //    var resetToken = await _authService.GeneratePasswordResetTokenAsync(user.Email);
+        //    if (string.IsNullOrEmpty(resetToken))
+        //        return BadRequest(ApiResponse<object>.FailResponse("Could not generate password reset token."));
+        //    // Send the reset token via email
+        //    await _authService.SendPasswordResetEmailAsync(model.Email, resetToken);
+        //    return Ok(ApiResponse<object>.SuccessResponse(null, $"Password reset token sent to {model.Email}."));
+
+        //}
+
+
+        //[HttpPost("reset-password")]
+        //public async Task<ActionResult<ApiResponse<object>>> ResetPassword([FromBody] ResetPasswordDto dto)
+        //{
+        //    if (!ModelState.IsValid)
+        //        return BadRequest(ApiResponse<object>.FailResponse("Invalid input"));
+
+        //    // Decode token because it arrives URL encoded
+        //    dto.Token = Uri.UnescapeDataString(dto.Token);
+
+        //    var resetStatus = await _userService.ResetPasswordAsync(
+        //        dto.Email,
+        //        dto.Token,
+        //        dto.NewPassword
+        //    );
+
+        //    if (!resetStatus)
+        //        return BadRequest(ApiResponse<object>.FailResponse("Invalid OTP or expired token."));
+
+        //    return Ok(ApiResponse<object>.SuccessResponse(null, "Password reset successfully."));
+        //}
+
+
+
+
     }
 }
+

@@ -40,7 +40,7 @@ namespace ApplicationLayer.Services
             return entity == null ? null : _mapper.Map<GenreDto>(entity);
         }
 
-        public async Task<GenreDto> CreateAsync(CreateGenreDto dto)
+        public async Task<GenreDto> CreateAsync(GenreDto dto)
         {
             var entity = _mapper.Map<Genre>(dto);
 
@@ -54,7 +54,7 @@ namespace ApplicationLayer.Services
             return _mapper.Map<GenreDto>(entity);
         }
 
-        public async Task<GenreDto?> UpdateAsync(Guid id, UpdateGenreDto dto)
+        public async Task<GenreDto?> UpdateAsync(Guid id, GenreDto dto)
         {
             var entity = await _repo.GetById(id);
             if (entity == null) return null;

@@ -13,5 +13,8 @@ namespace ApplicationLayer.Dtos
         public string OtpCode { get; set; } = string.Empty;
         public DateTime ExpirationDate { get; set; }
         public bool IsUsed { get; set; } = false;
+        public string Type { get; set; }
+
+        
     }
 }

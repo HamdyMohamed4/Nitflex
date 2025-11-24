@@ -33,6 +33,7 @@ namespace InfrastructureLayer
         // --- Identity & Security ---
         public DbSet<TbRefreshTokens> TbRefreshTokens { get; set; }
         public DbSet<TbPaymentMethod> TbPaymentMethod { get; set; }
+        public DbSet<TbPaymentTransaction> TbPaymentTransaction { get; set; }
         public DbSet<EmailOtp> EmailOtp { get; set; }
 
         // --- Junction Tables ---

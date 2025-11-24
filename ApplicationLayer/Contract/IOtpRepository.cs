@@ -31,12 +31,24 @@ namespace ApplicationLayer.Contract
         Task<bool> ValidateOtpAsync(string emailOrUserId, string code);
 
         // Mark OTP as used after successful verification
-        Task MarkOtpUsedAsync(string emailOrUserId, string code);
+        //Task MarkOtpUsedAsync(string emailOrUserId, string code);
+        Task MarkOtpAsUsedAsync(string email, string code);
+
+        Task SaveOtpAsync(string email, string code, DateTime expires, string type);
+
+        Task<OtpDto?> GetValidOtpAsync(string email, string code, string type);
+
+        Task MarkOtpAsUsedAsync(Guid otpId);
+
+
+        Task<bool> ValidateOtpAsync(string email);
 
         // Optional: get last token for an email (used by some implementations)
         //Task<OtpDto?> GetOtpAsync(string emailOrUserId);
 
         //// Optional: delete consumed/expired token
         //Task DeleteOtpAsync(string emailOrUserId);
+
+
     }
 }

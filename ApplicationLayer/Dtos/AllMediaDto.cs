@@ -6,8 +6,9 @@ using System.Threading.Tasks;
 
 namespace ApplicationLayer.Dtos
 {
-    public class UpdateGenreDto:BaseDto
+    public class AllMediaDto
     {
-        public string Name { get; set; } = null!;
+        public List<MovieDto> Movies { get; set; }
+        public List<TvShowDto> TvShows { get; set; }
     }
 }

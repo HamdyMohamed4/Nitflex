@@ -20,13 +20,20 @@ namespace ApplicationLayer.Mapping
             CreateMap<Movie, MovieSearchFilterDto>().ReverseMap();
 
 
+
+            CreateMap<TVShow, TvShowDto>()
+                .ForMember(dest => dest.Seasons, opt => opt.MapFrom(src => src.Seasons)).ReverseMap();
+
+            CreateMap<Season, SeasonWithEpisodesDto>()
+                .ForMember(dest => dest.SeasonNumber, opt => opt.MapFrom(src => src.SeasonNumber))
+                .ForMember(dest => dest.Episodes, opt => opt.MapFrom(src => src.Episodes)).ReverseMap();
+
+
             // Genre
             CreateMap<Genre, GenreDto>().ReverseMap();
-            CreateMap<CreateGenreDto, Genre>();
-            CreateMap<UpdateGenreDto, Genre>();
+
 
             // TV Shows, Seasons, Episodes
-            CreateMap<TVShow, TvShowDto>().ReverseMap();
             CreateMap<TVShow, TvShowDetailsDto>().ReverseMap();
             CreateMap<CreateTvShowDto, TVShow>().ReverseMap();
             CreateMap<UpdateTvShowDto, TVShow>().ReverseMap();
@@ -39,8 +46,8 @@ namespace ApplicationLayer.Mapping
             CreateMap<UpdateSeasonDto, Season>();
 
             CreateMap<Episode, EpisodeDto>().ReverseMap();
-            CreateMap<CreateEpisodeDto, Episode>();
-            CreateMap<UpdateEpisodeDto, Episode>();
+            CreateMap<CreateEpisodeDto, Episode>().ReverseMap();
+            CreateMap<UpdateEpisodeDto, Episode>().ReverseMap();
 
             // Watchlist
             CreateMap<UserWatchlist, WatchlistItemDto>().ReverseMap();

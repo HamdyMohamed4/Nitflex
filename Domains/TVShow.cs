@@ -14,10 +14,14 @@ namespace Domains
         public string Description { get; set; } = string.Empty;
         public AgeRating AgeRating { get; set; }
 
+        public string? Language { get; set; }
+
         [MaxLength(500)]
         public string PosterUrl { get; set; } = string.Empty;
         [MaxLength(500)]
         public string BannerUrl { get; set; } = string.Empty;
+
+        public string? Type { get; set; } = string.Empty;
 
         public ICollection<Season> Seasons { get; set; } = new List<Season>();
         public ICollection<TVShowGenre> TVShowGenres { get; set; } = new List<TVShowGenre>();
