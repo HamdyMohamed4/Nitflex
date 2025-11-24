@@ -243,7 +243,7 @@ namespace ApplicationLayer.Services
             entity.CurrentState = 1;
 
             await _repo.Add(entity);
-
+            await _unitOfWork.SaveChangesAsync();
             return _mapper.Map<MovieDto>(entity);
         }
 
@@ -260,7 +260,12 @@ namespace ApplicationLayer.Services
             entity.UpdatedDate = DateTime.UtcNow;
             entity.UpdatedBy = _userService.GetLoggedInUser();
 
-            return await _repo.Update(entity);
+            var result = await _repo.Update(entity);
+
+            if (result)
+                await _unitOfWork.SaveChangesAsync();  
+
+            return result;
         }
 
         // ===========================
@@ -268,7 +273,12 @@ namespace ApplicationLayer.Services
         // ===========================
         public async Task<bool> DeleteAsync(Guid id)
         {
-            return await _repo.ChangeStatus(id, _userService.GetLoggedInUser(), 0);
+            var result = await _repo.ChangeStatus(id, _userService.GetLoggedInUser(), 0);
+
+            if (result)
+                await _unitOfWork.SaveChangesAsync();  
+
+            return result;
         }
 
         // ===========================
