@@ -118,6 +118,23 @@ namespace Presentation.Controllers
             }
         }
 
+        [HttpGet]
+        public async Task<ActionResult<ApiResponse<List<TvShowDto>>>> GetAllShows()
+        {
+            try
+            {
+                var shows = await _tvShowService.GetAllShowsAsync();
+                if (shows == null || !shows.Any())
+                    return NotFound(ApiResponse<List<TvShowDto>>.FailResponse("No featured shows found."));
+
+                return Ok(ApiResponse<List<TvShowDto>>.SuccessResponse(shows.ToList(), "Featured shows retrieved."));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<List<TvShowDto>>.FailResponse("Failed to retrieve featured shows", new List<string> { ex.Message }));
+            }
+        }
+
 
 
         // create endpoint for getting tv show by id

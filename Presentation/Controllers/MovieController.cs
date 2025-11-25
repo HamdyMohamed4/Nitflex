@@ -84,6 +84,29 @@ namespace Presentation.Controllers
             }
         }
 
+
+
+
+
+
+        // GET: api/Movie/featured?limit=10
+        [HttpGet("AllMovies")]
+        public async Task<ActionResult<ApiResponse<List<MovieDto>>>> GetAllMovies()
+        {
+            try
+            {
+                var movies = await _movieService.GetAllMoviesAsync();
+                if (movies == null || !movies.Any())
+                    return NotFound(ApiResponse<List<MovieDto>>.FailResponse("No featured movies found."));
+
+                return Ok(ApiResponse<List<MovieDto>>.SuccessResponse(movies.ToList(), "Featured movies retrieved."));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<List<MovieDto>>.FailResponse("Failed to retrieve featured movies", new List<string> { ex.Message }));
+            }
+        }
+
         //// GET: api/Movie/featured-trailers?limit=10
         //// Returns featured movies (lightweight) that include TrailerUrl for client preview/play trailer
         //[HttpGet("featured-trailers")]

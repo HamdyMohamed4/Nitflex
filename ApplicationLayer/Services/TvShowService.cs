@@ -144,7 +144,7 @@ namespace ApplicationLayer.Services
             return result;
         }
     
-        // Delete TV show
+        // Delete TV showH
         public async Task<bool> DeleteAsync(Guid id)
         {
             var result = await _tvShowRepo.ChangeStatus(id, _userService.GetLoggedInUser(), 0);
@@ -190,8 +190,16 @@ namespace ApplicationLayer.Services
 
         public async Task<IEnumerable<TvShowDto>> GetFeaturedAsync(int limit = 10)
         {
-            var list = await _tvShowRepo.GetList(s => s.CurrentState == 1);
+            var list = await _tvShowRepo.GetList(s => s.IsFeatured == true);
             var ordered = list.OrderByDescending(s => s.CreatedDate).Take(limit).ToList();
+            return _mapper.Map<IEnumerable<TvShowDto>>(ordered);
+        }
+
+
+        public async Task<IEnumerable<TvShowDto>> GetAllShowsAsync()
+        {
+            var list = await _tvShowRepo.GetAll();
+            var ordered = list.OrderByDescending(s => s.CreatedDate).ToList();
             return _mapper.Map<IEnumerable<TvShowDto>>(ordered);
         }
 
@@ -445,5 +453,6 @@ namespace ApplicationLayer.Services
 
             return result;
         }
+
     }
 }

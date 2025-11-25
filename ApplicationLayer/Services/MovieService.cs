@@ -1235,6 +1235,14 @@ namespace ApplicationLayer.Services
         }
 
 
+        public async Task<IEnumerable<MovieDto>> GetAllMoviesAsync()
+        {
+            var list = await _repo.GetAll();
+            var ordered = list.OrderByDescending(m => m.CreatedDate).ToList();
+            return _mapper.Map<IEnumerable<MovieDto>>(ordered);
+        }
+
+
 
 
         public async Task<List<MovieDto>> GetFeaturedWithTrailersAsync(int limit = 10)

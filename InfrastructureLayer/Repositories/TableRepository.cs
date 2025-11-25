@@ -36,7 +36,7 @@ namespace InfrastructureLayer.Repositories
         {
             try
             {
-                return await _dbSet.Where(a => a.CurrentState > 0).AsNoTracking().ToListAsync();
+                return await _dbSet.AsNoTracking().ToListAsync();
             }
             catch (Exception ex)
             {

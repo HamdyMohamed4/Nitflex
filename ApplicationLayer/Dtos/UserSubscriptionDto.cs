@@ -13,7 +13,6 @@ namespace ApplicationLayer.Dtos
         public Guid SubscriptionPlanId { get; set; }
         public SubscriptionPlanDto? SubscriptionPlan { get; set; }
 
-        //public SubscriptionPlan SubscriptionPlan { get; set; } = default!;
         public DateTime StartDate { get; set; }
         public DateTime? EndDate { get; set; }
         public bool IsActive { get; set; }
