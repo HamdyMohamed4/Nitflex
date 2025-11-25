@@ -56,7 +56,7 @@ namespace ApplicationLayer.Mapping
             // Ratings
             CreateMap<UserRating, RatingDto>().ReverseMap();
             CreateMap<RateContentDto, UserRating>();
-
+            
             // OTP
             CreateMap<EmailOtp, OtpDto>().ReverseMap();
 

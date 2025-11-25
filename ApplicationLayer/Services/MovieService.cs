@@ -1,6 +1,7 @@
 ﻿using ApplicationLayer.Contract;
 using ApplicationLayer.Dtos;
 using AutoMapper;
+using AutoMapper.Execution;
 using Domains;
 using InfrastructureLayer.Contracts;
 using Microsoft.EntityFrameworkCore;
@@ -23,6 +24,7 @@ namespace ApplicationLayer.Services
         private readonly ITmdbService _tmdbService;
 
 
+
         public MovieService(
             IUnitOfWork unitOfWork,
             IMapper mapper,
@@ -41,7 +43,948 @@ namespace ApplicationLayer.Services
             _mapper = mapper;
             _userService = userService;
             _tmdbService = tmdbService;
+
         }
+
+
+
+        public async Task ImportCastForMovieAsync(MovieDto movieDto, int tmdbMovieId)
+        {
+            // Get movie from database using the TMDB Id
+            var movie = (await _unitOfWork.Repository<Movie>().GetFirstOrDefault(x => x.TmdbId == tmdbMovieId));
+
+            if (movie == null)
+                throw new Exception($"Movie with TMDB ID {tmdbMovieId} not found.");
+
+            var credits = await _tmdbService.GetMovieCreditsAsync(tmdbMovieId);
+            if (credits?.cast == null || !credits.cast.Any())
+                return;
+
+            foreach (var c in credits.cast)
+            {
+                // Check if cast member exists
+                var castMember = (await _unitOfWork.Repository<CastMember>().GetFirstOrDefault(x => x.TmdbId == c.id))
+                                    ;
+
+                if (castMember == null)
+                {
+                    castMember = new CastMember
+                    {
+                        Id = Guid.NewGuid(),
+                        Name = c.name,
+                        PhotoUrl = c.profile_path != null
+                                    ? $"https://image.tmdb.org/t/p/w500{c.profile_path}"
+                                    : null,
+                        Bio = c.name,
+                        TmdbId = c.id,
+                        CurrentState = 1,
+                        //CreatedBy = _userService.GetLoggedInUser()
+
+                    };
+
+                    await _unitOfWork.Repository<CastMember>().Add(castMember);
+                }
+
+                // Check if already linked
+                var exists = movie.Castings.Any(x => x.CastMemberId == castMember.Id);
+                if (!exists)
+                {
+                    movie.Castings.Add(new MovieCast
+                    {
+
+                        MovieId = movie.Id,
+                        CastMemberId = castMember.Id,
+                        CharacterName = c.character
+                    });
+                }
+            }
+
+            await _unitOfWork.SaveChangesAsync();
+        }
+
+
+        public async Task ImportCastForShowsAsync(TvShowDto movieDto, int tmdbMovieId)
+        {
+            // Get movie from database using the TMDB Id
+            var movie = (await _unitOfWork.Repository<TVShow>().GetFirstOrDefault(x => x.TmdbId == tmdbMovieId));
+
+            if (movie == null)
+                throw new Exception($"Movie with TMDB ID {tmdbMovieId} not found.");
+
+            var credits = await _tmdbService.GetTvCreditsAsync(tmdbMovieId);
+            if (credits?.cast == null || !credits.cast.Any())
+                return;
+
+            foreach (var c in credits.cast)
+            {
+                // Check if cast member exists
+                var castMember = (await _unitOfWork.Repository<CastMember>().GetFirstOrDefault(x => x.TmdbId == c.id))
+                                    ;
+
+                if (castMember == null)
+                {
+                    castMember = new CastMember
+                    {
+                        Id = Guid.NewGuid(),
+                        Name = c.name,
+                        PhotoUrl = c.profile_path != null
+                                    ? $"https://image.tmdb.org/t/p/w500{c.profile_path}"
+                                    : null,
+                        Bio = c.name,
+                        TmdbId = c.id,
+                        CurrentState = 1,
+                        //CreatedBy = _userService.GetLoggedInUser()
+
+                    };
+
+                    await _unitOfWork.Repository<CastMember>().Add(castMember);
+                }
+
+                // Check if already linked
+                var exists = movie.Castings.Any(x => x.CastMemberId == castMember.Id);
+                if (!exists)
+                {
+                    movie.Castings.Add(new TvShowCast
+                    {
+
+                        TvShowId = movie.Id,
+                        CastMemberId = castMember.Id,
+                        CharacterName = c.character
+                    });
+                }
+            }
+
+            await _unitOfWork.SaveChangesAsync();
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+        //public async Task ImportTopRatedShowsAsync()
+        //{
+        //    var moviesResponse = await _tmdbService.GetTopRatedShowsAsync();
+        //    if (moviesResponse?.results == null) return;
+
+        //    foreach (var m in moviesResponse.results)
+        //    {
+        //        // Check if exists
+        //        var existingMovie = (await _unitOfWork.Repository<TVShow>().GetAll())
+        //                            .FirstOrDefault(x => x.TmdbId == m.id);
+        //        if (existingMovie != null)
+        //            continue;
+
+        //        var trailer = await _tmdbService.GetTvVideosAsync(m.id);
+        //        var trailerKey = trailer?.results.FirstOrDefault(v => v.type == "Trailer" && v.site == "YouTube")?.key;
+
+        //        var movie = new TVShow
+        //        {
+        //            Id = Guid.NewGuid(),
+        //            Title = m.original_name,
+        //            Name = m.name,
+        //            TmdbId = m.id,
+        //            IsFeatured = true,
+        //            AudioType = "Dolby Digital",
+        //            AgeRating = AgeRating.AllAges,
+        //            Type = MediaType.TvShow,
+        //            //CreatedBy = _userService.GetLoggedInUser(),
+        //            CurrentState = 1,
+        //            Language = m.original_language,
+        //            Description = m.overview,
+        //            PosterUrl = m.poster_path != null ? $"https://image.tmdb.org/t/p/w500{m.poster_path}" : "",
+        //            VideoUrl = trailerKey != null ? $"https://www.youtube.com/watch?v={trailerKey}" : "",
+        //            TrailerUrl = trailerKey != null ? $"https://www.youtube.com/watch?v={trailerKey}" : "",
+        //            ReleaseYear = m.release_date
+        //        };
+
+        //        // Add Genres
+        //        if (m.genre_ids != null)
+        //        {
+        //            foreach (var gid in m.genre_ids)
+        //            {
+        //                var genre = (await _unitOfWork.Repository<Genre>().GetAll())
+        //                            .FirstOrDefault(x => x.TmdbId == gid);
+
+        //                if (genre != null)
+        //                {
+        //                    movie.TVShowGenres.Add(new TVShowGenre
+        //                    {
+        //                        TVShowId = movie.Id,
+        //                        GenreId = genre.Id
+        //                    });
+        //                }
+        //            }
+        //        }
+
+        //        await _unitOfWork.Repository<TVShow>().Add(movie);
+        //        await _unitOfWork.SaveChangesAsync();
+
+        //        var movieEntity = _mapper.Map<TvShowDto>(movie);
+        //        await ImportCastForShowsAsync(movieEntity, movie.TmdbId);
+        //    }
+        //}
+
+
+
+
+        //public async Task ImportAllTVsAsync()
+        //{
+        //    var moviesResponse = await _tmdbService.GetAllTvShowsAsync();
+        //    if (moviesResponse?.results == null) return;
+
+        //    foreach (var m in moviesResponse.results)
+        //    {
+        //        // Check if exists
+        //        var existingMovie = (await _unitOfWork.Repository<TVShow>().GetAll())
+        //                            .FirstOrDefault(x => x.TmdbId == m.id);
+        //        if (existingMovie != null)
+        //            continue;
+
+        //        var trailer = await _tmdbService.GetTvVideosAsync(m.id);
+        //        var trailerKey = trailer?.results.FirstOrDefault(v => v.type == "Trailer" && v.site == "YouTube")?.key;
+
+        //        var movie = new TVShow
+        //        {
+        //            Id = Guid.NewGuid(),
+        //            Title = m.original_name,
+        //            Name = m.name,
+        //            TmdbId = m.id,
+        //            IsFeatured = false,
+        //            AudioType = "Dolby Digital",
+        //            AgeRating = AgeRating.AllAges,
+        //            Type = MediaType.TvShow,
+        //            //CreatedBy = _userService.GetLoggedInUser(),
+        //            CurrentState = 1,
+        //            Language = m.original_language,
+        //            Description = m.overview,
+        //            PosterUrl = m.poster_path != null ? $"https://image.tmdb.org/t/p/w500{m.poster_path}" : "",
+        //            VideoUrl = trailerKey != null ? $"https://www.youtube.com/watch?v={trailerKey}" : "",
+        //            TrailerUrl = trailerKey != null ? $"https://www.youtube.com/watch?v={trailerKey}" : "",
+        //            ReleaseYear = m.release_date
+        //        };
+
+        //        // Add Genres
+        //        if (m.genre_ids != null)
+        //        {
+        //            foreach (var gid in m.genre_ids)
+        //            {
+        //                var genre = (await _unitOfWork.Repository<Genre>().GetAll())
+        //                            .FirstOrDefault(x => x.TmdbId == gid);
+
+        //                if (genre != null)
+        //                {
+        //                    movie.TVShowGenres.Add(new TVShowGenre
+        //                    {
+        //                        TVShowId = movie.Id,
+        //                        GenreId = genre.Id
+        //                    });
+        //                }
+        //            }
+        //        }
+
+
+
+        //        await _unitOfWork.Repository<TVShow>().Add(movie);
+        //        await _unitOfWork.SaveChangesAsync();
+
+        //        var movieEntity = _mapper.Map<TvShowDto>(movie);
+        //        await ImportCastForShowsAsync(movieEntity, movie.TmdbId);
+        //    }
+        //}
+
+
+
+
+
+
+
+
+
+
+        //public async Task ImportAllTVsAsync()
+        //{
+        //    var tvResponse = await _tmdbService.GetAllTvShowsAsync();
+        //    if (tvResponse?.results == null) return;
+
+        //    foreach (var show in tvResponse.results)
+        //    {
+        //        // 1️⃣ Check if TVShow already exists
+        //        var existingShow = (await _unitOfWork.Repository<TVShow>().GetAll())
+        //                           .FirstOrDefault(x => x.TmdbId == show.id);
+
+        //        if (existingShow != null)
+        //            continue;
+
+        //        // 2️⃣ Fetch extra data (Trailer + Details)
+        //        var trailer = await _tmdbService.GetTvVideosAsync(show.id);
+        //        var trailerKey = trailer?.results
+        //            .FirstOrDefault(v => v.type == "Trailer" && v.site == "YouTube")?.key;
+
+        //        var details = await _tmdbService.GetTvDetailsAsync(show.id);
+
+        //        // 3️⃣ Create TVShow
+        //        var tvEntity = new TVShow
+        //        {
+        //            Id = Guid.NewGuid(),
+        //            Title = show.name,
+        //            Name = show.original_name,
+        //            TmdbId = show.id,
+        //            Description = show.overview,
+        //            PosterUrl = show.poster_path != null ? $"https://image.tmdb.org/t/p/w500{show.poster_path}" : "",
+        //            TrailerUrl = trailerKey != null ? $"https://www.youtube.com/watch?v={trailerKey}" : "",
+        //            VideoUrl = trailerKey != null ? $"https://www.youtube.com/watch?v={trailerKey}" : "",
+        //            Language = show.original_language,
+        //            AgeRating = AgeRating.AllAges,
+        //            AudioType = "Dolby Digital",
+        //            Type = MediaType.TvShow,
+        //            ReleaseYear = !string.IsNullOrEmpty(show.first_air_date) ?
+        //                           int.Parse(show.first_air_date.Split("-")[0]) : null
+        //        };
+
+        //        // 4️⃣ Add Genres
+        //        if (details?.genres != null)
+        //        {
+        //            foreach (var g in details.genres)
+        //            {
+        //                var genre = (await _unitOfWork.Repository<Genre>().GetAll())
+        //                            .FirstOrDefault(x => x.TmdbId == g.id);
+
+        //                if (genre != null)
+        //                {
+        //                    tvEntity.TVShowGenres.Add(new TVShowGenre
+        //                    {
+        //                        TVShowId = tvEntity.Id,
+        //                        GenreId = genre.Id
+        //                    });
+        //                }
+        //            }
+        //        }
+
+        //        await _unitOfWork.Repository<TVShow>().Add(tvEntity);
+        //        await _unitOfWork.SaveChangesAsync();
+
+        //        // 5️⃣ Import Seasons and Episodes
+        //        if (details?.seasons != null)
+        //        {
+        //            foreach (var seasonInfo in details.seasons.Where(s => s.season_number > 0))
+        //            {
+        //                var seasonDetails = await _tmdbService.GetSeasonDetailsAsync(show.id, seasonInfo.season_number);
+        //                if (seasonDetails == null) continue;
+
+        //                var season = new Season
+        //                {
+        //                    Id = Guid.NewGuid(),
+        //                    TvShowId = tvEntity.Id,
+        //                    SeasonNumber = seasonDetails.season_number
+        //                };
+
+        //                await _unitOfWork.Repository<Season>().Add(season);
+        //                await _unitOfWork.SaveChangesAsync();
+
+        //                // Episodes
+        //                if (seasonDetails.episodes != null)
+        //                {
+        //                    foreach (var ep in seasonDetails.episodes)
+        //                    {
+        //                        var epEntity = new Episode
+        //                        {
+        //                            Id = Guid.NewGuid(),
+        //                            SeasonId = season.Id,
+        //                            Title = ep.name ?? $"Episode {ep.episode_number}",
+        //                            EpisodeNumber = ep.episode_number,
+        //                            DurationMinutes = ep.runtime ?? 0,
+        //                            VideoUrl = "",
+        //                            TrailerUrl = ""
+        //                        };
+
+        //                        await _unitOfWork.Repository<Episode>().Add(epEntity);
+        //                    }
+
+        //                    await _unitOfWork.SaveChangesAsync();
+        //                }
+        //            }
+        //        }
+
+        //        // 6️⃣ Import Cast
+        //        var cast = await _tmdbService.GetTvCastAsync(show.id);
+        //        if (cast?.cast != null)
+        //        {
+        //            foreach (var c in cast.cast.Take(20))
+        //            {
+        //                var existingCast = (await _unitOfWork.Repository<CastMember>().GetAll())
+        //                                    .FirstOrDefault(x => x.TmdbId == c.id);
+
+        //                if (existingCast == null)
+        //                {
+        //                    existingCast = new CastMember
+        //                    {
+        //                        Id = Guid.NewGuid(),
+        //                        Name = c.name,
+        //                        TmdbId = c.id,
+        //                        ProfilePhotoUrl = c.profile_path != null ?
+        //                                          $"https://image.tmdb.org/t/p/w500{c.profile_path}" : ""
+        //                    };
+
+        //                    await _unitOfWork.Repository<CastMember>().Add(existingCast);
+        //                    await _unitOfWork.SaveChangesAsync();
+        //                }
+
+        //                await _unitOfWork.Repository<TvShowCast>().Add(new TvShowCast
+        //                {
+        //                    TvShowId = tvEntity.Id,
+        //                    CastMemberId = existingCast.Id,
+        //                    CharacterName = c.character
+        //                });
+
+        //                await _unitOfWork.SaveChangesAsync();
+        //            }
+        //        }
+        //    }
+        //}
+
+
+
+
+
+
+
+
+
+
+
+
+        public async Task ImportAllTVsAsync()
+        {
+            var tvResponse = await _tmdbService.GetAllTvShowsAsync();
+            if (tvResponse?.results == null) return;
+
+            foreach (var show in tvResponse.results)
+            {
+                // Check if TV already exists
+                var exists = (await _unitOfWork.Repository<TVShow>().GetAll())
+                                .Any(x => x.TmdbId == show.id);
+
+                if (exists) continue;
+
+                // Get trailer for show
+                var trailerData = await _tmdbService.GetTvVideosAsync(show.id);
+                var showTrailerKey = trailerData?.results?
+                    .FirstOrDefault(v => v.site == "YouTube" && v.type == "Trailer")?.key;
+
+                // Create TV Show Entity
+                var tvEntity = new TVShow
+                {
+                    Id = Guid.NewGuid(),
+                    Title = show.name,
+                    Name = show.original_name,
+                    TmdbId = show.id,
+                    Description = show.overview,
+                    PosterUrl = show.poster_path != null ? $"https://image.tmdb.org/t/p/w500{show.poster_path}" : "",
+                    Language = show.original_language,
+                    AgeRating = AgeRating.AllAges,
+                    AudioType = "Dolby Digital",
+                    IsFeatured = false,
+                    Type = MediaType.TvShow,
+                    ReleaseYear = !string.IsNullOrEmpty(show.first_air_date) ?
+                                   int.Parse(show.first_air_date.Split("-")[0]) : null
+                };
+
+                // Assign Genres
+                if (show.genre_ids != null)
+                {
+                    foreach (var gId in show.genre_ids)
+                    {
+                        var genre = (await _unitOfWork.Repository<Genre>().GetAll())
+                                        .FirstOrDefault(x => x.TmdbId == gId);
+
+                        if (genre != null)
+                        {
+                            tvEntity.TVShowGenres.Add(new TVShowGenre
+                            {
+                                TVShowId = tvEntity.Id,
+                                GenreId = genre.Id
+                            });
+                        }
+                    }
+                }
+
+                // Save TV Show first (so children FK attach)
+                await _unitOfWork.Repository<TVShow>().Add(tvEntity);
+                await _unitOfWork.SaveChangesAsync();
+
+
+                // ---------------- Seasons & Episodes ----------------
+                var showDetails = await _tmdbService.GetTvDetailsAsync(show.id);
+
+                if (showDetails?.seasons != null)
+                {
+                    foreach (var seasonInfo in showDetails.seasons.Where(s => s.season_number > 0))
+                    {
+                        var season = new Season
+                        {
+                            Id = Guid.NewGuid(),
+                            TvShowId = tvEntity.Id,
+                            SeasonNumber = seasonInfo.season_number
+                        };
+
+                        await _unitOfWork.Repository<Season>().Add(season);
+                        await _unitOfWork.SaveChangesAsync();
+
+                        // Fetch episodes
+                        var seasonDetails = await _tmdbService.GetSeasonDetailsAsync(show.id, seasonInfo.season_number);
+
+                        if (seasonDetails?.episodes != null)
+                        {
+                            foreach (var ep in seasonDetails.episodes)
+                            {
+                                // Try get trailer for specific episode (optional)
+                                var epVideos = await _tmdbService.GetEpisodeVideosAsync(show.id, seasonInfo.season_number, ep.episode_number);
+                                var episodeTrailerKey = epVideos?.results?
+                                    .FirstOrDefault(x => x.site == "YouTube" && x.type == "Trailer")?.key;
+
+                                var episodeEntity = new Episode
+                                {
+                                    Id = Guid.NewGuid(),
+                                    SeasonId = season.Id,
+                                    Title = ep.name ?? $"Episode {ep.episode_number}",
+                                    EpisodeNumber = ep.episode_number,
+                                    DurationMinutes = ep.runtime ?? 0,
+
+                                    // Use trailer if exists; otherwise fallback to show trailer
+                                    TrailerUrl = episodeTrailerKey != null
+                                                    ? $"https://www.youtube.com/watch?v={episodeTrailerKey}"
+                                                    : (showTrailerKey != null ? $"https://www.youtube.com/watch?v={showTrailerKey}" : ""),
+
+                                    // Video stored later when streaming server exists
+                                    VideoUrl = ""
+                                };
+
+                                await _unitOfWork.Repository<Episode>().Add(episodeEntity);
+                            }
+
+                            await _unitOfWork.SaveChangesAsync();
+                        }
+                    }
+                }
+
+                // ------------------- CAST -------------------
+                var castData = await _tmdbService.GetTvCastAsync(tvEntity.TmdbId);
+
+                if (castData?.cast != null)
+                {
+                    foreach (var member in castData.cast)
+                    {
+                        // Check if CastMember exists
+                        var existingCast = (await _unitOfWork.Repository<CastMember>().GetAll())
+                                                .FirstOrDefault(c => c.TmdbId == member.id);
+
+                        if (existingCast == null)
+                        {
+                            existingCast = new CastMember
+                            {
+                                Id = Guid.NewGuid(),
+                                Name = member.name,
+                                PhotoUrl = member.profile_path != null ?
+                                            $"https://image.tmdb.org/t/p/w500{member.profile_path}" : "",
+                                TmdbId = member.id
+                            };
+
+                            // Add the CastMember first
+                            await _unitOfWork.Repository<CastMember>().Add(existingCast);
+                            await _unitOfWork.SaveChangesAsync(); // حفظ عشان نقدر نربط FK بعد كده
+                        }
+
+                        // Link CastMember to TVShow
+                        var tvCast = new TvShowCast
+                        {
+                            Id = Guid.NewGuid(), // لو انت ضيفت BaseTable لـ TvShowCast
+                            TvShowId = tvEntity.Id,
+                            CastMemberId = existingCast.Id,
+                            CharacterName = member.character ?? ""
+                        };
+
+                        await _unitOfWork.Repository<TvShowCast>().Add(tvCast);
+                    }
+
+                    await _unitOfWork.SaveChangesAsync();
+                }
+
+            }
+        }
+
+
+        public async Task ImportTopRatedShowsAsync()
+        {
+            var showsResponse = await _tmdbService.GetTopRatedShowsAsync();
+            if (showsResponse?.results == null) return;
+
+            foreach (var show in showsResponse.results)
+            {
+                // Check if TV already exists
+                var exists = (await _unitOfWork.Repository<TVShow>().GetAll())
+                                .Any(x => x.TmdbId == show.id);
+                if (exists) continue;
+
+                // Get show trailer
+                var trailerData = await _tmdbService.GetTvVideosAsync(show.id);
+                var showTrailerKey = trailerData?.results?
+                    .FirstOrDefault(v => v.site == "YouTube" && v.type == "Trailer")?.key;
+
+                // Create TV Show entity
+                var tvEntity = new TVShow
+                {
+                    Id = Guid.NewGuid(),
+                    Title = show.original_name,
+                    Name = show.name,
+                    TmdbId = show.id,
+                    Description = show.overview,
+                    PosterUrl = show.poster_path != null ? $"https://image.tmdb.org/t/p/w500{show.poster_path}" : "",
+                    Language = show.original_language,
+                    AgeRating = AgeRating.AllAges,
+                    AudioType = "Dolby Digital",
+                    Type = MediaType.TvShow,
+                    IsFeatured = true,
+                    ReleaseYear = !string.IsNullOrEmpty(show.first_air_date) ?
+                                   int.Parse(show.first_air_date.Split("-")[0]) : null
+                };
+
+                // Assign Genres
+                if (show.genre_ids != null)
+                {
+                    foreach (var gId in show.genre_ids)
+                    {
+                        var genre = (await _unitOfWork.Repository<Genre>().GetAll())
+                                        .FirstOrDefault(x => x.TmdbId == gId);
+
+                        if (genre != null)
+                        {
+                            tvEntity.TVShowGenres.Add(new TVShowGenre
+                            {
+                                TVShowId = tvEntity.Id,
+                                GenreId = genre.Id
+                            });
+                        }
+                    }
+                }
+
+                // Save TV Show first
+                await _unitOfWork.Repository<TVShow>().Add(tvEntity);
+                await _unitOfWork.SaveChangesAsync();
+
+                // ---------------- Seasons & Episodes ----------------
+                var showDetails = await _tmdbService.GetTvDetailsAsync(show.id);
+
+                if (showDetails?.seasons != null)
+                {
+                    foreach (var seasonInfo in showDetails.seasons.Where(s => s.season_number > 0))
+                    {
+                        var season = new Season
+                        {
+                            Id = Guid.NewGuid(),
+                            TvShowId = tvEntity.Id,
+                            SeasonNumber = seasonInfo.season_number
+                        };
+
+                        await _unitOfWork.Repository<Season>().Add(season);
+                        await _unitOfWork.SaveChangesAsync();
+
+                        // Fetch episodes
+                        var seasonDetails = await _tmdbService.GetSeasonDetailsAsync(show.id, seasonInfo.season_number);
+
+                        if (seasonDetails?.episodes != null)
+                        {
+                            foreach (var ep in seasonDetails.episodes)
+                            {
+                                var epVideos = await _tmdbService.GetEpisodeVideosAsync(show.id, seasonInfo.season_number, ep.episode_number);
+                                var episodeTrailerKey = epVideos?.results?
+                                    .FirstOrDefault(x => x.site == "YouTube" && x.type == "Trailer")?.key;
+
+                                var episodeEntity = new Episode
+                                {
+                                    Id = Guid.NewGuid(),
+                                    SeasonId = season.Id,
+                                    Title = ep.name ?? $"Episode {ep.episode_number}",
+                                    EpisodeNumber = ep.episode_number,
+                                    DurationMinutes = ep.runtime ?? 0,
+                                    TrailerUrl = episodeTrailerKey != null
+                                                    ? $"https://www.youtube.com/watch?v={episodeTrailerKey}"
+                                                    : (showTrailerKey != null ? $"https://www.youtube.com/watch?v={showTrailerKey}" : ""),
+                                    VideoUrl = "" // Optional: fill when streaming video is available
+                                };
+
+                                await _unitOfWork.Repository<Episode>().Add(episodeEntity);
+                            }
+
+                            await _unitOfWork.SaveChangesAsync();
+                        }
+                    }
+                }
+
+                // ------------------- CAST -------------------
+                var tvDto = _mapper.Map<TvShowDto>(tvEntity);
+                var castData = await _tmdbService.GetTvCastAsync(tvEntity.TmdbId);
+
+                if (castData?.cast != null)
+                {
+                    foreach (var member in castData.cast)
+                    {
+                        // Check if CastMember exists
+                        var existingCast = (await _unitOfWork.Repository<CastMember>().GetAll())
+                                            .FirstOrDefault(c => c.TmdbId == member.id);
+
+                        if (existingCast == null)
+                        {
+                            existingCast = new CastMember
+                            {
+                                Id = Guid.NewGuid(),
+                                Name = member.name,
+                                PhotoUrl = member.profile_path != null ?
+                                              $"https://image.tmdb.org/t/p/w500{member.profile_path}" : "",
+                                TmdbId = member.id
+                            };
+
+                            await _unitOfWork.Repository<CastMember>().Add(existingCast);
+                            await _unitOfWork.SaveChangesAsync();
+                        }
+
+                        // Link CastMember to TVShow
+                        var tvCast = new TvShowCast
+                        {
+                            TvShowId = tvEntity.Id,
+                            CastMemberId = existingCast.Id,
+                            CharacterName = member.character ?? ""
+                        };
+
+                        await _unitOfWork.Repository<TvShowCast>().Add(tvCast);
+                    }
+
+                    await _unitOfWork.SaveChangesAsync();
+                }
+            }
+        }
+
+
+
+        public async Task ImportAllMoviesAsync()
+        {
+            var moviesResponse = await _tmdbService.GetAllMoviesAsync();
+            if (moviesResponse?.results == null) return;
+
+            foreach (var m in moviesResponse.results)
+            {
+                // Check if exists
+                var existingMovie = (await _unitOfWork.Repository<Movie>().GetAll())
+                                        .FirstOrDefault(x => x.TmdbId == m.id);
+                if (existingMovie != null)
+                    continue;
+
+                var trailer = await _tmdbService.GetMovieVideosAsync(m.id);
+                var trailerKey = trailer?.results.FirstOrDefault(v => v.type == "Trailer" && v.site == "YouTube")?.key;
+
+                var movie = new Movie
+                {
+                    Id = Guid.NewGuid(),
+                    Title = m.title,
+                    TmdbId = m.id,
+                    IsFeatured = false,
+                    AudioType = "Dolby Digital",
+                    AgeRating = AgeRating.AllAges,
+                    Type = MediaType.Movie,
+                    CurrentState = 1,
+                    Language = m.original_language,
+                    Description = m.overview,
+                    PosterUrl = m.poster_path != null ? $"https://image.tmdb.org/t/p/w500{m.poster_path}" : "",
+                    VideoUrl = trailerKey != null ? $"https://www.youtube.com/watch?v={trailerKey}" : "",
+                    TrailerUrl = trailerKey != null ? $"https://www.youtube.com/watch?v={trailerKey}" : "",
+                    ReleaseYear = int.TryParse(m.release_date?.Split('-')[0], out int y) ? y : 0,
+                };
+
+                // Add Genres
+                if (m.genre_ids != null)
+                {
+                    foreach (var gid in m.genre_ids)
+                    {
+                        var genre = (await _unitOfWork.Repository<Genre>().GetAll())
+                                    .FirstOrDefault(x => x.TmdbId == gid);
+
+                        if (genre != null)
+                        {
+                            movie.MovieGenres.Add(new MovieGenre
+                            {
+                                MovieId = movie.Id,
+                                GenreId = genre.Id
+                            });
+                        }
+                    }
+                }
+
+                await _unitOfWork.Repository<Movie>().Add(movie);
+                await _unitOfWork.SaveChangesAsync();
+
+                // ------------------- CAST -------------------
+                var castData = await _tmdbService.GetMovieCastAsync(movie.TmdbId);
+
+                if (castData?.cast != null)
+                {
+                    foreach (var member in castData.cast)
+                    {
+                        // Check if CastMember exists
+                        var existingCast = (await _unitOfWork.Repository<CastMember>().GetAll())
+                                                .FirstOrDefault(c => c.TmdbId == member.id);
+
+                        if (existingCast == null)
+                        {
+                            existingCast = new CastMember
+                            {
+                                Id = Guid.NewGuid(),
+                                Name = member.name,
+                                PhotoUrl = member.profile_path != null ?
+                                            $"https://image.tmdb.org/t/p/w500{member.profile_path}" : "",
+                                TmdbId = member.id
+                            };
+
+                            // Add the CastMember first
+                            await _unitOfWork.Repository<CastMember>().Add(existingCast);
+                            await _unitOfWork.SaveChangesAsync(); // حفظ عشان نقدر نربط FK بعد كده
+                        }
+
+                        // Link CastMember to Movie
+                        var movieCast = new MovieCast
+                        {
+                            Id = Guid.NewGuid(), // لو MovieCast وارث BaseTable
+                            MovieId = movie.Id,
+                            CastMemberId = existingCast.Id,
+                            CharacterName = member.character ?? ""
+                        };
+
+                        await _unitOfWork.Repository<MovieCast>().Add(movieCast);
+                    }
+
+                    await _unitOfWork.SaveChangesAsync();
+                }
+            }
+        }
+
+
+        public async Task ImportTopRatedMoviesAsync()
+        {
+            var moviesResponse = await _tmdbService.GetTopRatedMoviesAsync();
+            if (moviesResponse?.results == null) return;
+
+            foreach (var m in moviesResponse.results)
+            {
+                // Check if exists
+                var existingMovie = (await _unitOfWork.Repository<Movie>().GetAll())
+                                    .FirstOrDefault(x => x.TmdbId == m.id);
+                if (existingMovie != null)
+                    continue;
+
+                var trailer = await _tmdbService.GetMovieVideosAsync(m.id);
+                var trailerKey = trailer?.results.FirstOrDefault(v => v.type == "Trailer" && v.site == "YouTube")?.key;
+
+                var movie = new Movie
+                {
+                    Id = Guid.NewGuid(),
+                    Title = m.title,
+                    TmdbId = m.id,
+                    IsFeatured = true,
+                    AudioType = "Dolby Digital",
+                    AgeRating = AgeRating.AllAges,
+                    Type = MediaType.Movie,
+                    //CreatedBy = _userService.GetLoggedInUser(),
+                    CurrentState = 1,
+                    Language = m.original_language,
+                    Description = m.overview,
+                    PosterUrl = m.poster_path != null ? $"https://image.tmdb.org/t/p/w500{m.poster_path}" : "",
+                    VideoUrl = trailerKey != null ? $"https://www.youtube.com/watch?v={trailerKey}" : "",
+                    TrailerUrl = trailerKey != null ? $"https://www.youtube.com/watch?v={trailerKey}" : "",
+                    ReleaseYear = int.TryParse(m.release_date?.Split('-')[0], out int y) ? y : 0,
+                };
+
+                // Add Genres
+                if (m.genre_ids != null)
+                {
+                    foreach (var gid in m.genre_ids)
+                    {
+                        var genre = (await _unitOfWork.Repository<Genre>().GetAll())
+                                    .FirstOrDefault(x => x.TmdbId == gid);
+
+                        if (genre != null)
+                        {
+                            movie.MovieGenres.Add(new MovieGenre
+                            {
+                                MovieId = movie.Id,
+                                GenreId = genre.Id
+                            });
+                        }
+                    }
+                }
+
+                await _unitOfWork.Repository<Movie>().Add(movie);
+                await _unitOfWork.SaveChangesAsync();
+
+                // ------------------- CAST -------------------
+                var castData = await _tmdbService.GetMovieCastAsync(movie.TmdbId);
+
+                if (castData?.cast != null)
+                {
+                    foreach (var member in castData.cast)
+                    {
+                        // Check if CastMember exists
+                        var existingCast = (await _unitOfWork.Repository<CastMember>().GetAll())
+                                                .FirstOrDefault(c => c.TmdbId == member.id);
+
+                        if (existingCast == null)
+                        {
+                            existingCast = new CastMember
+                            {
+                                Id = Guid.NewGuid(),  
+                                Name = member.name,
+                                PhotoUrl = member.profile_path != null ?
+                                            $"https://image.tmdb.org/t/p/w500{member.profile_path}" : "",
+                                TmdbId = member.id
+                            };
+
+                            // Add the CastMember first
+                            await _unitOfWork.Repository<CastMember>().Add(existingCast);
+                            await _unitOfWork.SaveChangesAsync(); // حفظ عشان نقدر نربط FK بعد كده
+                        }
+
+                        // Link CastMember to Movie
+                        var movieCast = new MovieCast
+                        {
+                            Id = Guid.NewGuid(), // لو MovieCast وارث BaseTable
+                            MovieId = movie.Id,
+                            CastMemberId = existingCast.Id,
+                            CharacterName = member.character ?? ""
+                        };
+
+                        await _unitOfWork.Repository<MovieCast>().Add(movieCast);
+                    }
+
+                    await _unitOfWork.SaveChangesAsync();
+                }
+            }
+        }
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -263,7 +1206,7 @@ namespace ApplicationLayer.Services
             var result = await _repo.Update(entity);
 
             if (result)
-                await _unitOfWork.SaveChangesAsync();  
+                await _unitOfWork.SaveChangesAsync();
 
             return result;
         }
@@ -276,7 +1219,7 @@ namespace ApplicationLayer.Services
             var result = await _repo.ChangeStatus(id, _userService.GetLoggedInUser(), 0);
 
             if (result)
-                await _unitOfWork.SaveChangesAsync();  
+                await _unitOfWork.SaveChangesAsync();
 
             return result;
         }
@@ -288,6 +1231,14 @@ namespace ApplicationLayer.Services
         {
             var list = await _repo.GetList(m => m.CurrentState == 1 && m.IsFeatured);
             var ordered = list.OrderByDescending(m => m.CreatedDate).Take(limit).ToList();
+            return _mapper.Map<IEnumerable<MovieDto>>(ordered);
+        }
+
+
+        public async Task<IEnumerable<MovieDto>> GetAllMoviesAsync()
+        {
+            var list = await _repo.GetAll();
+            var ordered = list.OrderByDescending(m => m.CreatedDate).ToList();
             return _mapper.Map<IEnumerable<MovieDto>>(ordered);
         }
 
@@ -351,114 +1302,140 @@ namespace ApplicationLayer.Services
         public async Task ImportGenresAsync()
         {
             var genresResponse = await _tmdbService.GetGenresAsync();
+
             if (genresResponse?.genres == null) return;
 
             foreach (var g in genresResponse.genres)
             {
 
-                var genre = (await _unitOfWork.Repository<Genre>().GetAll())
-                .FirstOrDefault(x => x.TmdbId == g.id);
-                if (genre != null)
+
+
+                await _unitOfWork.Repository<Genre>().Add(new Genre
                 {
-                    await _unitOfWork.Repository<Genre>().Add(new Genre
-                    {
-                        Id = Guid.NewGuid(),
-                        Name = g.name,
-                        TmdbId = g.id
-                    });
-                }
-            }
-
-            await _unitOfWork.SaveChangesAsync();
-        }
-
-        public async Task ImportTopRatedMoviesAsync()
-        {
-            var moviesResponse = await _tmdbService.GetTopRatedMoviesAsync();
-            if (moviesResponse?.results == null) return;
-
-            foreach (var m in moviesResponse.results)
-            {
-                var trailer = await _tmdbService.GetMovieVideosAsync(m.id);
-                var trailerKey = trailer?.results.FirstOrDefault(v => v.type == "Trailer" && v.site == "YouTube")?.key;
-
-                var movie = new Movie
-                {
-                    Title = m.title,
-                    Description = m.overview,
-                    PosterUrl = m.poster_path != null ? $"https://image.tmdb.org/t/p/w500{m.poster_path}" : "",
-                    VideoUrl = trailerKey != null ? $"https://www.youtube.com/watch?v={trailerKey}" : "",
-                    TrailerUrl = trailerKey != null ? $"https://www.youtube.com/watch?v={trailerKey}" : "",
-                    ReleaseYear = int.TryParse(m.release_date?.Split('-')[0], out int y) ? y : 0,
-                };
-
-                // Genres
-                if (m.genre_ids != null)
-                {
-                    foreach (var gid in m.genre_ids)
-                    {
-                        //var genre = _unitOfWork.Repository<Genre>().Query().FirstOrDefault(x => x.TmdbId == gid);
-                        var genre = (await _unitOfWork.Repository<Genre>().GetAll())
-                                .FirstOrDefault(x => x.TmdbId == gid);
-                        //var genre = _unitOfWork.Repository<Genre>().GetAll().Result.FirstOrDefault(x => x.TmdbId == gid);
-
-                        if (genre != null)
-                        {
-                            movie.MovieGenres.Add(new MovieGenre
-                            {
-                                Genre = genre,
-                                GenreId = genre.Id
-                            });
-                        }
-                    }
-                }
-
-                await _unitOfWork.Repository<Movie>().Add(movie);
-            }
-
-            await _unitOfWork.SaveChangesAsync();
-        }
-
-        public async Task ImportCastForMovieAsync(Movie movie, int tmdbMovieId)
-        {
-            var credits = await _tmdbService.GetMovieCreditsAsync(tmdbMovieId);
-            if (credits?.cast == null) return;
-
-            foreach (var c in credits.cast)
-            {
-                var castMember = (await _unitOfWork.Repository<CastMember>().GetAll())
-                                 .FirstOrDefault(x => x.TmdbId == c.id);
-
-                if (castMember == null)
-                {
-                    castMember = new CastMember
-                    {
-                        Id = Guid.NewGuid(),
-                        Name = c.name,
-                        PhotoUrl = c.profile_path != null ? $"https://image.tmdb.org/t/p/w500{c.profile_path}" : "",
-                        Bio = "",
-                        TmdbId = c.id
-                    };
-                    await _unitOfWork.Repository<CastMember>().Add(castMember);
-                }
-
-                movie.Castings.Add(new MovieCast
-                {
-                    Movie = movie,
-                    CastMember = castMember,
-                    CharacterName = c.character
+                    Id = Guid.NewGuid(),
+                    Name = g.name,
+                    TmdbId = g.id,
+                    CurrentState = 1,
+                    //CreatedBy = _userService.GetLoggedInUser()
                 });
-            }
 
+            }
 
             await _unitOfWork.SaveChangesAsync();
         }
 
+        //public async Task ImportTopRatedMoviesAsync()
+        //{
+        //    var moviesResponse = await _tmdbService.GetTopRatedMoviesAsync();
+        //    if (moviesResponse?.results == null) return;
 
-        public async Task<List<Movie>> GetAllImportedMoviesAsync()
+        //    foreach (var m in moviesResponse.results)
+        //    {
+        //        var trailer = await _tmdbService.GetMovieVideosAsync(m.id);
+        //        var trailerKey = trailer?.results.FirstOrDefault(v => v.type == "Trailer" && v.site == "YouTube")?.key;
+
+        //        var movie = new Movie
+        //        {
+        //            Title = m.title,
+        //            Description = m.overview,
+        //            PosterUrl = m.poster_path != null ? $"https://image.tmdb.org/t/p/w500{m.poster_path}" : "",
+        //            VideoUrl = trailerKey != null ? $"https://www.youtube.com/watch?v={trailerKey}" : "",
+        //            TrailerUrl = trailerKey != null ? $"https://www.youtube.com/watch?v={trailerKey}" : "",
+        //            ReleaseYear = int.TryParse(m.release_date?.Split('-')[0], out int y) ? y : 0,
+        //        };
+
+        //        // Genres
+        //        if (m.genre_ids != null)
+        //        {
+        //            foreach (var gid in m.genre_ids)
+        //            {
+        //                //var genre = _unitOfWork.Repository<Genre>().Query().FirstOrDefault(x => x.TmdbId == gid);
+        //                var genre = (await _unitOfWork.Repository<Genre>().GetAll())
+        //                        .FirstOrDefault(x => x.TmdbId == gid);
+        //                //var genre = _unitOfWork.Repository<Genre>().GetAll().Result.FirstOrDefault(x => x.TmdbId == gid);
+
+        //                if (genre != null)
+        //                {
+        //                    movie.MovieGenres.Add(new MovieGenre
+        //                    {
+        //                        Genre = genre,
+        //                        GenreId = genre.Id
+        //                    });
+        //                }
+        //            }
+        //        }
+
+        //        await _unitOfWork.Repository<Movie>().Add(movie);
+        //    }
+
+        //    await _unitOfWork.SaveChangesAsync();
+        //}
+
+        //public async Task ImportCastForMovieAsync(Movie movie, int tmdbMovieId)
+        //{
+        //    var credits = await _tmdbService.GetMovieCreditsAsync(tmdbMovieId);
+        //    if (credits?.cast == null) return;
+
+        //    foreach (var c in credits.cast)
+        //    {
+        //        var castMember = (await _unitOfWork.Repository<CastMember>().GetAll())
+        //                         .FirstOrDefault(x => x.TmdbId == c.id);
+
+        //        if (castMember == null)
+        //        {
+        //            castMember = new CastMember
+        //            {
+        //                Id = Guid.NewGuid(),
+        //                Name = c.name,
+        //                PhotoUrl = c.profile_path != null ? $"https://image.tmdb.org/t/p/w500{c.profile_path}" : "",
+        //                Bio = "",
+        //                TmdbId = c.id
+        //            };
+        //            await _unitOfWork.Repository<CastMember>().Add(castMember);
+        //        }
+
+        //        movie.Castings.Add(new MovieCast
+        //        {
+        //            Movie = movie,
+        //            CastMember = castMember,
+        //            CharacterName = c.character
+        //        });
+        //    }
+
+
+        //    await _unitOfWork.SaveChangesAsync();
+        //}
+
+
+        public async Task<List<MovieDto>> GetAllImportedMoviesAsync()
         {
-            // هنا ممكن تضيف شرط لو عايز تجيب بس الأفلام اللي لسه ما اتعملش لها cast
-            return await _unitOfWork.Repository<Movie>().GetAll();
+            // 1- هات كل الأفلام من الداتابيز
+            var movies = await _unitOfWork.Repository<Movie>().GetAll();
+
+            // 2- لو مفيش أفلام رجع list فاضية
+            if (movies == null || !movies.Any())
+                return new List<MovieDto>();
+
+            // 3- اعمل mapping للـ DTO
+            var result = _mapper.Map<List<MovieDto>>(movies);
+
+            return result;
+        }
+
+
+        public async Task<List<TvShowDto>> GetAllImportedTvshowsAsync()
+        {
+            // 1- هات كل الأفلام من الداتابيز
+            var movies = await _unitOfWork.Repository<TVShow>().GetAll();
+
+            // 2- لو مفيش أفلام رجع list فاضية
+            if (movies == null || !movies.Any())
+                return new List<TvShowDto>();
+
+            // 3- اعمل mapping للـ DTO
+            var result = _mapper.Map<List<TvShowDto>>(movies);
+
+            return result;
         }
 
 
@@ -519,5 +1496,6 @@ namespace ApplicationLayer.Services
             };
 
         }
+
     }
 }

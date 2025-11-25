@@ -11,6 +11,9 @@ namespace InfrastructureLayer.Contracts
 {
     public interface IGenericRepository<T> where T : BaseTable
     {
+        Task<List<T>> GetListWithInclude(
+   Expression<Func<T, bool>> filter,
+   Func<IQueryable<T>, IQueryable<T>>? include = null);
         Task<List<T>> GetAll();
         Task<T?> GetById(Guid id);
         Task<T?> GetByIdAsNoTracking(Guid id);

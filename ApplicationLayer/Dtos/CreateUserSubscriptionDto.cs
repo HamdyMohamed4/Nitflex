@@ -6,10 +6,10 @@ using System.Threading.Tasks;
 
 namespace ApplicationLayer.Dtos
 {
-    public class CreateUserSubscriptionDto:BaseDto
+    public class CreateUserSubscriptionDto
     {
         public Guid SubscriptionPlanId { get; set; } 
-        public string Name { get; set; }
+        public string Token { get; set; }
 
 
     }

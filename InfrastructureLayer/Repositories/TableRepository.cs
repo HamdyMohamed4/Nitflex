@@ -36,7 +36,7 @@ namespace InfrastructureLayer.Repositories
         {
             try
             {
-                return await _dbSet.Where(a => a.CurrentState > 0).AsNoTracking().ToListAsync();
+                return await _dbSet.AsNoTracking().ToListAsync();
             }
             catch (Exception ex)
             {
@@ -181,6 +181,24 @@ namespace InfrastructureLayer.Repositories
             try
             {
                 return await _dbSet.Where(filter).AsNoTracking().ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new DataAccessException(ex, "", _logger);
+            }
+        }
+        public async Task<List<T>> GetListWithInclude(
+    Expression<Func<T, bool>> filter,
+    Func<IQueryable<T>, IQueryable<T>>? include = null)
+        {
+            try
+            {
+                IQueryable<T> query = _dbSet.Where(filter);
+
+                if (include != null)
+                    query = include(query);
+
+                return await query.AsNoTracking().ToListAsync();
             }
             catch (Exception ex)
             {

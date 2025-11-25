@@ -1,6 +1,7 @@
 ﻿using ApplicationLayer.Contract;
 using ApplicationLayer.Dtos;
 using ApplicationLayer.Services;
+using Domains;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Presentation.Models;
@@ -72,6 +73,29 @@ namespace Presentation.Controllers
             try
             {
                 var movies = await _movieService.GetFeaturedAsync(limit);
+                if (movies == null || !movies.Any())
+                    return NotFound(ApiResponse<List<MovieDto>>.FailResponse("No featured movies found."));
+
+                return Ok(ApiResponse<List<MovieDto>>.SuccessResponse(movies.ToList(), "Featured movies retrieved."));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<List<MovieDto>>.FailResponse("Failed to retrieve featured movies", new List<string> { ex.Message }));
+            }
+        }
+
+
+
+
+
+
+        // GET: api/Movie/featured?limit=10
+        [HttpGet("AllMovies")]
+        public async Task<ActionResult<ApiResponse<List<MovieDto>>>> GetAllMovies()
+        {
+            try
+            {
+                var movies = await _movieService.GetAllMoviesAsync();
                 if (movies == null || !movies.Any())
                     return NotFound(ApiResponse<List<MovieDto>>.FailResponse("No featured movies found."));
 
@@ -168,6 +192,9 @@ namespace Presentation.Controllers
 
             // 2. Import Top Rated Movies
             await _movieService.ImportTopRatedMoviesAsync();
+            await _movieService.ImportTopRatedShowsAsync();
+            await _movieService.ImportAllMoviesAsync();
+            await _movieService.ImportAllTVsAsync();
 
             // 3. Import Cast for each movie
             var allMovies = await _movieService.GetAllImportedMoviesAsync();
@@ -175,6 +202,15 @@ namespace Presentation.Controllers
             {
                 await _movieService.ImportCastForMovieAsync(movie, movie.TmdbId); // لازم تضيف TmdbId للـ Movie
             }
+
+
+            var allTvshows = await _movieService.GetAllImportedTvshowsAsync();
+            foreach (var movie in allTvshows)
+            {
+                await _movieService.ImportCastForShowsAsync(movie, movie.TmdbId); // لازم تضيف TmdbId للـ Movie
+            }
+
+
 
             return Ok("All data imported successfully!");
         }
