@@ -250,7 +250,7 @@ namespace ApplicationLayer.Services
 
             // Placeholder: return BannerUrl or PosterUrl as a simple locator.
             // Replace with signed CDN/DRM locator and subscription checks when available.
-            return !string.IsNullOrWhiteSpace(show.BannerUrl) ? show.BannerUrl : show.PosterUrl;
+            return !string.IsNullOrWhiteSpace(show.Name) ? show.PosterUrl : show.PosterUrl;
         }
 
 

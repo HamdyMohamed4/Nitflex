@@ -4,11 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ApplicationLayer.Dtos
+namespace Domains
 {
-    public class TmdbTvResponse
+    public enum MediaType
     {
-            public List<TmdbTv> results { get; set; } = new();
-
+        Movie,
+        TvShow,
     }
 }

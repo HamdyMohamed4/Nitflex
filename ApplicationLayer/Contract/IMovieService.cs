@@ -13,12 +13,25 @@ namespace ApplicationLayer.Contract
     /// </summary>
     public interface IMovieService : IBaseService<Movie, MovieDto>
     {
+
+        Task ImportTopRatedShowsAsync();
+
+        Task<List<TvShowDto>> GetAllImportedTvshowsAsync();
+        Task ImportAllMoviesAsync();
+
+        Task ImportCastForShowsAsync(TvShowDto movieDto, int tmdbMovieId);
+        Task ImportAllTVsAsync();
         Task ImportGenresAsync();
+
+        Task ImportCastForMovieAsync(MovieDto movieDto, int tmdbMovieId);
+        Task<List<MovieDto>> GetAllImportedMoviesAsync();
+
+        //Task ImportCastForMovieAsync(Movie movie, int tmdbMovieId);
         Task ImportTopRatedMoviesAsync();
 
-        Task<List<Movie>> GetAllImportedMoviesAsync();
+        //Task<List<Movie>> GetAllImportedMoviesAsync();
 
-        Task ImportCastForMovieAsync(Movie movie, int tmdbMovieId);
+        //Task ImportCastForMovieAsync(MovieDto movie, int tmdbMovieId);
         Task<AllMediaDto> GetMediaByGenreIdAsync(Guid genreId);
         Task<List<AllMediaDto>> GetRandomMediaAsync(int count);
         Task<GenreMoviesResponseDto> GetMoviesByGenreNameAsync(string genreName, int page = 1, int pageSize = 20);

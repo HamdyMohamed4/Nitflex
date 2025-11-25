@@ -13,6 +13,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Presentation.Services;
 using System.Text;
+using X.Paymob.CashIn;
 
 namespace Presentation.Services
 {
@@ -98,6 +99,17 @@ namespace Presentation.Services
                 cfg.AddProfile<MappingProfile>();
             });
 
+
+
+            builder.Services.AddPaymobCashIn(c =>
+            {
+                c.ApiKey = builder.Configuration["Paymob:ApiKey"];
+                c.Hmac = builder.Configuration["Paymob:Hmac"];
+            });
+
+
+
+
             // Repositories & Services
             builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
             builder.Services.AddScoped(typeof(IViewRepository<>), typeof(ViewRepository<>));
@@ -115,9 +127,10 @@ namespace Presentation.Services
             builder.Services.AddScoped<IUserHistoryService, UserHistoryService>();
 
 
-            builder.Services.AddHttpClient<PayPalGateway>();
-            builder.Services.AddScoped<IPaymentGateway, PayPalGateway>();
-            builder.Services.AddHttpClient<PaymobGateway>();
+            //builder.Services.AddHttpClient<PayPalGateway>();
+            //builder.Services.AddScoped<IPaymentGateway, PayPalGateway>();
+            builder.Services.AddScoped<IPaymentGateway, PaymobGetway>();
+            builder.Services.AddHttpClient<PaymobGetway>();
             builder.Services.AddScoped<PaymentFactory>();
 
             builder.Services.AddScoped<TokenService>();

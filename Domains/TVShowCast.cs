@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Domains
 {
-    public class TvShowCast
+    public class TvShowCast:BaseTable
     {
         public Guid TvShowId { get; set; }
         public TVShow TvShow { get; set; } = default!;

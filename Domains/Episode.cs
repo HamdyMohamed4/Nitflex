@@ -14,6 +14,8 @@ namespace Domains
         public int EpisodeNumber { get; set; }
         public int DurationMinutes { get; set; }
         public string VideoUrl { get; set; } = string.Empty;
+        [MaxLength(500)]
+        public string? TrailerUrl { get; set; } = string.Empty;
 
         // Foreign Key (Changed from int to Guid)
         public Guid SeasonId { get; set; }

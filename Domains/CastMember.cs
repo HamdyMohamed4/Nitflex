@@ -10,10 +10,10 @@ namespace Domains
     public class CastMember : BaseTable
     {
         [MaxLength(250)]
-        public string Name { get; set; } = string.Empty;
+        public string? Name { get; set; } = string.Empty;
         [MaxLength(500)]
-        public string PhotoUrl { get; set; } = string.Empty;
-        public string Bio { get; set; } = string.Empty;
+        public string? PhotoUrl { get; set; } = string.Empty;
+        public string? Bio { get; set; } = string.Empty;
 
         public int TmdbId { get; set; } // ده اللي كان ناقص
     }

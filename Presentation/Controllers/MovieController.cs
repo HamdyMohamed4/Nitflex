@@ -1,6 +1,7 @@
 ﻿using ApplicationLayer.Contract;
 using ApplicationLayer.Dtos;
 using ApplicationLayer.Services;
+using Domains;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Presentation.Models;
@@ -168,6 +169,9 @@ namespace Presentation.Controllers
 
             // 2. Import Top Rated Movies
             await _movieService.ImportTopRatedMoviesAsync();
+            await _movieService.ImportTopRatedShowsAsync();
+            await _movieService.ImportAllMoviesAsync();
+            await _movieService.ImportAllTVsAsync();
 
             // 3. Import Cast for each movie
             var allMovies = await _movieService.GetAllImportedMoviesAsync();
@@ -175,6 +179,15 @@ namespace Presentation.Controllers
             {
                 await _movieService.ImportCastForMovieAsync(movie, movie.TmdbId); // لازم تضيف TmdbId للـ Movie
             }
+
+
+            var allTvshows = await _movieService.GetAllImportedTvshowsAsync();
+            foreach (var movie in allTvshows)
+            {
+                await _movieService.ImportCastForShowsAsync(movie, movie.TmdbId); // لازم تضيف TmdbId للـ Movie
+            }
+
+
 
             return Ok("All data imported successfully!");
         }

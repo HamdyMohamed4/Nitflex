@@ -1,26 +1,32 @@
-﻿using System;
+﻿using Domains;
+using System;
 using System.Collections.Generic;
-using Domains;
+using System.ComponentModel.DataAnnotations;
 
 namespace ApplicationLayer.Dtos
 {
     public class TvShowDto : BaseDto
     {
-        public string Title { get; set; } = null!;
-        public string? Description { get; set; }
-
-        // Basic artwork
-        public string? PosterUrl { get; set; }
-        public string? BannerUrl { get; set; }
-        public string? TrailerUrl { get; set; }
-
-        // Content metadata
-        public AgeRating AgeRating { get; set; }
+        public string? Name { get; set; } = string.Empty;
+        public string? Title { get; set; } = string.Empty;
+        public string? Description { get; set; } = string.Empty;
         public int? ReleaseYear { get; set; }
-        public bool IsFeatured { get; set; }
+        public int? DurationMinutes { get; set; }
+        public int TmdbId { get; set; }
+        public AgeRating AgeRating { get; set; }
 
-        public string? Language { get; set; }
-        public string? Type { get; set; }
+        [MaxLength(500)]
+        public string? Language { get; set; }  // English / Arabic / Spanish / French
+        public string? AudioType { get; set; }  // Original / Dubbed / Subtitled
+
+
+        [MaxLength(500)]
+        public string? PosterUrl { get; set; } = string.Empty;
+        public bool IsFeatured { get; set; } = false;
+        public MediaType? Type { get; set; } = MediaType.Movie;
+
+
+
 
         public List<GenreDto> Genres { get; set; } = new();
 

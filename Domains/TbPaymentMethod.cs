@@ -11,5 +11,5 @@ public partial class TbPaymentMethod : BaseTable
 
     public double? Commission { get; set; }
 
-    //public virtual ICollection<TbShipment> TbShippments { get; set; } = new List<TbShipment>();
+    //public virtual ICollection<TbShipment> TbShippments { get; set; } = new List<TbShipment>();z
 }

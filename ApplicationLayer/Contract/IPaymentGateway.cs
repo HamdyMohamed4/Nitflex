@@ -11,7 +11,9 @@ namespace ApplicationLayer.Contract
     {
         //public Task<(string, bool)> CreateOrder(CreatePaymentRequest requestData);
 
-        public Task<(string, bool)> CaptureOrder(string orderId);
-        Task<(string orderId, string approvalUrl, bool success)> CreateOrder(CreatePaymentRequest requestData);
+        Task<PaymentResponseDto> InitiatePaymentAsync(PaymentDto request);
+        Task<bool> ValidatePaymentCallback(string payload);
+        //public Task<(string, bool)> CaptureOrder(string orderId);
+        //Task<(string orderId, string approvalUrl, bool success)> CreateOrder(CreatePaymentRequest requestData);
     }
 }

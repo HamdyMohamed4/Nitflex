@@ -6,9 +6,12 @@ using System.Threading.Tasks;
 
 namespace ApplicationLayer.Dtos
 {
-    public class TmdbTvResponse
+    public class TmdbEpisodeVideosResponse
     {
-            public List<TmdbTv> results { get; set; } = new();
-
+        public int id { get; set; }
+        public List<TmdbVideo> results { get; set; } = new();
     }
+
+ 
+
 }

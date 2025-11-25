@@ -13,6 +13,9 @@ namespace ApplicationLayer.Dtos
         public string overview { get; set; } = string.Empty;
         public string? poster_path { get; set; }
         public string? backdrop_path { get; set; }
+        public string? original_language { get; set; }
+
+        
         public string release_date { get; set; } = string.Empty;
         public List<int>? genre_ids { get; set; }
     }

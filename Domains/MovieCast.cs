@@ -14,7 +14,7 @@ namespace Domains
         public Guid CastMemberId { get; set; }
         public CastMember CastMember { get; set; } = default!;
 
-        public string CharacterName { get; set; } = string.Empty;
+        public string? CharacterName { get; set; } = string.Empty;
     }
 
 }
