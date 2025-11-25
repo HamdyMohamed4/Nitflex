@@ -42,6 +42,8 @@ namespace InfrastructureLayer
         public DbSet<MovieCast> MovieCasts { get; set; }
         public DbSet<TvShowCast> TVShowCasts { get; set; }
         public DbSet<Notification> Notifications { get; set; }
+        // inside NetflixContext class
+        public DbSet<TransferRequest> TransferRequests { get; set; }
 
 
 

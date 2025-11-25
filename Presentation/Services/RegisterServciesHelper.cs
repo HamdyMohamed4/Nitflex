@@ -142,6 +142,11 @@ namespace Presentation.Services
             builder.Services.AddScoped<ITvShowService, TvShowService>();
             builder.Services.AddScoped<IAdminUserService, AdminUserService>();
             builder.Services.AddScoped<ITmdbService, TmdbService>();
+            // Infrastructure / Application registrations
+            builder.Services.AddScoped<ITransferRequestRepository,TransferRequestRepository>();
+            builder.Services.AddScoped<ITransferService, TransferService>();
+
+            // Ensure EmailService, IUserService, and IGenericRepository<UserProfile> are registered (they already are).
 
 
 

@@ -16,15 +16,210 @@ namespace Presentation.Services
         private readonly IOtpRepository _otpRepo;
         private readonly TokenService _tokenService;
         private readonly IRefreshTokens _refreshTokenService;
+        private readonly ILogger<UserService> _logger;
+        private readonly IProfileService _profileService;
 
-        public UserService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager,
-             IHttpContextAccessor accessor, IOtpRepository otpRepo, TokenService tokenService)
+        public UserService(
+            UserManager<ApplicationUser> userManager,
+            SignInManager<ApplicationUser> signInManager,
+            IHttpContextAccessor accessor,
+            IOtpRepository otpRepo,
+            TokenService tokenService,
+            ILogger<UserService> logger,
+            IProfileService profileService)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _httpContextAccessor = accessor;
             _otpRepo = otpRepo;
             _tokenService = tokenService;
+            _logger = logger;
+            _profileService = profileService;
+        }
+
+        // New: Transfer profile data from sourceUserId to targetUserId.
+        // Validations:
+        //  - caller must be the owner of sourceUserId
+        //  - target user must exist
+        //  - target must not already have profile data (avoid overwriting)
+        // Returns tuple (Success, Message)
+        public async Task<(bool Success, string Message)> TransferProfileAsync(Guid sourceUserId, Guid targetUserId)
+        {
+            // Validate input
+            if (sourceUserId == Guid.Empty || targetUserId == Guid.Empty)
+                return (false, "Source or target user id is invalid.");
+
+            // Ensure caller owns the source account
+            Guid callerId;
+            try
+            {
+                callerId = GetLoggedInUser();
+            }
+            catch
+            {
+                return (false, "Not authenticated.");
+            }
+
+            if (callerId != sourceUserId)
+                return (false, "Caller is not the owner of the source profile (not authorized).");
+
+            // Load source & target users
+            var sourceUser = await _userManager.FindByIdAsync(sourceUserId.ToString());
+            if (sourceUser == null)
+                return (false, "Source user not found.");
+
+            var targetUser = await _userManager.FindByIdAsync(targetUserId.ToString());
+            if (targetUser == null)
+                return (false, "Target user not found.");
+
+            // Check target does not already have profile data (we treat FullName / PhoneNumber / Profiles as indicators)
+            var targetHasProfileData =
+                !string.IsNullOrWhiteSpace(targetUser.FullName) ||
+                !string.IsNullOrWhiteSpace(targetUser.PhoneNumber) ||
+                (targetUser.Profiles != null && targetUser.Profiles.Any());
+
+            // Additionally check for Address or ProfileImage properties if present (do not overwrite)
+            bool targetHasAddressOrImage = false;
+            var targetType = targetUser.GetType();
+            var addrProp = targetType.GetProperty("Address");
+            if (addrProp != null)
+            {
+                var addrVal = addrProp.GetValue(targetUser) as string;
+                if (!string.IsNullOrWhiteSpace(addrVal)) targetHasAddressOrImage = true;
+            }
+            var imgProp = targetType.GetProperty("ProfileImage");
+            if (imgProp != null)
+            {
+                var imgVal = imgProp.GetValue(targetUser) as string;
+                if (!string.IsNullOrWhiteSpace(imgVal)) targetHasAddressOrImage = true;
+            }
+
+            if (targetHasProfileData || targetHasAddressOrImage)
+                return (false, "Target account already has profile data and cannot be overwritten.");
+
+            // Prepare copy: only copy fields that target currently lacks and source has.
+            var changedTarget = false;
+            var changedSource = false;
+
+            // Email: be cautious - only copy if target email empty and source email present
+            if (string.IsNullOrWhiteSpace(targetUser.Email) && !string.IsNullOrWhiteSpace(sourceUser.Email))
+            {
+                targetUser.Email = sourceUser.Email;
+                targetUser.UserName = sourceUser.Email; // keep username aligned
+                changedTarget = true;
+
+                sourceUser.Email = null;
+                sourceUser.UserName = sourceUser.Id.ToString(); // avoid empty username collision - set to guid
+                changedSource = true;
+            }
+
+            // FullName
+            if (string.IsNullOrWhiteSpace(targetUser.FullName) && !string.IsNullOrWhiteSpace(sourceUser.FullName))
+            {
+                targetUser.FullName = sourceUser.FullName;
+                changedTarget = true;
+
+                sourceUser.FullName = null;
+                changedSource = true;
+            }
+
+            // PhoneNumber
+            if (string.IsNullOrWhiteSpace(targetUser.PhoneNumber) && !string.IsNullOrWhiteSpace(sourceUser.PhoneNumber))
+            {
+                targetUser.PhoneNumber = sourceUser.PhoneNumber;
+                changedTarget = true;
+
+                sourceUser.PhoneNumber = null;
+                changedSource = true;
+            }
+
+            // Optional Address & ProfileImage (reflection)
+            if (addrProp != null)
+            {
+                var sourceAddr = addrProp.GetValue(sourceUser) as string;
+                var targetAddr = addrProp.GetValue(targetUser) as string;
+                if (string.IsNullOrWhiteSpace(targetAddr) && !string.IsNullOrWhiteSpace(sourceAddr))
+                {
+                    addrProp.SetValue(targetUser, sourceAddr);
+                    addrProp.SetValue(sourceUser, null);
+                    changedTarget = true;
+                    changedSource = true;
+                }
+            }
+
+            if (imgProp != null)
+            {
+                var sourceImg = imgProp.GetValue(sourceUser) as string;
+                var targetImg = imgProp.GetValue(targetUser) as string;
+                if (string.IsNullOrWhiteSpace(targetImg) && !string.IsNullOrWhiteSpace(sourceImg))
+                {
+                    imgProp.SetValue(targetUser, sourceImg);
+                    imgProp.SetValue(sourceUser, null);
+                    changedTarget = true;
+                    changedSource = true;
+                }
+            }
+
+            // Persist changes: update both users with Identity
+            if (changedTarget)
+            {
+                var updateTargetResult = await _userManager.UpdateAsync(targetUser);
+                if (!updateTargetResult.Succeeded)
+                {
+                    var errors = string.Join(", ", updateTargetResult.Errors.Select(e => e.Description));
+                    _logger.LogWarning("Failed to update target user {TargetId} during profile transfer: {Errors}", targetUser.Id, errors);
+                    return (false, "Failed to update the target user account.");
+                }
+            }
+
+            if (changedSource)
+            {
+                var updateSourceResult = await _userManager.UpdateAsync(sourceUser);
+                if (!updateSourceResult.Succeeded)
+                {
+                    var errors = string.Join(", ", updateSourceResult.Errors.Select(e => e.Description));
+                    _logger.LogWarning("Failed to update source user {SourceId} during profile transfer: {Errors}", sourceUser.Id, errors);
+                    // Attempt to rollback target update if possible: we won't attempt deep rollback here, but log and notify.
+                    return (false, "Failed to update the source user account after transfer. Contact support.");
+                }
+            }
+
+            _logger.LogInformation("User {SourceId} transferred profile data to user {TargetId}", sourceUser.Id, targetUser.Id);
+
+            return (true, "Profile transferred successfully.");
+        }
+
+        // Implement TransferProfileByEmailAsync by delegating to ProfileService (clean separation)
+        public async Task<(bool Success, string Message)> TransferProfileByEmailAsync(Guid sourceUserId, Guid profileId, string targetEmail)
+        {
+            try
+            {
+                if (sourceUserId == Guid.Empty) return (false, "Source user id is invalid.");
+                if (profileId == Guid.Empty) return (false, "Profile id is invalid.");
+                if (string.IsNullOrWhiteSpace(targetEmail)) return (false, "Target email is required.");
+
+                // Ensure caller is the logged-in user
+                Guid callerId;
+                try
+                {
+                    callerId = GetLoggedInUser();
+                }
+                catch
+                {
+                    return (false, "Not authenticated.");
+                }
+
+                if (callerId != sourceUserId)
+                    return (false, "Caller is not the owner of the profile (not authorized).");
+
+                var (status, message) = await _profileService.TransferProfileToUserAsync(profileId, targetEmail, sourceUserId);
+                return (status, message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in TransferProfileByEmailAsync: source={Source}, profile={ProfileId}, email={Email}", sourceUserId, profileId, targetEmail);
+                return (false, "Internal server error while transferring profile.");
+            }
         }
 
 
@@ -49,7 +244,7 @@ namespace Presentation.Services
                 return true;
             }
 
-            return false;
+            return false;       
         }
 
 
@@ -397,8 +592,6 @@ namespace Presentation.Services
 
             return true;
         }
-
-
 
 
 

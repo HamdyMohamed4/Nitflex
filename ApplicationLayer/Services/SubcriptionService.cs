@@ -17,7 +17,6 @@ namespace ApplicationLayer.Services
         private readonly IGenericRepository<SubscriptionPlan> _planRepo;
         private readonly IGenericRepository<UserSubscription> _userSubRepo;
         private readonly IMapper _mapper;
-        private readonly IUserService _userService;
         private readonly TokenService _tokenService;
         private readonly IRefreshTokens _refreshTokenService;
 
@@ -29,12 +28,12 @@ namespace ApplicationLayer.Services
             IUserService userService,
             IRefreshTokens refreshTokenService,
             TokenService tokenService
-        ) : base(planRepo, mapper, userService)
+        ) : base(planRepo, mapper)
         {
             _planRepo = planRepo;
             _userSubRepo = userSubRepo;
             _mapper = mapper;
-            _userService = userService;
+
             _tokenService = tokenService;
             _refreshTokenService = refreshTokenService;
         }

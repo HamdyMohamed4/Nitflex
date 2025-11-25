@@ -17,7 +17,7 @@ namespace ApplicationLayer.Services
         IGenericRepository<TbRefreshTokens> _repo;
         IMapper _mapper;
         public RefreshTokenService(IGenericRepository<TbRefreshTokens> repo,IMapper mapper,
-            IUserService userService) : base(repo,mapper, userService)
+            IUserService userService) : base(repo,mapper)
         {
             _repo = repo;
             _mapper = mapper;

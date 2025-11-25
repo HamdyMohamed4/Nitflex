@@ -1,18 +1,24 @@
 using ApplicationLayer.Contract;
 using ApplicationLayer.Dtos;
 using AutoMapper;
-using Azure;
 using Domains;
 using InfrastructureLayer.Contracts;
 using InfrastructureLayer.UserModels;
-using Org.BouncyCastle.Asn1.Misc;
+using Microsoft.Extensions.Logging;
 
 namespace ApplicationLayer.Services;
 
 public class ProfileService : BaseService<UserProfile, UserProfileDto>, IProfileService
 {
-    public ProfileService(IGenericRepository<UserProfile> repo, IMapper mapper, IUserService userService)
-        : base(repo, mapper, userService) { }
+
+    private readonly ILogger<ProfileService> _logger;
+
+    public ProfileService(IGenericRepository<UserProfile> repo, IMapper mapper, ILogger<ProfileService> logger)
+        : base(repo, mapper)
+    {
+
+        _logger = logger;
+    }
 
     public async Task<(bool Status, string Message, IEnumerable<UserProfileDto> Response)> GetAllProfilesByUserIdAsync(Guid userId)
     {
@@ -33,9 +39,7 @@ public class ProfileService : BaseService<UserProfile, UserProfileDto>, IProfile
         if (user is null)
             return (false, "User Not Found", null!);
 
-        var x = user.Profiles;
-
-        UserProfile? userProfile = user.Profiles.FirstOrDefault(x => x.UserId == userId);
+        UserProfile? userProfile = user.Profiles.FirstOrDefault(x => x.Id == profileId);
 
         if (userProfile is null)
             return (false, "Profile Not Found", null!);
@@ -60,7 +64,7 @@ public class ProfileService : BaseService<UserProfile, UserProfileDto>, IProfile
             return (true, $"{result.Item2}", createProfileDto);
 
         else
-            return (false, $"Could not created profile for user with Id {userId}", null!);
+            return (false, $"Could not create profile for user with Id {userId}", null!);
     }
 
     public async Task<(bool Status, string Message)> UpdateProfileAsync(Guid userId, Guid profileId)
@@ -81,7 +85,7 @@ public class ProfileService : BaseService<UserProfile, UserProfileDto>, IProfile
             return (true, "Success");
 
         else
-            return (false, $"Could Not Updated Profile For User With Id {userId}");
+            return (false, $"Could Not Update Profile For User With Id {userId}");
     }
 
     public async Task<(bool Status, string Message)> DeleteProfileByUserId(Guid userId, Guid profileId)
@@ -122,5 +126,62 @@ public class ProfileService : BaseService<UserProfile, UserProfileDto>, IProfile
         List<UserHistoryDto> userHistoryListDto = _mapper.Map<List<UserHistoryDto>>(userHistory);
 
         return (true, "Success", userHistoryListDto);
+    }
+
+    // New: Transfer profile ownership to another user by email
+    public async Task<(bool Status, string Message)> TransferProfileToUserAsync(Guid profileId, string targetEmail, Guid callerUserId)
+    {
+        try
+        {
+            if (profileId == Guid.Empty)
+                return (false, "Invalid profile id.");
+
+            if (string.IsNullOrWhiteSpace(targetEmail))
+                return (false, "Target email is required.");
+
+            // 1) Load profile
+            var profile = await _repo.GetById(profileId);
+            if (profile == null)
+                return (false, "Profile not found.");
+
+            // 2) Ensure caller is owner of the profile
+            if (profile.UserId != callerUserId)
+                return (false, "Caller is not the owner of the profile (not authorized).");
+
+            // 3) Resolve target user by email
+            var targetUser = await _userService.GetUserByEmailAsync(targetEmail);
+            if (targetUser == null)
+                return (false, "Target user not found.");
+
+            // 4) Ensure target does not already have any assigned profile
+            var targetHasProfiles = targetUser.Profiles != null && targetUser.Profiles.Any();
+            if (targetHasProfiles)
+                return (false, "Target account already has an assigned profile. Transfer aborted to avoid overwriting.");
+
+            // 5) Ensure profile isn't already assigned to another active user (safety)
+            if (profile.UserId != callerUserId)
+                return (false, "Profile is assigned to another user.");
+
+            // 6) Transfer ownership
+            profile.UserId = targetUser.Id;
+            profile.UpdatedDate = DateTime.UtcNow;
+
+            var updated = await _repo.Update(profile);
+            if (!updated)
+            {
+                _logger.LogWarning("Failed to persist profile ownership change for ProfileId={ProfileId}", profileId);
+                return (false, "Failed to transfer profile. Please try again.");
+            }
+
+            _logger.LogInformation("Profile {ProfileId} transferred from User {SourceUserId} to User {TargetUserId}",
+                profileId, callerUserId, targetUser.Id);
+
+            return (true, "Profile transferred successfully.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error transferring profile {ProfileId} by user {CallerId} to email {Email}", profileId, callerUserId, targetEmail);
+            return (false, "Internal server error while transferring profile.");
+        }
     }
 }

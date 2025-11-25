@@ -196,12 +196,33 @@ namespace ApplicationLayer.Services
         }
 
 
+        //public async Task<IEnumerable<TvShowDto>> GetAllShowsAsync()
+        //{
+        //    var list = await _tvShowRepo.GetAll();
+        //    var ordered = list.OrderByDescending(s => s.CreatedDate).ToList();
+        //    return _mapper.Map<IEnumerable<TvShowDto>>(ordered);
+        //}
+
+
+
         public async Task<IEnumerable<TvShowDto>> GetAllShowsAsync()
         {
-            var list = await _tvShowRepo.GetAll();
-            var ordered = list.OrderByDescending(s => s.CreatedDate).ToList();
-            return _mapper.Map<IEnumerable<TvShowDto>>(ordered);
+            var shows = await _unitOfWork.Repository<TVShow>()
+                .GetListWithInclude(
+                    filter: x => true,
+                    include: query => query
+                        .Include(x => x.TVShowGenres)
+                            .ThenInclude(mg => mg.Genre)
+                        .Include(x => x.Castings)
+                            .ThenInclude(c => c.CastMember)
+                        .Include(x => x.Seasons)
+                            .ThenInclude(s => s.Episodes)
+                );
+
+            return _mapper.Map<IEnumerable<TvShowDto>>(shows);
         }
+
+
 
         public async Task<GenreShowsResponseDto?> GetShowsByGenreNameAsync(string genreName, int page = 1, int pageSize = 20)
         {

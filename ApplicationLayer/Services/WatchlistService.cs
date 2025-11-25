@@ -11,7 +11,7 @@ namespace ApplicationLayer.Services
 {
     internal class WatchlistService : BaseService<UserWatchlist, WatchlistItemDto>, IWatchlistService
     {
-        public WatchlistService(IGenericRepository<UserWatchlist> repo, IMapper mapper, IUserService userService) : base(repo, mapper, userService) { }
+        public WatchlistService(IGenericRepository<UserWatchlist> repo, IMapper mapper, IUserService userService) : base(repo, mapper) { }
 
         public async Task<(bool Success, Guid watchListItemId)> AddAsync(string userId, AddToWatchlistDto dto)
         {

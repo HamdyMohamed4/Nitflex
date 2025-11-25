@@ -28,7 +28,7 @@ namespace ApplicationLayer.Dtos
 
 
 
-        public List<GenreDto> Genres { get; set; } = new();
+        public List<GenreDto> TVShowGenres { get; set; } = new();
 
         public List<Guid> GenreIds { get; set; } = new();
 
@@ -44,5 +44,8 @@ namespace ApplicationLayer.Dtos
 
         // ⬇️ بديل NumberOfEpisodes و NumberOfSeasons
         public List<SeasonWithEpisodesDto> Seasons { get; set; } = new();
+
+
+
     }
 }

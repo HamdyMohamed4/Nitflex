@@ -105,6 +105,8 @@ namespace Presentation.Controllers
             {
                 return BadRequest(ApiResponse<List<MovieDto>>.FailResponse("Failed to retrieve featured movies", new List<string> { ex.Message }));
             }
+
+
         }
 
         //// GET: api/Movie/featured-trailers?limit=10

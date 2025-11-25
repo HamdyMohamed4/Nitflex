@@ -21,7 +21,7 @@ namespace Domains
         public string? Language { get; set; }  // English / Arabic / Spanish / French
         public string? AudioType { get; set; }  // Original / Dubbed / Subtitled
 
-
+        
         [MaxLength(500)]
         public string? PosterUrl { get; set; } = string.Empty;
         [MaxLength(500)]

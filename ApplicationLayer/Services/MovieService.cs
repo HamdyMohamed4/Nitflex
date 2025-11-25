@@ -1235,12 +1235,25 @@ namespace ApplicationLayer.Services
         }
 
 
+
+
         public async Task<IEnumerable<MovieDto>> GetAllMoviesAsync()
         {
-            var list = await _repo.GetAll();
-            var ordered = list.OrderByDescending(m => m.CreatedDate).ToList();
-            return _mapper.Map<IEnumerable<MovieDto>>(ordered);
+            var movies = await _unitOfWork.Repository<Movie>()
+                .GetListWithInclude(
+                    filter: x => true,
+                    include: query => query
+                        .Include(x => x.MovieGenres)
+                            .ThenInclude(mg => mg.Genre)
+                        .Include(x => x.Castings)
+                            .ThenInclude(c => c.CastMember)
+                );
+
+            return _mapper.Map<IEnumerable<MovieDto>>(movies);
         }
+
+
+
 
 
 
