@@ -13,6 +13,8 @@ namespace Domains
         public DateTime EndDate { get; set; }
         public string Name { get; set; }
         public bool IsActive { get; set; } = true;
+
+
         public string PaymentStatus { get; set; } = "Paid";
 
         // Foreign Keys to ApplicationUser and SubscriptionPlan (Changed from int/custom User to Guid/ApplicationUser)

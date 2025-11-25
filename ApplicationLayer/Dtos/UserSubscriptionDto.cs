@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Domains;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,7 +11,9 @@ namespace ApplicationLayer.Dtos
     {
         public Guid UserId { get; set; }
         public Guid SubscriptionPlanId { get; set; }
-        public SubscriptionPlanDto? Plan { get; set; }
+        public SubscriptionPlanDto? SubscriptionPlan { get; set; }
+
+        //public SubscriptionPlan SubscriptionPlan { get; set; } = default!;
         public DateTime StartDate { get; set; }
         public DateTime? EndDate { get; set; }
         public bool IsActive { get; set; }
