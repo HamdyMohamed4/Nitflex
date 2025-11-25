@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace InfrastructureLayer.Migrations
 {
     /// <inheritdoc />
-    public partial class All : Migration
+    public partial class AllMig : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -20,9 +20,10 @@ namespace InfrastructureLayer.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(250)", maxLength: 250, nullable: false),
-                    PhotoUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    Bio = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(250)", maxLength: 250, nullable: true),
+                    PhotoUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    Bio = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    TmdbId = table.Column<int>(type: "int", nullable: false),
                     UpdatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     CurrentState = table.Column<int>(type: "int", nullable: false),
                     CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
@@ -44,6 +45,7 @@ namespace InfrastructureLayer.Migrations
                     OtpCode = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ExpirationDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     IsUsed = table.Column<bool>(type: "bit", nullable: false),
+                    Type = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     UpdatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     CurrentState = table.Column<int>(type: "int", nullable: false),
                     CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
@@ -62,6 +64,7 @@ namespace InfrastructureLayer.Migrations
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    TmdbId = table.Column<int>(type: "int", nullable: false),
                     UpdatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     CurrentState = table.Column<int>(type: "int", nullable: false),
                     CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
@@ -79,17 +82,19 @@ namespace InfrastructureLayer.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Title = table.Column<string>(type: "nvarchar(250)", maxLength: 250, nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ReleaseYear = table.Column<int>(type: "int", nullable: false),
-                    DurationMinutes = table.Column<int>(type: "int", nullable: false),
+                    Title = table.Column<string>(type: "nvarchar(250)", maxLength: 250, nullable: true),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ReleaseYear = table.Column<int>(type: "int", nullable: true),
+                    DurationMinutes = table.Column<int>(type: "int", nullable: true),
+                    TmdbId = table.Column<int>(type: "int", nullable: false),
                     AgeRating = table.Column<int>(type: "int", nullable: false),
                     Language = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
                     AudioType = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    PosterUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    VideoUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    TrailerUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    PosterUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    VideoUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    TrailerUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
                     IsFeatured = table.Column<bool>(type: "bit", nullable: false),
+                    Type = table.Column<int>(type: "int", nullable: true),
                     UpdatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     CurrentState = table.Column<int>(type: "int", nullable: false),
                     CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
@@ -209,11 +214,18 @@ namespace InfrastructureLayer.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Title = table.Column<string>(type: "nvarchar(250)", maxLength: 250, nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Title = table.Column<string>(type: "nvarchar(450)", nullable: true),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ReleaseYear = table.Column<int>(type: "int", nullable: true),
+                    DurationMinutes = table.Column<int>(type: "int", nullable: true),
+                    TmdbId = table.Column<int>(type: "int", nullable: false),
                     AgeRating = table.Column<int>(type: "int", nullable: false),
-                    PosterUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    BannerUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    Language = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    AudioType = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    PosterUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    IsFeatured = table.Column<bool>(type: "bit", nullable: false),
+                    Type = table.Column<int>(type: "int", nullable: true),
                     UpdatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     CurrentState = table.Column<int>(type: "int", nullable: false),
                     CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
@@ -263,7 +275,13 @@ namespace InfrastructureLayer.Migrations
                 {
                     MovieId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     CastMemberId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    CharacterName = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    CharacterName = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UpdatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    CurrentState = table.Column<int>(type: "int", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UpdatedDate = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -367,7 +385,13 @@ namespace InfrastructureLayer.Migrations
                 {
                     TvShowId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     CastMemberId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    CharacterName = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    CharacterName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UpdatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    CurrentState = table.Column<int>(type: "int", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UpdatedDate = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -434,6 +458,35 @@ namespace InfrastructureLayer.Migrations
                     table.PrimaryKey("PK_Profiles", x => x.Id);
                     table.ForeignKey(
                         name: "FK_Profiles_Users_UserId",
+                        column: x => x.UserId,
+                        principalSchema: "Identity",
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "TbPaymentTransaction",
+                schema: "Identity",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    PaymentProvider = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ExternalPaymentId = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    CurrentState = table.Column<int>(type: "int", nullable: false),
+                    CreatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UpdatedDate = table.Column<DateTime>(type: "datetime2", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TbPaymentTransaction", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_TbPaymentTransaction_Users_UserId",
                         column: x => x.UserId,
                         principalSchema: "Identity",
                         principalTable: "Users",
@@ -583,6 +636,7 @@ namespace InfrastructureLayer.Migrations
                     EpisodeNumber = table.Column<int>(type: "int", nullable: false),
                     DurationMinutes = table.Column<int>(type: "int", nullable: false),
                     VideoUrl = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    TrailerUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
                     SeasonId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     UpdatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     CurrentState = table.Column<int>(type: "int", nullable: false),
@@ -738,6 +792,12 @@ namespace InfrastructureLayer.Migrations
                 column: "TvShowId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_TbPaymentTransaction_UserId",
+                schema: "Identity",
+                table: "TbPaymentTransaction",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_TVShowCasts_CastMemberId",
                 schema: "Identity",
                 table: "TVShowCasts",
@@ -850,6 +910,10 @@ namespace InfrastructureLayer.Migrations
 
             migrationBuilder.DropTable(
                 name: "TbPaymentMethod",
+                schema: "Identity");
+
+            migrationBuilder.DropTable(
+                name: "TbPaymentTransaction",
                 schema: "Identity");
 
             migrationBuilder.DropTable(

@@ -1,7 +1,6 @@
 ﻿using ApplicationLayer.Contract;
 using ApplicationLayer.Dtos;
 using ApplicationLayer.Services.Payment;
-using InfrastructureLayer.Migrations;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;

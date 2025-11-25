@@ -490,6 +490,7 @@ namespace ApplicationLayer.Services
                     Language = show.original_language,
                     AgeRating = AgeRating.AllAges,
                     AudioType = "Dolby Digital",
+                    IsFeatured = false,
                     Type = MediaType.TvShow,
                     ReleaseYear = !string.IsNullOrEmpty(show.first_air_date) ?
                                    int.Parse(show.first_air_date.Split("-")[0]) : null
@@ -574,8 +575,47 @@ namespace ApplicationLayer.Services
                 }
 
                 // ------------------- CAST -------------------
-                var tvDto = _mapper.Map<TvShowDto>(tvEntity);
-                await ImportCastForShowsAsync(tvDto, tvEntity.TmdbId);
+                var castData = await _tmdbService.GetTvCastAsync(tvEntity.TmdbId);
+
+                if (castData?.cast != null)
+                {
+                    foreach (var member in castData.cast)
+                    {
+                        // Check if CastMember exists
+                        var existingCast = (await _unitOfWork.Repository<CastMember>().GetAll())
+                                                .FirstOrDefault(c => c.TmdbId == member.id);
+
+                        if (existingCast == null)
+                        {
+                            existingCast = new CastMember
+                            {
+                                Id = Guid.NewGuid(),
+                                Name = member.name,
+                                PhotoUrl = member.profile_path != null ?
+                                            $"https://image.tmdb.org/t/p/w500{member.profile_path}" : "",
+                                TmdbId = member.id
+                            };
+
+                            // Add the CastMember first
+                            await _unitOfWork.Repository<CastMember>().Add(existingCast);
+                            await _unitOfWork.SaveChangesAsync(); // حفظ عشان نقدر نربط FK بعد كده
+                        }
+
+                        // Link CastMember to TVShow
+                        var tvCast = new TvShowCast
+                        {
+                            Id = Guid.NewGuid(), // لو انت ضيفت BaseTable لـ TvShowCast
+                            TvShowId = tvEntity.Id,
+                            CastMemberId = existingCast.Id,
+                            CharacterName = member.character ?? ""
+                        };
+
+                        await _unitOfWork.Repository<TvShowCast>().Add(tvCast);
+                    }
+
+                    await _unitOfWork.SaveChangesAsync();
+                }
+
             }
         }
 
@@ -731,6 +771,7 @@ namespace ApplicationLayer.Services
         }
 
 
+
         public async Task ImportAllMoviesAsync()
         {
             var moviesResponse = await _tmdbService.GetAllMoviesAsync();
@@ -740,7 +781,7 @@ namespace ApplicationLayer.Services
             {
                 // Check if exists
                 var existingMovie = (await _unitOfWork.Repository<Movie>().GetAll())
-                                    .FirstOrDefault(x => x.TmdbId == m.id);
+                                        .FirstOrDefault(x => x.TmdbId == m.id);
                 if (existingMovie != null)
                     continue;
 
@@ -756,7 +797,6 @@ namespace ApplicationLayer.Services
                     AudioType = "Dolby Digital",
                     AgeRating = AgeRating.AllAges,
                     Type = MediaType.Movie,
-                    //CreatedBy = _userService.GetLoggedInUser(),
                     CurrentState = 1,
                     Language = m.original_language,
                     Description = m.overview,
@@ -788,12 +828,49 @@ namespace ApplicationLayer.Services
                 await _unitOfWork.Repository<Movie>().Add(movie);
                 await _unitOfWork.SaveChangesAsync();
 
-                var movieEntity = _mapper.Map<MovieDto>(movie);
-                await ImportCastForMovieAsync(movieEntity, movie.TmdbId);
+                // ------------------- CAST -------------------
+                var castData = await _tmdbService.GetMovieCastAsync(movie.TmdbId);
+
+                if (castData?.cast != null)
+                {
+                    foreach (var member in castData.cast)
+                    {
+                        // Check if CastMember exists
+                        var existingCast = (await _unitOfWork.Repository<CastMember>().GetAll())
+                                                .FirstOrDefault(c => c.TmdbId == member.id);
+
+                        if (existingCast == null)
+                        {
+                            existingCast = new CastMember
+                            {
+                                Id = Guid.NewGuid(),
+                                Name = member.name,
+                                PhotoUrl = member.profile_path != null ?
+                                            $"https://image.tmdb.org/t/p/w500{member.profile_path}" : "",
+                                TmdbId = member.id
+                            };
+
+                            // Add the CastMember first
+                            await _unitOfWork.Repository<CastMember>().Add(existingCast);
+                            await _unitOfWork.SaveChangesAsync(); // حفظ عشان نقدر نربط FK بعد كده
+                        }
+
+                        // Link CastMember to Movie
+                        var movieCast = new MovieCast
+                        {
+                            Id = Guid.NewGuid(), // لو MovieCast وارث BaseTable
+                            MovieId = movie.Id,
+                            CastMemberId = existingCast.Id,
+                            CharacterName = member.character ?? ""
+                        };
+
+                        await _unitOfWork.Repository<MovieCast>().Add(movieCast);
+                    }
+
+                    await _unitOfWork.SaveChangesAsync();
+                }
             }
         }
-
-
 
 
         public async Task ImportTopRatedMoviesAsync()
@@ -853,10 +930,51 @@ namespace ApplicationLayer.Services
                 await _unitOfWork.Repository<Movie>().Add(movie);
                 await _unitOfWork.SaveChangesAsync();
 
-                var movieEntity = _mapper.Map<MovieDto>(movie);
-                await ImportCastForMovieAsync(movieEntity, movie.TmdbId);
+                // ------------------- CAST -------------------
+                var castData = await _tmdbService.GetMovieCastAsync(movie.TmdbId);
+
+                if (castData?.cast != null)
+                {
+                    foreach (var member in castData.cast)
+                    {
+                        // Check if CastMember exists
+                        var existingCast = (await _unitOfWork.Repository<CastMember>().GetAll())
+                                                .FirstOrDefault(c => c.TmdbId == member.id);
+
+                        if (existingCast == null)
+                        {
+                            existingCast = new CastMember
+                            {
+                                Id = Guid.NewGuid(),  
+                                Name = member.name,
+                                PhotoUrl = member.profile_path != null ?
+                                            $"https://image.tmdb.org/t/p/w500{member.profile_path}" : "",
+                                TmdbId = member.id
+                            };
+
+                            // Add the CastMember first
+                            await _unitOfWork.Repository<CastMember>().Add(existingCast);
+                            await _unitOfWork.SaveChangesAsync(); // حفظ عشان نقدر نربط FK بعد كده
+                        }
+
+                        // Link CastMember to Movie
+                        var movieCast = new MovieCast
+                        {
+                            Id = Guid.NewGuid(), // لو MovieCast وارث BaseTable
+                            MovieId = movie.Id,
+                            CastMemberId = existingCast.Id,
+                            CharacterName = member.character ?? ""
+                        };
+
+                        await _unitOfWork.Repository<MovieCast>().Add(movieCast);
+                    }
+
+                    await _unitOfWork.SaveChangesAsync();
+                }
             }
         }
+
+
 
 
 

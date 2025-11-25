@@ -109,13 +109,14 @@ namespace ApplicationLayer.Services
             var userSub = new UserSubscription
             {
                 Id = Guid.NewGuid(),
-                Name = dto.Name,
+                Name = subPlan.Name,
                 UserId = Guid.Parse(userId),
                 SubscriptionPlanId = dto.SubscriptionPlanId,
                 StartDate = DateTime.UtcNow,
                 EndDate = DateTime.UtcNow.AddMonths(1), // أو حسب Duration
                 CreatedBy = Guid.Parse(userId),
                 CurrentState = 1
+                
             };
 
             await _userSubRepo.Add(userSub);

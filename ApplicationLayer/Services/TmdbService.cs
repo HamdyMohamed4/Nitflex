@@ -132,6 +132,31 @@ public class TmdbService: ITmdbService
         };
     }
 
+    public async Task<TmdbCreditsResponse?> GetMovieCastAsync(int movieId)
+    {
+        try
+        {
+
+            var response = await _httpClient.GetAsync(
+               $"/movie/{movieId}/credits?api_key={_apiKey}&language=en-US"
+           );
+
+            if (!response.IsSuccessStatusCode)
+                return null;
+
+            var json = await response.Content.ReadAsStringAsync();
+            var result = JsonConvert.DeserializeObject<TmdbCreditsResponse>(json);
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error in GetMovieCastAsync: {ex.Message}");
+            return null;
+        }
+    }
+
+
     public async Task<TmdbTvResponse?> GetAllTvShowsAsync()
     {
         var allShows = new List<TmdbTv>();

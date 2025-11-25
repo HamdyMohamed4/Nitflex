@@ -17,6 +17,7 @@ namespace ApplicationLayer.Contract
         //Task<Dtos.TmdbTvResponse?> GetPopularTvShowsAsync(int page = 1);
 
         Task<TmdbCreditsResponse?> GetTvCastAsync(int tvId);
+        Task<TmdbCreditsResponse?> GetMovieCastAsync(int movieId);
         Task<TmdbEpisodeVideosResponse?> GetEpisodeVideosAsync(int tvId, int seasonNumber, int episodeNumber);
         Task<TmdbTvResponse?> GetTopRatedShowsAsync();
         Task<TmdbVideosResponse?> GetTvVideosAsync(int tvId);
