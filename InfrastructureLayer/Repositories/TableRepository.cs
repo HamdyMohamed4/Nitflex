@@ -187,6 +187,24 @@ namespace InfrastructureLayer.Repositories
                 throw new DataAccessException(ex, "", _logger);
             }
         }
+        public async Task<List<T>> GetListWithInclude(
+    Expression<Func<T, bool>> filter,
+    Func<IQueryable<T>, IQueryable<T>>? include = null)
+        {
+            try
+            {
+                IQueryable<T> query = _dbSet.Where(filter);
+
+                if (include != null)
+                    query = include(query);
+
+                return await query.AsNoTracking().ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new DataAccessException(ex, "", _logger);
+            }
+        }
 
         public async Task<List<TResult>> GetList<TResult>(
             Expression<Func<T, bool>>? filter = null,

@@ -3,6 +3,7 @@ using ApplicationLayer.Dtos;
 using AutoMapper;
 using Domains;
 using InfrastructureLayer.Contracts;
+using Microsoft.EntityFrameworkCore;
 using Presentation.Services;
 using System;
 using System.Collections.Generic;
@@ -90,10 +91,12 @@ namespace ApplicationLayer.Services
         // ==================== User Subscriptions ====================
         public async Task<UserSubscriptionDto?> GetCurrentUserSubscriptionAsync(string userId)
         {
-            var subs = await _userSubRepo.GetList(us =>
+            var subs = await _userSubRepo.GetListWithInclude(
+                filter: us =>
                 us.UserId.ToString() == userId &&
                 us.StartDate <= DateTime.UtcNow &&
-                us.EndDate >= DateTime.UtcNow);
+                us.EndDate >= DateTime.UtcNow,
+                include: q => q.Include(x => x.SubscriptionPlan));
 
             var currentSub = subs.FirstOrDefault();
             if (currentSub == null) return null;
