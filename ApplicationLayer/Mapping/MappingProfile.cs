@@ -25,7 +25,7 @@ namespace ApplicationLayer.Mapping
             CreateMap<Movie, MovieDto>()
     .ForMember(dest => dest.GenreIds,
                opt => opt.MapFrom(src => src.MovieGenres.Select(mg => mg.GenreId)))
-    .ForMember(dest => dest.MovieGenres,
+    .ForMember(dest => dest.GenresNames,
                opt => opt.MapFrom(src => src.MovieGenres.Select(mg => mg.Genre)));
 
 
@@ -35,7 +35,7 @@ namespace ApplicationLayer.Mapping
             CreateMap<TVShow, TvShowDto>()
     .ForMember(dest => dest.GenreIds,
         opt => opt.MapFrom(src => src.TVShowGenres.Select(g => g.GenreId)))
-    .ForMember(dest => dest.TVShowGenres,
+    .ForMember(dest => dest.GenresNames,
         opt => opt.MapFrom(src => src.TVShowGenres.Select(g => g.Genre)))
     .ForMember(dest => dest.Cast,
         opt => opt.MapFrom(src => src.Castings.Select(c => c.CastMember.Name)))

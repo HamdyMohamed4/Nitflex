@@ -26,7 +26,7 @@ namespace ApplicationLayer.Dtos
 
         // Genres: both IDs (for simple client filtering) and detailed DTOs (for UI)
         public List<Guid> GenreIds { get; set; } = new();
-        public List<GenreDto> MovieGenres { get; set; } = new();
+        public List<GenreDto> GenresNames { get; set; } = new();
 
         // URL/locator used by the player when user clicks Play
         public string? StreamingUrl { get; set; }

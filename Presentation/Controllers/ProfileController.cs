@@ -126,12 +126,40 @@ public class ProfileController : ControllerBase
     //[HttpPost]
     //[Route("Update/{}")]
 
+    //[HttpDelete]
+    //[Route("Delete/{profileId}")]
+    //[Authorize(Roles = "User")]
+    //public async Task<ActionResult<ApiResponse<bool>>> DeleteProfile(Guid profileId)
+    //{
+
+    //    var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
+    //    var response = await _profileService.DeleteProfileByUserId(profileId, userId);
+
+    //    if (!response.Status)
+    //    {
+    //        if (response.Message.Contains("Not Found"))
+    //            return NotFound(ApiResponse<bool>.FailResponse(response.Message));
+
+    //        return BadRequest(ApiResponse<bool>.FailResponse(response.Message));
+    //    }
+
+    //    else
+    //    {
+    //        return Ok(ApiResponse<bool>.SuccessResponse(true, response.Message));
+    //    }
+    //}
+
     [HttpDelete]
     [Route("Delete/{profileId}")]
     [Authorize(Roles = "User")]
     public async Task<ActionResult<ApiResponse<bool>>> DeleteProfile(Guid profileId)
     {
-        var response = await _profileService.DeleteProfileByUserId(profileId);
+        // 🔥 جلب userId من الـ token مع التحقق
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            return Unauthorized(ApiResponse<bool>.FailResponse("User not authenticated."));
+
+        var response = await _profileService.DeleteProfileByUserId(profileId, userId);
 
         if (!response.Status)
         {
@@ -141,9 +169,9 @@ public class ProfileController : ControllerBase
             return BadRequest(ApiResponse<bool>.FailResponse(response.Message));
         }
 
-        else
-        {
-            return Ok(ApiResponse<bool>.SuccessResponse(true, response.Message));
-        }
+        return Ok(ApiResponse<bool>.SuccessResponse(true, response.Message));
     }
+
+
+
 }

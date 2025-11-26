@@ -28,7 +28,7 @@ namespace ApplicationLayer.Dtos
 
 
 
-        public List<GenreDto> TVShowGenres { get; set; } = new();
+        public List<GenreDto> GenresNames { get; set; } = new();
 
         public List<Guid> GenreIds { get; set; } = new();
 

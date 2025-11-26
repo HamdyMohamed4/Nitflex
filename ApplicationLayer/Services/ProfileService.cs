@@ -1,9 +1,10 @@
-using ApplicationLayer.Contract;
+﻿using ApplicationLayer.Contract;
 using ApplicationLayer.Dtos;
 using AutoMapper;
 using Domains;
 using InfrastructureLayer.Contracts;
 using InfrastructureLayer.UserModels;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 
 namespace ApplicationLayer.Services;
@@ -22,7 +23,7 @@ public class ProfileService : BaseService<UserProfile, UserProfileDto>, IProfile
 
     public async Task<(bool Status, string Message, IEnumerable<UserProfileDto> Response)> GetAllProfilesByUserIdAsync(Guid userId)
     {
-        ApplicationUser? user = await _userService.GetUserByIdWithProfilesAsync(userId.ToString());
+        ApplicationUser? user = await _userService.GetUserByIdWithProfilesAsync(userId);
 
         if (user is null)
             return (false, "User Not Found", null!);
@@ -34,7 +35,7 @@ public class ProfileService : BaseService<UserProfile, UserProfileDto>, IProfile
 
     public async Task<(bool Status, string Message, UserProfileDto? userProfileDto)> GetProfileByUserIdAsync(Guid userId, Guid profileId)
     {
-        ApplicationUser? user = await _userService.GetUserByIdWithProfilesAsync(userId.ToString());
+        ApplicationUser? user = await _userService.GetUserByIdWithProfilesAsync(userId);
 
         if (user is null)
             return (false, "User Not Found", null!);
@@ -122,23 +123,26 @@ public class ProfileService : BaseService<UserProfile, UserProfileDto>, IProfile
             return (false, $"Could Not Update Profile For User With Id {userId}");
     }
 
-    public async Task<(bool Status, string Message)> DeleteProfileByUserId(Guid profileId)
+    public async Task<(bool Status, string Message)> DeleteProfileByUserId(Guid profileId, Guid userId)
     {
-        ApplicationUser? user = await _userService.GetUserByIdWithProfilesAsync();
+        var user = await _userService.GetUserByIdentityAsync(userId.ToString());
 
-        if (user is null)
-            return (false, "User Not Found");
+        if (user == null)
+            return (false, "User not found");
 
-        if (!user.Profiles.Any(x => x.Id == profileId))
-            return (false, "Profile Not Found");
+        if (user.Profiles == null || !user.Profiles.Any(x => x.Id == profileId))
+            return (false, "Profile not found");
 
         var result = await _repo.Delete(profileId);
 
         if (result)
-            return (true, "Success");
+            return (true, "Profile deleted successfully");
 
         return (false, $"Failed to delete profile with Id: {profileId}");
     }
+
+
+
 
     public async Task<(bool Status, string Message, IEnumerable<UserHistoryDto> userHistoryListDto)> GetViewingHistoryAsync(Guid userId, Guid profileId)
     {
@@ -218,4 +222,5 @@ public class ProfileService : BaseService<UserProfile, UserProfileDto>, IProfile
             return (false, "Internal server error while transferring profile.");
         }
     }
+
 }
