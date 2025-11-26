@@ -4,7 +4,6 @@ namespace ApplicationLayer.Dtos;
 
 public class UserProfileDto : BaseDto
 {
-    public Guid ProfileId { get; set; }
     public Guid UserId { get; set; }
     [MaxLength(100)]
     public string ProfileName { get; set; } = string.Empty;

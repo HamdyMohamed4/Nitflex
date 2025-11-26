@@ -13,7 +13,7 @@ namespace ApplicationLayer.Mapping
         {
             // Refresh Tokens & Payment Methods
             CreateMap<TbRefreshTokens, RefreshTokenDto>().ReverseMap();
-            CreateMap<TbPaymentMethod, PaymentMethodDto>().ReverseMap();
+            CreateMap<TbPaymentMethod, PaymentMethodDto>().ReverseMap(); 
 
             // Movie
             //CreateMap<Movie, MovieDto>().ReverseMap();
@@ -100,6 +100,9 @@ namespace ApplicationLayer.Mapping
             CreateMap<ApplicationUser, LoginDto>().ReverseMap();
             CreateMap<ApplicationUser, LoginWithOtpDto>().ReverseMap();
             CreateMap<ApplicationUser, UserResultDto>().ReverseMap();
+            // Profiles
+            CreateMap<UserProfile, UserProfileDto>().ReverseMap();
+
 
 
 
