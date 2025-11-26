@@ -120,6 +120,17 @@ namespace ApplicationLayer.Mapping
             CreateMap<CreateUserDto, ApplicationUser>();
             CreateMap<UpdateUserDto, ApplicationUser>();
 
+
+            //Ticket 
+            CreateMap<Ticket, TicketDto>().ReverseMap();
+            CreateMap<Ticket, TicketDetailsDto>().ReverseMap();
+            CreateMap<CreateTicketDto, Ticket>().ReverseMap();
+                
+            //TicketMessage
+            CreateMap<TicketMessage, TicketMessageDto>().ReverseMap();
+            CreateMap<TicketMessageCreateDto, TicketMessage>().ReverseMap();
         }
     }
+
 }
+   
