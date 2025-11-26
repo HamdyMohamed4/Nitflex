@@ -8,6 +8,9 @@ namespace ApplicationLayer.Contract
 {
     public interface IUserService
     {
+
+
+        Task<ApplicationUser?> GetUserByIdWithProfilesAsync();
         // New: transfer profile data (sourceUserId must match caller)
         Task<(bool Success, string Message)> TransferProfileAsync(Guid sourceUserId, Guid targetUserId);
 

@@ -561,9 +561,9 @@ namespace Presentation.Services
             return await _userManager.GetRolesAsync(user);
         }
 
-        public async Task<ApplicationUser?> GetUserByIdWithProfilesAsync(string userId)
+        public async Task<ApplicationUser?> GetUserByIdWithProfilesAsync()
         {
-            return await _userManager.Users.Include(x => x.Profiles).AsNoTracking().FirstOrDefaultAsync(x => x.Id.ToString() == userId);
+            return await _userManager.Users.Include(x => x.Profiles).AsNoTracking().FirstOrDefaultAsync();
         }
 
         public async Task<ApplicationUser?> GetUserByIdWithProfilesWithHistoriesAsync(string userId)
@@ -591,6 +591,11 @@ namespace Presentation.Services
             await _otpRepo.MarkOtpAsUsedAsync(email, token);
 
             return true;
+        }
+
+        public Task<ApplicationUser?> GetUserByIdWithProfilesAsync(string userId)
+        {
+            throw new NotImplementedException();
         }
 
 

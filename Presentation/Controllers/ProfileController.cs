@@ -19,7 +19,7 @@ public class ProfileController : ControllerBase
     }
 
     [HttpGet]
-    [Route("AllProfiles/{userId}")]
+    [Route("AllProfiles")]
     [Authorize(Roles = "User")]
     public async Task<ActionResult<ApiResponse<List<UserProfileDto>>>> GetAllProfilesByUserIdAsync(Guid userId)
     {
@@ -43,7 +43,7 @@ public class ProfileController : ControllerBase
 
     [HttpGet]
     [Authorize(Roles = "User")]
-    [Route("GetProfile/{userId}/{profileId}")]
+    [Route("GetProfile/{profileId}")]
     public async Task<ActionResult<ApiResponse<UserProfileDto>>> GetProfileByProfileAsync(Guid profileId)
     {
         // 🔥 Get logged in user ID from Token
@@ -71,7 +71,7 @@ public class ProfileController : ControllerBase
     }
 
     [HttpGet]
-    [Route("GetViewHistory/{userId}/{profileId}")]
+    [Route("GetViewHistory/{profileId}")]
     [Authorize(Roles = "User")]
     public async Task<ActionResult<ApiResponse<IEnumerable<UserHistoryDto>>>> GetViewingHistory(Guid profileId)
     {
@@ -127,11 +127,11 @@ public class ProfileController : ControllerBase
     //[Route("Update/{}")]
 
     [HttpDelete]
-    [Route("Delete/{userId}/{profileId}")]
+    [Route("Delete/{profileId}")]
     [Authorize(Roles = "User")]
-    public async Task<ActionResult<ApiResponse<bool>>> DeleteProfile(Guid userId, Guid profileId)
+    public async Task<ActionResult<ApiResponse<bool>>> DeleteProfile(Guid profileId)
     {
-        var response = await _profileService.DeleteProfileByUserId(userId, profileId);
+        var response = await _profileService.DeleteProfileByUserId(profileId);
 
         if (!response.Status)
         {

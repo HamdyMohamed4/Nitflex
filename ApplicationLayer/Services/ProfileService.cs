@@ -122,9 +122,9 @@ public class ProfileService : BaseService<UserProfile, UserProfileDto>, IProfile
             return (false, $"Could Not Update Profile For User With Id {userId}");
     }
 
-    public async Task<(bool Status, string Message)> DeleteProfileByUserId(Guid userId, Guid profileId)
+    public async Task<(bool Status, string Message)> DeleteProfileByUserId(Guid profileId)
     {
-        ApplicationUser? user = await _userService.GetUserByIdWithProfilesAsync(userId.ToString());
+        ApplicationUser? user = await _userService.GetUserByIdWithProfilesAsync();
 
         if (user is null)
             return (false, "User Not Found");
@@ -137,7 +137,7 @@ public class ProfileService : BaseService<UserProfile, UserProfileDto>, IProfile
         if (result)
             return (true, "Success");
 
-        return (false, $"Failed to delete profile with Id: {profileId} that belongs to user with id: {userId}");
+        return (false, $"Failed to delete profile with Id: {profileId}");
     }
 
     public async Task<(bool Status, string Message, IEnumerable<UserHistoryDto> userHistoryListDto)> GetViewingHistoryAsync(Guid userId, Guid profileId)
