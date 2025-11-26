@@ -49,5 +49,22 @@ namespace InfrastructureLayer.Repositories
             await _ctx.SaveChangesAsync();
             return true;
         }
+
+        public async Task<bool> UpdateAsync(UserProfile profile)
+        {
+            var db = await _ctx.Profiles.FirstOrDefaultAsync(p => p.Id == profile.Id);
+            if (db == null) return false;
+
+            // copy allowed fields
+            db.ProfileName = profile.ProfileName;
+            db.IsLocked = profile.IsLocked;
+            db.PinHash = profile.PinHash;
+            db.IsKidProfile = profile.IsKidProfile;
+            db.UpdatedDate = DateTime.UtcNow;
+
+            _ctx.Entry(db).State = EntityState.Modified;
+            await _ctx.SaveChangesAsync();
+            return true;
+        }
     }
 }

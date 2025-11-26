@@ -16,6 +16,7 @@ public class ProfileService : IProfileService
     private readonly IMapper _mapper;
     private readonly ILogger<ProfileService> _logger;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IPasswordHasher<UserProfile> _pinHasher;
 
     public ProfileService(IProfileRepository profileRepository, IMapper mapper, ILogger<ProfileService> logger, UserManager<ApplicationUser> userManager)
     {
@@ -23,6 +24,7 @@ public class ProfileService : IProfileService
         _mapper = mapper;
         _logger = logger;
         _userManager = userManager;
+        _pinHasher = new PasswordHasher<UserProfile>();
     }
 
     public async Task<UserProfileDto> CreateProfileAsync(CreateProfileDto dto, Guid userId)
@@ -31,11 +33,15 @@ public class ProfileService : IProfileService
         if (count >= MaxProfilesPerUser)
             throw new InvalidOperationException("User already has maximum number of profiles");
 
+        var existingProfiles = await _profileRepository.GetAllByUserIdAsync(userId);
+        if (existingProfiles.Any(p => p.ProfileName.Equals(dto.ProfileName, StringComparison.OrdinalIgnoreCase)))
+            throw new InvalidOperationException("Profile name already exists for this user");
+
         var profile = new UserProfile
         {
             ProfileName = dto.ProfileName,
             UserId = userId,
-            CurrentState=1, 
+            CurrentState = 1,
         };
 
         var added = await _profileRepository.AddAsync(profile);
@@ -62,7 +68,6 @@ public class ProfileService : IProfileService
 
     public async Task<(bool Status, string Message)> TransferProfileToUserAsync(Guid profileId, string targetEmail, Guid callerUserId)
     {
-        // Basic implementation used by Presentation.Services.UserService.TransferProfileByEmailAsync
         var target = await _userManager.FindByEmailAsync(targetEmail.Trim());
         if (target == null) return (false, "Target user not found.");
 
@@ -71,20 +76,9 @@ public class ProfileService : IProfileService
 
         if (profile.UserId != callerUserId) return (false, "Caller is not owner of the profile.");
 
-        // Ensure target has no profiles
         var targetCount = await _profileRepository.CountByUserIdAsync(target.Id);
         if (targetCount > 0) return (false, "Target already has profile(s).");
 
-        // Change ownership
-        profile.UserId = target.Id;
-        // Use UnitOfWork generic repository is not available here; call delete/add via repository or update via DbContext.
-        // For simplicity, we update via repository by deleting and re-adding.
-        // Better approach: add Update method to IProfileRepository. For now, remove and add new.
-
-        // Directly update via context would be simpler but keep repository boundary - assume ProfileRepository can handle update through EF.
-        // Attempt to update by re-adding Id and saving using GenericRepository if exists (not ideal)
-
-        // This is a simple approach: delete then add
         var deleted = await _profileRepository.DeleteAsync(profileId, callerUserId);
         if (!deleted) return (false, "Failed to detach profile from source user.");
 
@@ -93,6 +87,77 @@ public class ProfileService : IProfileService
         await _profileRepository.AddAsync(profile);
 
         return (true, "Profile transferred successfully.");
+    }
+
+    public async Task<bool> LockProfileAsync(Guid profileId, Guid userId, string pin)
+    {
+        if (string.IsNullOrEmpty(pin) || pin.Length != 4 || !pin.All(char.IsDigit))
+            throw new ArgumentException("PIN must be exactly 4 numeric digits.");
+
+        var profile = await _profileRepository.GetByIdAsync(profileId);
+        if (profile == null) return false;
+        if (profile.UserId != userId) throw new UnauthorizedAccessException("Not owner of profile.");
+
+        profile.IsLocked = true;
+        profile.PinHash = _pinHasher.HashPassword(profile, pin);
+
+        // update via repository - simpler to delete+add not ideal; add UpdateAsync to repository would be better
+        // For now use NetflixContext via repository if available. We'll extend repository with UpdateAsync.
+        if (await TryUpdateProfileAsync(profile)) return true;
+
+        return false;
+    }
+
+    public async Task<bool> UnlockProfileAsync(Guid profileId, Guid userId, string pin)
+    {
+        if (string.IsNullOrEmpty(pin) || pin.Length != 4 || !pin.All(char.IsDigit))
+            throw new ArgumentException("PIN must be exactly 4 numeric digits.");
+
+        var profile = await _profileRepository.GetByIdAsync(profileId);
+        if (profile == null) return false;
+        if (profile.UserId != userId) throw new UnauthorizedAccessException("Not owner of profile.");
+
+        if (!profile.IsLocked || string.IsNullOrEmpty(profile.PinHash)) return false;
+
+        var verification = _pinHasher.VerifyHashedPassword(profile, profile.PinHash, pin);
+        if (verification == PasswordVerificationResult.Success || verification == PasswordVerificationResult.SuccessRehashNeeded)
+        {
+            profile.IsLocked = false;
+            profile.PinHash = null;
+            if (verification == PasswordVerificationResult.SuccessRehashNeeded)
+            {
+                // Rehash to latest format
+                profile.PinHash = _pinHasher.HashPassword(profile, pin);
+            }
+
+            if (await TryUpdateProfileAsync(profile)) return true;
+        }
+
+        return false;
+    }
+
+    public async Task<bool> ToggleKidModeAsync(Guid profileId, Guid userId, bool enable)
+    {
+        var profile = await _profileRepository.GetByIdAsync(profileId);
+        if (profile == null) return false;
+        if (profile.UserId != userId) throw new UnauthorizedAccessException("Not owner of profile.");
+
+        profile.IsKidProfile = enable;
+        return await TryUpdateProfileAsync(profile);
+    }
+
+    // Helper to update profile via repository. Add UpdateAsync to IProfileRepository and implement in concrete repo.
+    private async Task<bool> TryUpdateProfileAsync(UserProfile profile)
+    {
+        if (_profileRepository is null) return false;
+
+        // If repository exposes Update, use it. We'll attempt a cast to known concrete repo with access to DbContext.
+        if (_profileRepository is InfrastructureLayer.Repositories.ProfileRepository concrete)
+        {
+            return await concrete.UpdateAsync(profile);
+        }
+
+        return false;
     }
 
     // Implement IBaseService minimal members to satisfy interface; throw NotImplemented for unused methods

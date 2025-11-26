@@ -9,5 +9,6 @@ namespace InfrastructureLayer.Contracts
         Task<List<UserProfile>> GetAllByUserIdAsync(Guid userId);
         Task<UserProfile?> GetByIdAsync(Guid profileId);
         Task<bool> DeleteAsync(Guid profileId, Guid userId);
+        Task<bool> UpdateAsync(UserProfile profile);
     }
 }
