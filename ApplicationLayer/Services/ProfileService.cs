@@ -49,14 +49,14 @@ public class ProfileService : BaseService<UserProfile, UserProfileDto>, IProfile
         return (true, "Success", userProfileDto);
     }
 
-    public async Task<(bool Status, string Message, CreateProfileDto userProfileDto)> CreateProfileAsync(Guid userId, CreateProfileDto createProfileDto)
+    public async Task<(bool Status, string Message, CreateProfileDto userProfileDto)> CreateProfileAsync(Guid userId,CreateProfileDto createProfileDto)
     {
         ApplicationUser? user = await _userService.GetUserByIdentityAsync(userId.ToString());
 
         if (user is null)
             return (false, "User Not Found", null!);
 
-        UserProfile userProfile = new UserProfile { UserId = createProfileDto.UserId, ProfileName = createProfileDto.ProfileName };
+        UserProfile userProfile = new UserProfile { UserId = userId, ProfileName = createProfileDto.ProfileName };
 
         var result = await _repo.Add(userProfile);
 

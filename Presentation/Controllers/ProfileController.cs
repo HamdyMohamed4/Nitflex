@@ -1,8 +1,9 @@
-using ApplicationLayer.Contract;
+﻿using ApplicationLayer.Contract;
 using ApplicationLayer.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Presentation.Models;
+using System.Security.Claims;
 
 namespace Presentation.Controllers;
 
@@ -85,11 +86,18 @@ public class ProfileController : ControllerBase
     }
 
     [HttpPost]
-    [Route("CreateProfileByUserId/{userId}")]
+    [Route("CreateProfileByUserId")]
     [Authorize(Roles = "User")]
-    public async Task<ActionResult<ApiResponse<CreateProfileDto>>> CreateProfileForUserWithIdAsync(Guid userId, [FromBody] CreateProfileDto createProfileDto)
+    public async Task<ActionResult<ApiResponse<CreateProfileDto>>> CreateProfileForUserWithIdAsync([FromBody] CreateProfileDto createProfileDto)
     {
-        var response = await _profileService.CreateProfileAsync(userId, createProfileDto);
+        // 🔥 Get logged in user ID from Token
+        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized(ApiResponse<CreateProfileDto>.FailResponse("User not authenticated."));
+
+
+        var response = await _profileService.CreateProfileAsync(Guid.Parse(userId), createProfileDto);
 
         if (!response.Status)
         {
@@ -101,6 +109,7 @@ public class ProfileController : ControllerBase
 
         return Ok(ApiResponse<CreateProfileDto>.SuccessResponse(response.userProfileDto, response.Message));
     }
+
 
     //[HttpPost]
     //[Route("Update/{}")]
