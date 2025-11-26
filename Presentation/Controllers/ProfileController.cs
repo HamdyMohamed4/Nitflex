@@ -44,9 +44,15 @@ public class ProfileController : ControllerBase
     [HttpGet]
     [Authorize(Roles = "User")]
     [Route("GetProfileByUserId/{userId}/{profileId}")]
-    public async Task<ActionResult<ApiResponse<UserProfileDto>>> GetProfileByUserIdAsync(Guid userId, Guid profileId)
+    public async Task<ActionResult<ApiResponse<UserProfileDto>>> GetProfileByProfileAsync(Guid profileId)
     {
-        var response = await _profileService.GetProfileByUserIdAsync(userId, profileId);
+        // 🔥 Get logged in user ID from Token
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized(ApiResponse<CreateProfileDto>.FailResponse("User not authenticated."));
+
+        var response = await _profileService.GetProfileByUserIdAsync(Guid.Parse(userId), profileId);
 
         if (!response.Status)
         {
@@ -67,9 +73,15 @@ public class ProfileController : ControllerBase
     [HttpGet]
     [Route("GetViewHistory/{userId}/{profileId}")]
     [Authorize(Roles = "User")]
-    public async Task<ActionResult<ApiResponse<IEnumerable<UserHistoryDto>>>> GetViewingHistory(Guid userId, Guid profileId)
+    public async Task<ActionResult<ApiResponse<IEnumerable<UserHistoryDto>>>> GetViewingHistory(Guid profileId)
     {
-        var response = await _profileService.GetViewingHistoryAsync(userId, profileId);
+
+        // 🔥 Get logged in user ID from Token
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized(ApiResponse<CreateProfileDto>.FailResponse("User not authenticated."));
+        var response = await _profileService.GetViewingHistoryAsync(Guid.Parse(userId), profileId);
 
         if (!response.Status)
         {
@@ -88,10 +100,10 @@ public class ProfileController : ControllerBase
     [HttpPost]
     [Route("CreateProfileByUserId")]
     [Authorize(Roles = "User")]
-    public async Task<ActionResult<ApiResponse<CreateProfileDto>>> CreateProfileForUserWithIdAsync([FromBody] CreateProfileDto createProfileDto)
+    public async Task<ActionResult<ApiResponse<CreateProfileDto>>> CreateProfileForUserAsync([FromBody] CreateProfileDto createProfileDto)
     {
         // 🔥 Get logged in user ID from Token
-        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
         if (string.IsNullOrEmpty(userId))
             return Unauthorized(ApiResponse<CreateProfileDto>.FailResponse("User not authenticated."));
