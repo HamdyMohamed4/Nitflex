@@ -3,6 +3,7 @@ using System;
 using ApplicationLayer.Dtos;
 using Domains;
 using InfrastructureLayer.UserModels;
+using ApplicationLayer.Contract;
 
 namespace ApplicationLayer.Mapping
 {
@@ -18,6 +19,7 @@ namespace ApplicationLayer.Mapping
             //CreateMap<Movie, MovieDto>().ReverseMap();
             CreateMap<Movie, GenreMoviesResponseDto>().ReverseMap();
             CreateMap<Movie, MovieSearchFilterDto>().ReverseMap();
+    
 
 
             CreateMap<Movie, MovieDto>()

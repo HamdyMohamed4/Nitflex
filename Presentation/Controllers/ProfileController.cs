@@ -43,7 +43,7 @@ public class ProfileController : ControllerBase
 
     [HttpGet]
     [Authorize(Roles = "User")]
-    [Route("GetProfileByUserId/{userId}/{profileId}")]
+    [Route("GetProfile/{userId}/{profileId}")]
     public async Task<ActionResult<ApiResponse<UserProfileDto>>> GetProfileByProfileAsync(Guid profileId)
     {
         // 🔥 Get logged in user ID from Token
@@ -98,7 +98,7 @@ public class ProfileController : ControllerBase
     }
 
     [HttpPost]
-    [Route("CreateProfileByUserId")]
+    [Route("CreateProfile")]
     [Authorize(Roles = "User")]
     public async Task<ActionResult<ApiResponse<CreateProfileDto>>> CreateProfileForUserAsync([FromBody] CreateProfileDto createProfileDto)
     {

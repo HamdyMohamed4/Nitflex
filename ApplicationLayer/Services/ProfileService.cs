@@ -49,23 +49,57 @@ public class ProfileService : BaseService<UserProfile, UserProfileDto>, IProfile
         return (true, "Success", userProfileDto);
     }
 
-    public async Task<(bool Status, string Message, CreateProfileDto userProfileDto)> CreateProfileAsync(Guid userId,CreateProfileDto createProfileDto)
+    //public async Task<(bool Status, string Message, CreateProfileDto userProfileDto)> CreateProfileAsync(Guid userId, CreateProfileDto createProfileDto)
+    //{
+    //    ApplicationUser? user = await _userService.GetUserByIdentityAsync(userId.ToString());
+
+    //    if (user is null)
+    //        return (false, "User Not Found", null!);
+
+    //    UserProfile userProfile = new UserProfile { UserId = userId, ProfileName = createProfileDto.ProfileName };
+
+    //    var result = await _repo.Add(userProfile);
+
+    //    if (result.Item1 == true)
+    //        return (true, $"{result.Item2}", createProfileDto);
+
+    //    else
+    //        return (false, $"Could not create profile for user with Id {userId}", null!);
+    //}
+
+
+
+    public async Task<(bool Status, string Message, CreateProfileDto userProfileDto)> CreateProfileAsync(Guid userId, CreateProfileDto createProfileDto)
     {
-        ApplicationUser? user = await _userService.GetUserByIdentityAsync(userId.ToString());
 
-        if (user is null)
-            return (false, "User Not Found", null!);
 
-        UserProfile userProfile = new UserProfile { UserId = userId, ProfileName = createProfileDto.ProfileName };
+        // Check if user already has a profile with same name
+        var exists = await _repo.AnyAsync(p => p.UserId == userId && p.ProfileName == createProfileDto.ProfileName);
+        if (exists)
+            return (false, $"Profile '{createProfileDto.ProfileName}' already exists for this user.", null!);
 
-        var result = await _repo.Add(userProfile);
+        // Create new profile entity
+        var profile = new UserProfile
+        {
+            UserId = userId,
+            ProfileName = createProfileDto.ProfileName,
 
-        if (result.Item1 == true)
-            return (true, $"{result.Item2}", createProfileDto);
+        };
 
-        else
-            return (false, $"Could not create profile for user with Id {userId}", null!);
+        var result = await _repo.Add(profile);
+
+        if (!result.Item1)
+            return (false, "Failed to create profile", null!);
+
+        // Map and return saved profile
+        var savedProfileDto = new CreateProfileDto
+        {
+            ProfileName = profile.ProfileName
+        };
+
+        return (true, "Profile created successfully", savedProfileDto);
     }
+
 
     public async Task<(bool Status, string Message)> UpdateProfileAsync(Guid userId, Guid profileId)
     {
