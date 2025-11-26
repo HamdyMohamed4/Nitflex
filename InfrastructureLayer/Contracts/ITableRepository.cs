@@ -11,7 +11,12 @@ namespace InfrastructureLayer.Contracts
 {
     public interface IGenericRepository<T> where T : BaseTable
     {
-        
+
+        //Task<T?> GetByIdAsync(int id);
+        Task<(bool, Guid)> AddAsync(T entity);
+        Task<bool> AnyAsync(Expression<Func<T, bool>> predicate);
+
+
         Task<IEnumerable<T>> GetAllAsync(params Expression<Func<T, object>>[] includes);
         Task<List<T>> GetListWithInclude(
    Expression<Func<T, bool>> filter,

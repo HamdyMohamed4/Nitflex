@@ -50,8 +50,8 @@ namespace ApplicationLayer.Services
 
         public async Task ImportCastForMovieAsync(MovieDto movieDto, int tmdbMovieId)
         {
-            // Get movie from database using the TMDB Id
-            var movie = (await _unitOfWork.Repository<Movie>().GetFirstOrDefault(x => x.TmdbId == tmdbMovieId));
+            var movie = await _unitOfWork.Repository<Movie>()
+                .GetFirstOrDefault(x => x.TmdbId == tmdbMovieId);
 
             if (movie == null)
                 throw new Exception($"Movie with TMDB ID {tmdbMovieId} not found.");
@@ -63,8 +63,8 @@ namespace ApplicationLayer.Services
             foreach (var c in credits.cast)
             {
                 // Check if cast member exists
-                var castMember = (await _unitOfWork.Repository<CastMember>().GetFirstOrDefault(x => x.TmdbId == c.id))
-                                    ;
+                var castMember = await _unitOfWork.Repository<CastMember>()
+                    .GetFirstOrDefault(x => x.TmdbId == c.id);
 
                 if (castMember == null)
                 {
@@ -77,29 +77,29 @@ namespace ApplicationLayer.Services
                                     : null,
                         Bio = c.name,
                         TmdbId = c.id,
-                        CurrentState = 1,
-                        //CreatedBy = _userService.GetLoggedInUser()
-
+                        CurrentState = 1
                     };
 
                     await _unitOfWork.Repository<CastMember>().Add(castMember);
                 }
 
-                // Check if already linked
-                var exists = movie.Castings.Any(x => x.CastMemberId == castMember.Id);
-                if (!exists)
+            
+                if (!await _unitOfWork.Repository<MovieCast>()
+    .AnyAsync(x => x.MovieId == movie.Id && x.CastMemberId == castMember.Id))
                 {
-                    movie.Castings.Add(new MovieCast
+                    await _unitOfWork.Repository<MovieCast>().AddAsync(new MovieCast
                     {
-
                         MovieId = movie.Id,
                         CastMemberId = castMember.Id,
                         CharacterName = c.character
                     });
                 }
+
             }
 
             await _unitOfWork.SaveChangesAsync();
+
+
         }
 
 

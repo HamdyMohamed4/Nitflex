@@ -85,7 +85,7 @@ public class TmdbService: ITmdbService
     {
         var allShows = new List<TmdbTv>();
 
-        for (int i = 1; i <= 10; i++)
+        for (int i = 1; i <= 1; i++)
         {
             var response = await _httpClient.GetAsync(
                 $"tv/top_rated?api_key={_apiKey}&language=en-US&page={i}"
@@ -111,7 +111,7 @@ public class TmdbService: ITmdbService
     {
         var allMovies = new List<TmdbMovie>();
 
-        for (int i = 1; i <= 10; i++)
+        for (int i = 1; i <= 1; i++)
         {
             var response = await _httpClient.GetAsync(
                 $"discover/movie?api_key={_apiKey}&include_adult=false&include_video=false&language=en-US&page={i}&sort_by=popularity.desc"
@@ -138,7 +138,7 @@ public class TmdbService: ITmdbService
         {
 
             var response = await _httpClient.GetAsync(
-               $"/movie/{movieId}/credits?api_key={_apiKey}&language=en-US"
+               $"movie/{movieId}/credits?api_key={_apiKey}&language=en-US"
            );
 
             if (!response.IsSuccessStatusCode)
@@ -161,7 +161,7 @@ public class TmdbService: ITmdbService
     {
         var allShows = new List<TmdbTv>();
 
-        for (int i = 1; i <= 10; i++)
+        for (int i = 1; i <= 1; i++)
         {
             var response = await _httpClient.GetAsync(
                 $"discover/tv?api_key={_apiKey}&include_adult=false&language=en-US&page={i}&sort_by=popularity.desc"

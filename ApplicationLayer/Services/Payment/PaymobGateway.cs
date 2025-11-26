@@ -1,8 +1,10 @@
 ﻿using ApplicationLayer.Contract;
 using ApplicationLayer.Dtos;
 using AutoMapper;
+using Domains;
 using InfrastructureLayer.Contracts;
 using InfrastructureLayer.UserModels;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using System.Net.Http.Json;
@@ -20,13 +22,15 @@ namespace ApplicationLayer.Services.Payment
         private readonly string _integrationId;
         private readonly string _iframeId;
         private readonly IMapper _mapper;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         public PaymobGetway(
             HttpClient httpClient,
             IConfiguration config,
             IUnitOfWork unitOfWork,
             UserManager<ApplicationUser> userManager,
-            IMapper mapper
+            IMapper mapper,
+            IHttpContextAccessor httpContextAccessor
         )
         {
             _httpClient = httpClient;
@@ -34,6 +38,7 @@ namespace ApplicationLayer.Services.Payment
             _userManager = userManager;
             _config = config;
             _mapper = mapper;
+            _httpContextAccessor = httpContextAccessor;
 
             _apiKey = _config["Paymob:ApiKey"];
             _integrationId = _config["Paymob:IntegrationId"];
@@ -44,23 +49,30 @@ namespace ApplicationLayer.Services.Payment
         {
             try
             {
-                // 1️⃣ Auth token
                 var token = await GetAuthTokenAsync();
-
-                // 2️⃣ Register order in Paymob
                 var paymobOrderId = await RegisterOrderAsync(token, request);
-
-                // 3️⃣ Generate payment key
                 var paymentKey = await GeneratePaymentKeyAsync(token, paymobOrderId, request);
 
-                // 4️⃣ Create payment link
-                string paymentUrl = $"https://accept.paymob.com/api/acceptance/iframes/{_iframeId}?payment_token={paymentKey}";
+                // Save pending transaction
+                var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+                await _unitOfWork.Repository<TbPaymentTransaction>().AddAsync(new TbPaymentTransaction
+                {
+                    UserId = Guid.Parse(userId),
+                    PaymentProvider = "Paymob",
+                    ExternalPaymentId = paymobOrderId,
+                    Amount = request.Amount,
+                    Status = "Pending",
+                    CreatedDate = DateTime.UtcNow
+                });
+
+                await _unitOfWork.SaveChangesAsync();
 
                 return new PaymentResponseDto
                 {
                     Success = true,
                     TransactionId = paymobOrderId,
-                    PaymentUrl = paymentUrl,
+                    PaymentUrl = $"https://accept.paymob.com/api/acceptance/iframes/{_iframeId}?payment_token={paymentKey}",
                     Message = "Payment initialized successfully"
                 };
             }
@@ -76,8 +88,9 @@ namespace ApplicationLayer.Services.Payment
 
         private async Task<string> GetAuthTokenAsync()
         {
-            var response = await _httpClient.PostAsJsonAsync("https://accept.paymob.com/api/auth/tokens",
-               new { api_key = _apiKey });
+            var response = await _httpClient.PostAsJsonAsync(
+                "https://accept.paymob.com/api/auth/tokens",
+                new { api_key = _apiKey });
 
             var json = await response.Content.ReadFromJsonAsync<JsonDocument>();
             return json.RootElement.GetProperty("token").GetString();
@@ -102,18 +115,25 @@ namespace ApplicationLayer.Services.Payment
 
         private async Task<string> GeneratePaymentKeyAsync(string token, string orderId, PaymentDto dto)
         {
+            var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var user = await _userManager.FindByIdAsync(userId);
+
+            var names = (user.FullName ?? "Unknown User").Split(' ', 2);
+            var firstName = names[0];
+            var lastName = names.Length > 1 ? names[1] : "N/A";
+
             var billing = new
             {
-                first_name = "Hamdy",
-                last_name = "Mohamed",
-                email = "test@gmail.com",
-                phone_number = "+201111111111",
+                first_name = firstName,
+                last_name = lastName,
+                email = user.Email ?? "unknown@mail.com",
+                phone_number = user.PhoneNumber ?? "+201000000000",
                 country = "EGYPT",
-                street =  "N/A",
-                building = "N/A",                                   // Add building if available
-                floor = "N/A",                                      // Add floor if stored
-                apartment = "N/A",                                  // Add apartment if stored
-                city =  "N/A",
+                street = "N/A",
+                building = "N/A",
+                floor = "N/A",
+                apartment = "N/A",
+                city = "N/A",
                 state = "N/A",
                 postal_code = "00000"
             };
@@ -130,22 +150,56 @@ namespace ApplicationLayer.Services.Payment
             };
 
             var response = await _httpClient.PostAsJsonAsync("https://accept.paymob.com/api/acceptance/payment_keys", keyRequest);
-            var json = await response.Content.ReadFromJsonAsync<JsonDocument>();
 
+            var json = await response.Content.ReadFromJsonAsync<JsonDocument>();
             return json.RootElement.GetProperty("token").GetString();
         }
 
 
-
         public async Task<bool> ValidatePaymentCallback(string payload)
         {
-            var data = JsonDocument.Parse(payload).RootElement;
+            try
+            {
+                var json = JsonDocument.Parse(payload);
+                var root = json.RootElement;
 
-            bool success = data.GetProperty("success").GetBoolean();
+                string externalPaymentId = null;
 
-            if (!success) return false;
+                // Detect if "order" is a string or an object
+                if (root.GetProperty("order").ValueKind == JsonValueKind.Object)
+                {
+                    externalPaymentId = root.GetProperty("order").GetProperty("id").GetString();
+                }
+                else
+                {
+                    externalPaymentId = root.GetProperty("order").GetString();
+                }
 
-            return true;
+                bool success = root.TryGetProperty("success", out var successElement)
+                               && (successElement.ValueKind == JsonValueKind.String
+                                   ? bool.Parse(successElement.GetString())
+                                   : successElement.GetBoolean());
+
+                var transaction = await _unitOfWork.Repository<TbPaymentTransaction>()
+                    .GetFirstOrDefault(x => x.ExternalPaymentId == externalPaymentId);
+
+
+                if (transaction == null)
+                    return false;
+
+                transaction.Status = success ? "Completed" : "Failed";
+               await _unitOfWork.Repository<TbPaymentTransaction>().Update(transaction);
+
+
+                await _unitOfWork.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error parsing callback: {ex.Message}");
+                return false;
+            }
         }
+
     }
 }

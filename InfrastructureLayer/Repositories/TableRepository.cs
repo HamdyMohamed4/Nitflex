@@ -33,6 +33,17 @@ namespace InfrastructureLayer.Repositories
 
 
 
+        public async Task<bool> AnyAsync(Expression<Func<T, bool>> predicate)
+        {
+            try
+            {
+                return await _dbSet.AnyAsync(predicate);
+            }
+            catch (Exception ex)
+            {
+                throw new DataAccessException(ex,$"Error executing AnyAsync: {ex.Message}" ,_logger);
+            }
+        }
 
 
         public async Task<IEnumerable<T>> GetAllAsync(params Expression<Func<T, object>>[] includes)
@@ -102,6 +113,36 @@ namespace InfrastructureLayer.Repositories
                 throw new DataAccessException(ex, "", _logger);
             }
         }
+
+
+        public async Task<(bool, Guid)> AddAsync(T entity)
+        {
+            try
+            {
+                entity.CreatedDate = DateTime.Now;
+
+                // لو نفس الكيان موجود في الـ ChangeTracker لازم نفصله
+                var trackedEntity = _context.ChangeTracker
+                    .Entries<T>()
+                    .FirstOrDefault(e => e.Entity.Id.Equals(entity.Id));
+
+                if (trackedEntity != null)
+                    trackedEntity.State = EntityState.Detached;
+
+                await _dbSet.AddAsync(entity);
+                await _context.SaveChangesAsync();
+
+                // بعد الحفظ، فك تتبع النسخة عشان ما يسببش conflict بعدين
+                _context.Entry(entity).State = EntityState.Detached;
+
+                return (true, entity.Id);
+            }
+            catch (Exception ex)
+            {
+                throw new DataAccessException(ex, "Error during Add() operation", _logger);
+            }
+        }
+
 
         public async Task<bool> Update(T entity)
         {
