@@ -18,7 +18,7 @@ namespace Presentation.Services
         private readonly IRefreshTokens _refreshTokenService;
 
         public UserService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager,
-             IHttpContextAccessor accessor,IOtpRepository otpRepo, TokenService tokenService)
+             IHttpContextAccessor accessor, IOtpRepository otpRepo, TokenService tokenService)
         {
             _userManager = userManager;
             _signInManager = signInManager;
@@ -293,6 +293,11 @@ namespace Presentation.Services
         public async Task<ApplicationUser?> GetUserByIdWithProfilesWithHistoriesAsync(string userId)
         {
             return await _userManager.Users.Include(x => x.Profiles).ThenInclude(x => x.Histories).AsNoTracking().FirstOrDefaultAsync(x => x.Id.ToString() == userId);
+        }
+
+        public async Task<ApplicationUser?> GetUserByIdWithProfilesWithWatchListAsync(string userId)
+        {
+            return await _userManager.Users.Include(x => x.Profiles).ThenInclude(x => x.WatchlistItems).AsNoTracking().FirstOrDefaultAsync(x => x.Id.ToString() == userId);
         }
 
 

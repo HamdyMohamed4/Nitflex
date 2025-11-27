@@ -155,6 +155,8 @@ namespace Presentation.Services
 
                 return kernelBuilder.Build();
             });
+
+            builder.Services.AddScoped<IWatchlistService, WatchlistService>();
         }
     }
 }
