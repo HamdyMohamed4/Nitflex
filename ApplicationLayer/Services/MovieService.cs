@@ -923,8 +923,17 @@ namespace ApplicationLayer.Services
 
             await _repo.Add(entity);
             await _unitOfWork.SaveChangesAsync();
-            return _mapper.Map<MovieDto>(entity);
+
+            // Load related entities for proper mapping
+            var movieWithIncludes = await _repo
+                .GetAllQueryable()
+                .Include(m => m.MovieGenres).ThenInclude(g => g.Genre)
+                .Include(m => m.Castings).ThenInclude(c => c.CastMember)
+                .FirstOrDefaultAsync(m => m.Id == entity.Id);
+
+            return _mapper.Map<MovieDto>(movieWithIncludes);
         }
+
 
         // ===========================
         // Update
