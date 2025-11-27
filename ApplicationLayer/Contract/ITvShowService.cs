@@ -18,7 +18,7 @@ namespace ApplicationLayer.Contract
         Task<GenreShowsResponseDto?> GetShowsByGenreNameAsync(string genreName, int page = 1, int pageSize = 20);
         //// TvShow
         Task<List<TvShowDto>> GetAllAsync(Guid? genreId = null, string? search = null);
-        Task<TvShowDetailsDto?> GetByIdAsync(Guid id);
+        Task<TvShowDto?> GetByIdAsync(Guid id);
         Task<TvShowDto> CreateAsync(CreateTvShowDto dto);
         Task<bool> UpdateAsync(Guid id, UpdateTvShowDto dto);
         Task<bool> DeleteAsync(Guid id);

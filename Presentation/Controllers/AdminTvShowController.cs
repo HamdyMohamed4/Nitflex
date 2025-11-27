@@ -48,20 +48,20 @@ namespace Presentation.Controllers
 
         // GET: api/AdminTvShow/{id}
         [HttpGet("{id:guid}")]
-        public async Task<ActionResult<ApiResponse<TvShowDetailsDto>>> GetById(Guid id)
+        public async Task<ActionResult<ApiResponse<TvShowDto>>> GetById(Guid id)
         {
             try
             {
                 var show = await _tvShowService.GetByIdAsync(id);
 
                 if (show == null)
-                    return NotFound(ApiResponse<TvShowDetailsDto>.FailResponse("Show not found."));
+                    return NotFound(ApiResponse<TvShowDto>.FailResponse("Show not found."));
 
-                return Ok(ApiResponse<TvShowDetailsDto>.SuccessResponse(show, "Show retrieved successfully."));
+                return Ok(ApiResponse<TvShowDto>.SuccessResponse(show, "Show retrieved successfully."));
             }
             catch (Exception ex)
             {
-                return BadRequest(ApiResponse<TvShowDetailsDto>.FailResponse("Failed to retrieve show.", new List<string> { ex.Message }));
+                return BadRequest(ApiResponse<TvShowDto>.FailResponse("Failed to retrieve show.", new List<string> { ex.Message }));
             }
         }
 

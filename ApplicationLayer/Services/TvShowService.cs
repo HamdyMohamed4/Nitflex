@@ -78,7 +78,7 @@ namespace ApplicationLayer.Services
 
 
 
-        public async Task<TvShowDetailsDto?> GetByIdAsync(Guid id)
+        public async Task<TvShowDto?> GetByIdAsync(Guid id)
         {
             // جلب الـ TVShow مع كل الـ relations المهمة
             var shows = await _unitOfWork.Repository<TVShow>()
@@ -119,7 +119,7 @@ namespace ApplicationLayer.Services
                 .ToList();
 
             // Mapping للـ DTO النهائي
-            var dto = _mapper.Map<TvShowDetailsDto>(show);
+            var dto = _mapper.Map<TvShowDto>(show);
 
             return dto;
         }

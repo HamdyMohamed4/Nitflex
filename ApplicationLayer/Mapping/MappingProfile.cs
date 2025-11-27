@@ -122,24 +122,81 @@ namespace ApplicationLayer.Mapping
                                                         .OrderBy(s => s.SeasonNumber)
                                                         .ToList()));
 
-            CreateMap<TVShow, TvShowDetailsDto>()
-                .ForMember(dest => dest.GenresNames,
-                    opt => opt.MapFrom(src => src.TVShowGenres.Select(g => new GenreDto
-                    {
-                        Id = g.Genre.Id,
-                        Name = g.Genre.Name
-                    }).ToList()))
-                .ForMember(dest => dest.Cast,
-                    opt => opt.MapFrom(src => src.Castings.Select(c => new CastDto
-                    {
-                        Id = c.CastMemberId,
-                        Name = c.CastMember.Name,
-                        CharacterName = c.CharacterName
-                    }).ToList()))
-                .ForMember(dest => dest.Seasons,
-                    opt => opt.MapFrom(src => src.Seasons.Where(s => s.CurrentState == 1)
-                                                        .OrderBy(s => s.SeasonNumber)
-                                                        .ToList()));
+            //CreateMap<TVShow, TvShowDetailsDto>()
+            //    .ForMember(dest => dest.GenresNames,
+            //        opt => opt.MapFrom(src => src.TVShowGenres.Select(g => new GenreDto
+            //        {
+            //            Id = g.Genre.Id,
+            //            Name = g.Genre.Name
+            //        }).ToList()))
+            //    .ForMember(dest => dest.Cast,
+            //        opt => opt.MapFrom(src => src.Castings.Select(c => new CastDto
+            //        {
+            //            Id = c.CastMemberId,
+            //            Name = c.CastMember.Name,
+            //            CharacterName = c.CharacterName
+            //        }).ToList()))
+            //    .ForMember(dest => dest.Seasons,
+            //        opt => opt.MapFrom(src => src.Seasons.Where(s => s.CurrentState == 1)
+            //                                            .OrderBy(s => s.SeasonNumber)
+            //                                            .ToList()));
+
+
+
+
+
+
+
+
+
+    //        CreateMap<TVShow, TvShowDetailsDto>()
+    //// Genres
+    //.ForMember(dest => dest.GenresNames,
+    //    opt => opt.MapFrom(src => src.TVShowGenres
+    //        .Select(g => new GenreDto
+    //        {
+    //            Id = g.Genre.Id,
+    //            Name = g.Genre.Name
+    //        }).ToList()))
+    //.ForMember(dest => dest.GenreIds,
+    //    opt => opt.MapFrom(src => src.TVShowGenres.Select(g => g.GenreId).ToList()))
+    //// Cast (أول 10 فقط)
+    //.ForMember(dest => dest.Cast,
+    //    opt => opt.MapFrom(src => src.Castings
+    //        .Where(c => c.CastMember != null)
+    //        .OrderBy(c => c.Id)
+    //        .Take(10)
+    //        .Select(c => new CastDto
+    //        {
+    //            Id = c.CastMemberId,
+    //            Name = c.CastMember.Name,
+    //            CharacterName = c.CharacterName
+    //        }).ToList()))
+    //// Seasons + Episodes
+    //.ForMember(dest => dest.Seasons,
+    //    opt => opt.MapFrom(src => src.Seasons
+    //        .Where(s => s.CurrentState == 1)
+    //        .OrderBy(s => s.SeasonNumber)
+    //        .Select(s => new SeasonWithEpisodesDto
+    //        {
+    //            SeasonNumber = s.SeasonNumber,
+    //            Episodes = s.Episodes
+    //                .Where(e => e.CurrentState == 1)
+    //                .OrderBy(e => e.EpisodeNumber)
+    //                .Select(e => new EpisodeDto
+    //                {
+    //                    EpisodeNumber = e.EpisodeNumber,
+    //                    Title = e.Title,
+    //                }).ToList()
+    //        }).ToList()));
+
+
+
+
+
+
+
+
 
             CreateMap<CreateTvShowDto, TVShow>().ReverseMap();
             CreateMap<UpdateTvShowDto, TVShow>().ReverseMap();
