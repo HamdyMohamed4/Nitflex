@@ -15,18 +15,47 @@ namespace ApplicationLayer.Mapping
             CreateMap<TbRefreshTokens, RefreshTokenDto>().ReverseMap();
             CreateMap<TbPaymentMethod, PaymentMethodDto>().ReverseMap(); 
 
+            // CastMember mappings
+            CreateMap<CastMember, CastMemberDto>().ReverseMap();
+            CreateMap<CreateCastMemberDto, CastMember>().ReverseMap();
+            CreateMap<UpdateCastMemberDto, CastMember>().ReverseMap();
+
             // Movie
             //CreateMap<Movie, MovieDto>().ReverseMap();
             CreateMap<Movie, GenreMoviesResponseDto>().ReverseMap();
             CreateMap<Movie, MovieSearchFilterDto>().ReverseMap();
-    
+
+
+
+            CreateMap<CastMember, CastDto>();
+
+
+
+    //        CreateMap<Movie, MovieDto>()
+    //.ForMember(dest => dest.GenreIds,
+    //           opt => opt.MapFrom(src => src.MovieGenres.Select(mg => mg.GenreId)))
+    //.ForMember(dest => dest.GenresNames,
+    //           opt => opt.MapFrom(src => src.MovieGenres.Select(mg => mg.Genre)));
+
+
 
 
             CreateMap<Movie, MovieDto>()
-    .ForMember(dest => dest.GenreIds,
-               opt => opt.MapFrom(src => src.MovieGenres.Select(mg => mg.GenreId)))
-    .ForMember(dest => dest.GenresNames,
-               opt => opt.MapFrom(src => src.MovieGenres.Select(mg => mg.Genre)));
+                .ForMember(dest => dest.GenreIds,
+                    opt => opt.MapFrom(src => src.MovieGenres.Select(mg => mg.GenreId)))
+                .ForMember(dest => dest.GenresNames,
+                    opt => opt.MapFrom(src => src.MovieGenres.Select(mg => new GenreDto
+                    {
+                        Id = mg.Genre.Id,
+                        Name = mg.Genre.Name
+                    })))
+                .ForMember(dest => dest.Castings,
+                    opt => opt.MapFrom(src => src.Castings.Select(c => new CastDto
+                    {
+                        Id = c.CastMember.Id,
+                        Name = c.CastMember.Name,
+                        CharacterName = c.CharacterName
+                    })));
 
 
 

@@ -25,8 +25,6 @@ namespace Presentation.Controllers
             _userService = userService;
         }
 
-
-
         // GET: api/Movie/genre/{genreId}?page=1&pageSize=20
         [HttpGet("genre/{genreId:guid}")]
         public async Task<ActionResult<ApiResponse<GenreMoviesResponseDto>>> GetByGenre(Guid genreId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
@@ -43,27 +41,27 @@ namespace Presentation.Controllers
             }
         }
 
-        // GET: api/Movie/genre/name/{genreName}?page=1&pageSize=20
-        [HttpGet("genre/name/{genreName}")]
-        public async Task<ActionResult<ApiResponse<GenreMoviesResponseDto>>> GetByGenreName(string genreName, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
-        {
-            try
-            {
-                if (string.IsNullOrWhiteSpace(genreName))
-                    return BadRequest(ApiResponse<GenreMoviesResponseDto>.FailResponse("Genre name is required."));
+        //// GET: api/Movie/genre/name/{genreName}?page=1&pageSize=20
+        //[HttpGet("genre/name/{genreName}")]
+        //public async Task<ActionResult<ApiResponse<GenreMoviesResponseDto>>> GetByGenreName(string genreName, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+        //{
+        //    try
+        //    {
+        //        if (string.IsNullOrWhiteSpace(genreName))
+        //            return BadRequest(ApiResponse<GenreMoviesResponseDto>.FailResponse("Genre name is required."));
 
-                var result = await _movieService.GetMoviesByGenreNameAsync(genreName, page, pageSize);
+        //        var result = await _movieService.GetMoviesByGenreNameAsync(genreName, page, pageSize);
 
-                if (result == null || result.MediaData == null || result.MediaData.Count == 0)
-                    return NotFound(ApiResponse<GenreMoviesResponseDto>.FailResponse("No movies found for this genre."));
+        //        if (result == null || result.MediaData == null || result.MediaData.Count == 0)
+        //            return NotFound(ApiResponse<GenreMoviesResponseDto>.FailResponse("No movies found for this genre."));
 
-                return Ok(ApiResponse<GenreMoviesResponseDto>.SuccessResponse(result, "Movies filtered by genre name retrieved successfully."));
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ApiResponse<GenreMoviesResponseDto>.FailResponse("Error retrieving movies", new List<string> { ex.Message }));
-            }
-        }
+        //        return Ok(ApiResponse<GenreMoviesResponseDto>.SuccessResponse(result, "Movies filtered by genre name retrieved successfully."));
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return BadRequest(ApiResponse<GenreMoviesResponseDto>.FailResponse("Error retrieving movies", new List<string> { ex.Message }));
+        //    }
+        //}
 
 
         // GET: api/Movie/featured?limit=10
@@ -83,11 +81,6 @@ namespace Presentation.Controllers
                 return BadRequest(ApiResponse<List<MovieDto>>.FailResponse("Failed to retrieve featured movies", new List<string> { ex.Message }));
             }
         }
-
-
-
-
-
 
         // GET: api/Movie/featured?limit=10
         [HttpGet("AllMovies")]
@@ -160,8 +153,6 @@ namespace Presentation.Controllers
         //}
 
 
-
-
         [HttpGet("{id:guid}")]
         public async Task<ActionResult<ApiResponse<MovieDto>>> GetMovieById(Guid id)
         {
@@ -171,7 +162,7 @@ namespace Presentation.Controllers
                     return BadRequest(ApiResponse<MovieDto>.FailResponse("Invalid movie id."));
 
                 // استدعاء الميثود من السيرفيس للحصول على تفاصيل الفيلم
-                var movie = await _movieService.GetById(id);
+                var movie = await _movieService.GetByIdAsync(id);
 
                 if (movie == null)
                     return NotFound(ApiResponse<MovieDto>.FailResponse("Movie not found."));
@@ -190,13 +181,13 @@ namespace Presentation.Controllers
         public async Task<IActionResult> ImportAll()
         {
             // 1. Import Genres
-            await _movieService.ImportGenresAsync();
+            //await _movieService.ImportGenresAsync();
 
             // 2. Import Top Rated Movies
             await _movieService.ImportTopRatedMoviesAsync();
-            await _movieService.ImportTopRatedShowsAsync();
+            //await _movieService.ImportTopRatedShowsAsync();
             await _movieService.ImportAllMoviesAsync();
-            await _movieService.ImportAllTVsAsync();
+            //await _movieService.ImportAllTVsAsync();
 
             // 3. Import Cast for each movie
             var allMovies = await _movieService.GetAllImportedMoviesAsync();

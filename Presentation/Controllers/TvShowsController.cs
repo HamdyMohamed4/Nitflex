@@ -46,26 +46,26 @@ namespace Presentation.Controllers
         }
 
 
-        [HttpGet("genre/name/{genreName}")]
-        public async Task<ActionResult<ApiResponse<GenreShowsResponseDto>>> GetByGenreName(string genreName, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
-        {
-            try
-            {
-                if (string.IsNullOrWhiteSpace(genreName))
-                    return BadRequest(ApiResponse<GenreShowsResponseDto>.FailResponse("Genre name is required."));
+        //[HttpGet("genre/name/{genreName}")]
+        //public async Task<ActionResult<ApiResponse<GenreShowsResponseDto>>> GetByGenreName(string genreName, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+        //{
+        //    try
+        //    {
+        //        if (string.IsNullOrWhiteSpace(genreName))
+        //            return BadRequest(ApiResponse<GenreShowsResponseDto>.FailResponse("Genre name is required."));
 
-                var result = await _tvShowService.GetShowsByGenreNameAsync(genreName, page, pageSize);
+        //        var result = await _tvShowService.GetShowsByGenreNameAsync(genreName, page, pageSize);
 
-                if (result == null || result.MediaData == null || !result.MediaData.Any())
-                    return NotFound(ApiResponse<GenreShowsResponseDto>.FailResponse("No shows found for this genre."));
+        //        if (result == null || result.MediaData == null || !result.MediaData.Any())
+        //            return NotFound(ApiResponse<GenreShowsResponseDto>.FailResponse("No shows found for this genre."));
 
-                return Ok(ApiResponse<GenreShowsResponseDto>.SuccessResponse(result, "Shows filtered by genre name retrieved successfully."));
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ApiResponse<GenreShowsResponseDto>.FailResponse("Error retrieving shows", new List<string> { ex.Message }));
-            }
-        }
+        //        return Ok(ApiResponse<GenreShowsResponseDto>.SuccessResponse(result, "Shows filtered by genre name retrieved successfully."));
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return BadRequest(ApiResponse<GenreShowsResponseDto>.FailResponse("Error retrieving shows", new List<string> { ex.Message }));
+        //    }
+        //}
 
 
 

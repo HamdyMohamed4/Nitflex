@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Domains
 {
@@ -18,10 +15,9 @@ namespace Domains
         public AgeRating AgeRating { get; set; }
 
         [MaxLength(500)]
-        public string? Language { get; set; }  // English / Arabic / Spanish / French
-        public string? AudioType { get; set; }  // Original / Dubbed / Subtitled
+        public string? Language { get; set; }
+        public string? AudioType { get; set; }
 
-        
         [MaxLength(500)]
         public string? PosterUrl { get; set; } = string.Empty;
         [MaxLength(500)]
@@ -31,8 +27,8 @@ namespace Domains
 
         public bool IsFeatured { get; set; } = false;
         public MediaType? Type { get; set; } = MediaType.Movie;
+
         public ICollection<MovieGenre> MovieGenres { get; set; } = new List<MovieGenre>();
         public ICollection<MovieCast> Castings { get; set; } = new List<MovieCast>();
     }
-
 }

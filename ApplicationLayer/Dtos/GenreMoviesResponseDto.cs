@@ -19,4 +19,7 @@ namespace ApplicationLayer.Dtos
         // Convenience computed property
         public bool HasMore => Page * PageSize < TotalCount;
     }
+
+
+
 }

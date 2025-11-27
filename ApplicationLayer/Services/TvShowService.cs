@@ -196,12 +196,6 @@ namespace ApplicationLayer.Services
         }
 
 
-        //public async Task<IEnumerable<TvShowDto>> GetAllShowsAsync()
-        //{
-        //    var list = await _tvShowRepo.GetAll();
-        //    var ordered = list.OrderByDescending(s => s.CreatedDate).ToList();
-        //    return _mapper.Map<IEnumerable<TvShowDto>>(ordered);
-        //}
 
 
 

@@ -161,6 +161,8 @@ namespace Presentation.Services
 
 
 
+            builder.Services.AddScoped<ICastMemberRepository, CastMemberRepository>();
+            builder.Services.AddScoped<ICastMemberService, CastMemberService>();
         }
     }
 }

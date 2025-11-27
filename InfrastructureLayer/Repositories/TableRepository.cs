@@ -304,6 +304,46 @@ namespace InfrastructureLayer.Repositories
             }
         }
 
+
+
+        public async Task<PagedResult<T>> GetPagedListAsync(
+        int pageNumber,
+        int pageSize,
+        Expression<Func<T, bool>>? filter = null,
+        Expression<Func<T, object>>? orderBy = null,
+        bool isDescending = false,
+        Func<IQueryable<T>, IQueryable<T>>? include = null
+    )
+        {
+            IQueryable<T> query = _dbSet.AsQueryable();
+
+            if (include != null)
+                query = include(query);
+
+            if (filter != null)
+                query = query.Where(filter);
+
+            int totalCount = await query.CountAsync();
+
+            if (orderBy != null)
+                query = isDescending ? query.OrderByDescending(orderBy) : query.OrderBy(orderBy);
+
+            var items = await query.AsNoTracking()
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new PagedResult<T>
+            {
+                Items = items,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+            };
+        }
+
+
         public async Task<PagedResult<TResult>> GetPagedList<TResult>(
             int pageNumber,
             int pageSize,
