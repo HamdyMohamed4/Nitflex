@@ -13,7 +13,7 @@ namespace Presentation.Services
     {
         private readonly string _secretKey;
         private readonly UserManager<ApplicationUser> _userManager;
-        private const int AccessTokenExpiryMinutes = 15;
+        private const int AccessTokenExpiryMinutes = 200;
 
         public TokenService(IConfiguration configuration, UserManager<ApplicationUser> userManager)
         {
