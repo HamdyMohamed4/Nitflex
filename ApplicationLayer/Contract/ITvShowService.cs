@@ -13,7 +13,8 @@ namespace ApplicationLayer.Contract
     {
 
 
-        Task<IEnumerable<TvShowDto>> GetAllShowsAsync();
+        Task<IEnumerable<TvShowDto>> GetAllTvShowsAsync();
+        //Task<IEnumerable<TvShowDto>> GetAllShowsAsync();
         Task<GenreShowsResponseDto?> GetShowsByGenreNameAsync(string genreName, int page = 1, int pageSize = 20);
         //// TvShow
         Task<List<TvShowDto>> GetAllAsync(Guid? genreId = null, string? search = null);

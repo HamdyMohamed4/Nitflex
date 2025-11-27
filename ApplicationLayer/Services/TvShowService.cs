@@ -74,42 +74,53 @@ namespace ApplicationLayer.Services
         }
 
         // Get TV show by id
+
+
+
         public async Task<TvShowDetailsDto?> GetByIdAsync(Guid id)
         {
-            var tvShow = await _tvShowRepo.GetById(id);
-            if (tvShow == null) return null;
-
-            // load seasons and their episodes
-            var seasons = await _seasonRepo.GetList(s => s.TvShowId == id && s.CurrentState == 1);
-
-            if (!seasons.Any())
-            {
-                var emptyDto = _mapper.Map<TvShowDetailsDto>(tvShow);
-                emptyDto.Seasons = new List<SeasonDto>();
-                return emptyDto;
-            }
-
-            await Task.WhenAll(seasons.Select(async season =>
-            {
-                var episodes = await _episodeRepo.GetList(
-                    e => e.SeasonId == season.Id && e.CurrentState == 1
+            // جلب الـ TVShow مع كل الـ relations المهمة
+            var shows = await _unitOfWork.Repository<TVShow>()
+                .GetListWithInclude(
+                    filter: x => x.Id == id,
+                    include: query => query
+                        .Include(x => x.Castings)
+                            .ThenInclude(c => c.CastMember)
+                        .Include(x => x.TVShowGenres)
+                            .ThenInclude(g => g.Genre)
+                        .Include(x => x.Seasons)
+                            .ThenInclude(s => s.Episodes)
                 );
-                
-                season.Episodes = episodes
+
+            var show = shows.FirstOrDefault();
+            if (show == null)
+                return null;
+
+            // تحديد أول 10 من الكاست
+            show.Castings = show.Castings
+                .Where(c => c.CastMember != null)
+                .OrderBy(c => c.Id)
+                .Take(10)
+                .ToList();
+
+            // ترتيب الـ Seasons والـ Episodes
+            foreach (var season in show.Seasons)
+            {
+                season.Episodes = season.Episodes
+                    .Where(e => e.CurrentState == 1)
                     .OrderBy(e => e.EpisodeNumber)
                     .ToList();
-            }));
+            }
 
-            
-            var orderedSeasons = seasons
+            show.Seasons = show.Seasons
+                .Where(s => s.CurrentState == 1)
                 .OrderBy(s => s.SeasonNumber)
                 .ToList();
 
-            var dto = _mapper.Map<TvShowDetailsDto>(tvShow);
-            dto.Seasons = _mapper.Map<List<SeasonDto>>(orderedSeasons);
+            // Mapping للـ DTO النهائي
+            var dto = _mapper.Map<TvShowDetailsDto>(show);
 
             return dto;
-
         }
 
         // Create TV show
@@ -188,10 +199,39 @@ namespace ApplicationLayer.Services
             };
         }
 
+ 
+
+
         public async Task<IEnumerable<TvShowDto>> GetFeaturedAsync(int limit = 10)
         {
-            var list = await _tvShowRepo.GetList(s => s.IsFeatured == true);
-            var ordered = list.OrderByDescending(s => s.CreatedDate).Take(limit).ToList();
+            var tvShows = await _unitOfWork.Repository<TVShow>()
+                .GetListWithInclude(
+                    filter: m => m.CurrentState == 1 && m.IsFeatured,
+                    include: query => query
+                        .Include(x => x.TVShowGenres)
+                            .ThenInclude(mg => mg.Genre)
+                        .Include(x => x.Castings)
+                            .ThenInclude(c => c.CastMember)
+                        .Include(x => x.Seasons)
+                                .ThenInclude(s => s.Episodes)
+
+                );
+
+            var ordered = tvShows
+                .OrderByDescending(m => m.CreatedDate)
+                .Take(limit)
+                .Select(m =>
+                {
+                    // هنا نعمل Take للـ Castings
+                    m.Castings = m.Castings
+                        .OrderBy(c => c.Id)
+                        .Take(10)
+                        .ToList();
+
+                    return m;
+                })
+                .ToList();
+
             return _mapper.Map<IEnumerable<TvShowDto>>(ordered);
         }
 
@@ -199,22 +239,103 @@ namespace ApplicationLayer.Services
 
 
 
-        public async Task<IEnumerable<TvShowDto>> GetAllShowsAsync()
+        //public async Task<IEnumerable<TvShowDto>> GetAllShowsAsync()
+        //{
+        //    var shows = await _unitOfWork.Repository<TVShow>()
+        //        .GetListWithInclude(
+        //            filter: x => true,
+        //            include: query => query
+        //                .Include(x => x.TVShowGenres)
+        //                    .ThenInclude(mg => mg.Genre)
+        //                .Include(x => x.Castings)
+        //                    .ThenInclude(c => c.CastMember)
+        //                .Include(x => x.Seasons)
+        //                    .ThenInclude(s => s.Episodes)
+        //        );
+
+        //    return _mapper.Map<IEnumerable<TvShowDto>>(shows);
+        //}
+
+
+
+
+
+
+        public async Task<IEnumerable<TvShowDto>> GetAllTvShowsAsync()
         {
+            // Load TV Shows with Related Entities
             var shows = await _unitOfWork.Repository<TVShow>()
                 .GetListWithInclude(
                     filter: x => true,
                     include: query => query
-                        .Include(x => x.TVShowGenres)
-                            .ThenInclude(mg => mg.Genre)
                         .Include(x => x.Castings)
                             .ThenInclude(c => c.CastMember)
+                        .Include(x => x.TVShowGenres)
+                            .ThenInclude(g => g.Genre)
                         .Include(x => x.Seasons)
                             .ThenInclude(s => s.Episodes)
                 );
 
-            return _mapper.Map<IEnumerable<TvShowDto>>(shows);
+            // Map to DTO
+            var result = shows.Select(m => new TvShowDto
+            {
+                Name = m.Name,
+                Id = m.Id,
+                Title = m.Title,
+                Description = m.Description,
+                ReleaseYear = m.ReleaseYear,
+                DurationMinutes = m.DurationMinutes,
+                AgeRating = m.AgeRating,
+                PosterUrl = m.PosterUrl,
+                TmdbId = m.TmdbId,
+                IsFeatured = m.IsFeatured,
+                Type = m.Type,
+                Language = m.Language,
+                AudioType = m.AudioType,
+
+                // Genres
+                GenresNames = m.TVShowGenres.Select(mg => new GenreDto
+                {
+                    Id = mg.Genre.Id,
+                    Name = mg.Genre.Name
+                }).ToList(),
+
+                // Cast (first 10 only)
+                Cast = m.Castings
+                    .Where(c => c.CastMember != null)
+                    .OrderBy(c => c.Id)
+                    .Take(10)
+                    .Select(c => new CastDto
+                    {
+                        Id = c.CastMember.Id,
+                        Name = c.CastMember.Name,
+                        CharacterName = c.CharacterName
+                    }).ToList(),
+
+                // Seasons + Episodes
+                Seasons = m.Seasons
+                    .OrderBy(s => s.SeasonNumber)
+                    .Select(s => new SeasonWithEpisodesDto
+                    {
+                        SeasonNumber = s.SeasonNumber,
+                        Episodes = s.Episodes
+                            .OrderBy(e => e.EpisodeNumber)
+                            .Select(e => new EpisodeDto
+                            {
+                                Id = e.Id,
+                                Title = e.Title,
+                                Duration = e.DurationMinutes,
+                                EpisodeNumber = e.EpisodeNumber,
+                                VideoUrl = e.VideoUrl,
+                                TrailerUrl = e.TrailerUrl,
+
+                            }).ToList()
+                    }).ToList()
+            }).ToList();
+
+            return result;
         }
+
 
 
 

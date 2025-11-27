@@ -31,11 +31,33 @@ namespace ApplicationLayer.Mapping
 
 
 
-    //        CreateMap<Movie, MovieDto>()
-    //.ForMember(dest => dest.GenreIds,
-    //           opt => opt.MapFrom(src => src.MovieGenres.Select(mg => mg.GenreId)))
-    //.ForMember(dest => dest.GenresNames,
-    //           opt => opt.MapFrom(src => src.MovieGenres.Select(mg => mg.Genre)));
+            CreateMap<TVShow, TvShowDetailsDto>()
+   .ForMember(dest => dest.GenresNames,
+              opt => opt.MapFrom(src => src.TVShowGenres.Select(g => new GenreDto
+              {
+                  Id = g.Genre.Id,
+                  Name = g.Genre.Name
+              })))
+   .ForMember(dest => dest.Cast,
+              opt => opt.MapFrom(src => src.Castings.Select(c => new CastDto
+              {
+                  Id = c.CastMember.Id,
+                  Name = c.CastMember.Name,
+                  CharacterName = c.CharacterName
+              })))
+   .ForMember(dest => dest.Seasons,
+              opt => opt.MapFrom(src => src.Seasons
+                  .Where(s => s.CurrentState == 1)
+                  .OrderBy(s => s.SeasonNumber)
+              ));
+
+
+
+            //        CreateMap<Movie, MovieDto>()
+            //.ForMember(dest => dest.GenreIds,
+            //           opt => opt.MapFrom(src => src.MovieGenres.Select(mg => mg.GenreId)))
+            //.ForMember(dest => dest.GenresNames,
+            //           opt => opt.MapFrom(src => src.MovieGenres.Select(mg => mg.Genre)));
 
 
 
@@ -88,7 +110,7 @@ namespace ApplicationLayer.Mapping
 
 
             // TV Shows, Seasons, Episodes
-            CreateMap<TVShow, TvShowDetailsDto>().ReverseMap();
+            //CreateMap<TVShow, TvShowDetailsDto>().ReverseMap();
             CreateMap<CreateTvShowDto, TVShow>().ReverseMap();
             CreateMap<UpdateTvShowDto, TVShow>().ReverseMap();
             CreateMap< TVShow, GenreShowsResponseDto>().ReverseMap();

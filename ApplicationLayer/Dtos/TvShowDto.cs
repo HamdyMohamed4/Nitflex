@@ -36,7 +36,7 @@ namespace ApplicationLayer.Dtos
         public string? StreamingUrl { get; set; }
 
         // Lightweight cast / creators for UI lists
-        public List<string> Cast { get; set; } = new();
+        public List<CastDto> Cast { get; set; } = new();
 
         // Optional: whether the show has been marked complete / ended
         public bool IsEnded { get; set; }

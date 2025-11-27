@@ -123,7 +123,7 @@ namespace Presentation.Controllers
         {
             try
             {
-                var shows = await _tvShowService.GetAllShowsAsync();
+                var shows = await _tvShowService.GetAllTvShowsAsync();
                 if (shows == null || !shows.Any())
                     return NotFound(ApiResponse<List<TvShowDto>>.FailResponse("No featured shows found."));
 
