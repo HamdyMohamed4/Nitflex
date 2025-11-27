@@ -8,8 +8,9 @@ namespace ApplicationLayer.Dtos
 {
     public class UserDto
     {
-        public string UserId { get; set; }
+        public Guid Id { get; set; }
         public string Email { get; set; }
+        public bool IsBlocked { get; set; }
     }
 
 }
