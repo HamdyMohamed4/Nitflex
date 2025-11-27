@@ -75,7 +75,6 @@ namespace Presentation.Controllers
 
 
 
-
         // POST: api/AdminMovie
         [HttpPost]
         public async Task<ActionResult<ApiResponse<MovieDto>>> Create([FromBody] MovieDto dto)
@@ -114,10 +113,6 @@ namespace Presentation.Controllers
                 return BadRequest(ApiResponse<bool>.FailResponse("Failed to update movie.", new List<string> { ex.Message }));
             }
         }
-
-
-
-
 
 
         // DELETE: api/AdminMovie/{id}

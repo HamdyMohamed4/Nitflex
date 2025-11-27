@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace ApplicationLayer.Dtos
 {
-    public class GenreMoviesResponseDto
+    public class GenreMoviesResponseDto :BaseDto
     {
         public Guid GenreId { get; set; }
         public string GenreName { get; set; } = string.Empty;

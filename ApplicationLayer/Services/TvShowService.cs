@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 
 namespace ApplicationLayer.Services
@@ -172,38 +173,59 @@ namespace ApplicationLayer.Services
         // ===========================
         public async Task<GenreShowsResponseDto> GetShowsByGenreAsync(Guid genreId, int page = 1, int pageSize = 20)
         {
+            // جلب بيانات الـ Genre نفسه
             var genre = await _genreRepo.GetById(genreId);
 
-            var paged = await _tvShowRepo.GetPagedList<TVShow>(
-                pageNumber: page,
-                pageSize: pageSize,
-                filter: s => s.CurrentState == 1 && s.TVShowGenres.Any(g => g.GenreId == genreId),
-                selector: null,
-                orderBy: s => s.CreatedDate,
-                isDescending: true,
-                s => s.Seasons,
-                s => s.TVShowGenres,
-                s => s.Castings
-            );
+            if (genre == null)
+                throw new KeyNotFoundException($"Genre with Id {genreId} not found.");
 
-            var shows = _mapper.Map<List<TvShowDto>>(paged.Items);
+            var paged = await _tvShowRepo.GetPagedListAsync(
+         pageNumber: page,
+         pageSize: pageSize,
+         filter: s => s.CurrentState == 1 && s.TVShowGenres.Any(g => g.GenreId == genreId),
+         orderBy: s => s.CreatedDate,
+         isDescending: true,
+         include: query => query
+             .Include(s => s.Seasons)
+                 .ThenInclude(se => se.Episodes)
+             .Include(s => s.Castings)
+                 .ThenInclude(c => c.CastMember)
+             .Include(s => s.TVShowGenres)
+                 .ThenInclude(g => g.Genre)
+     );
 
-            return new GenreShowsResponseDto
+
+            // عمل Mapping للـ DTO
+            var showsDto = _mapper.Map<List<TvShowDto>>(paged.Items);
+
+            // تحديد عدد الـ Casts اللي هيرجع لكل Show (لو حابب)
+            foreach (var show in showsDto)
+            {
+                if (show.Cast != null)
+                    show.Cast = show.Cast.Take(10).ToList(); // مثلا تاخد أول 10 Casts
+            }
+
+            // تجهيز Response DTO
+            var response = new GenreShowsResponseDto
             {
                 GenreId = genreId,
-                GenreName = genre?.Name ?? string.Empty,
-                MediaData = shows,
+                GenreName = genre.Name,
+                MediaData = showsDto,
                 TotalCount = paged.TotalCount,
                 Page = page,
                 PageSize = pageSize
             };
+
+            return response;
         }
 
- 
+
+
 
 
         public async Task<IEnumerable<TvShowDto>> GetFeaturedAsync(int limit = 10)
         {
+            // 1️⃣ جلب البيانات مع Include لكل الـ relations
             var tvShows = await _unitOfWork.Repository<TVShow>()
                 .GetListWithInclude(
                     filter: m => m.CurrentState == 1 && m.IsFeatured,
@@ -213,16 +235,16 @@ namespace ApplicationLayer.Services
                         .Include(x => x.Castings)
                             .ThenInclude(c => c.CastMember)
                         .Include(x => x.Seasons)
-                                .ThenInclude(s => s.Episodes)
-
+                            .ThenInclude(s => s.Episodes)
                 );
 
+            // 2️⃣ ترتيب حسب التاريخ واخد limit
             var ordered = tvShows
                 .OrderByDescending(m => m.CreatedDate)
                 .Take(limit)
                 .Select(m =>
                 {
-                    // هنا نعمل Take للـ Castings
+                    // 3️⃣ أخذ أعلى 10 Cast لكل show
                     m.Castings = m.Castings
                         .OrderBy(c => c.Id)
                         .Take(10)
@@ -232,8 +254,10 @@ namespace ApplicationLayer.Services
                 })
                 .ToList();
 
+            // 4️⃣ تحويل الـ entities لـ DTOs باستخدام AutoMapper
             return _mapper.Map<IEnumerable<TvShowDto>>(ordered);
         }
+
 
 
 

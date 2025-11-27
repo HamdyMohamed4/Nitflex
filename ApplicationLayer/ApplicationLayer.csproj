@@ -17,5 +17,9 @@
     <ProjectReference Include="..\InfrastructureLayer\InfrastructureLayer.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Services\u\" />
+  </ItemGroup>
+
 
 </Project>
