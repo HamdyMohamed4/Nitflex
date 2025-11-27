@@ -14,6 +14,7 @@ namespace ApplicationLayer.Contract
     public interface IMovieService : IBaseService<Movie, MovieDto>
     {
 
+        Task<MovieDto?> GetMoviesByIdAsync(Guid id);
         Task<IEnumerable<MovieDto>> GetAllMoviesAsync();
         Task ImportTopRatedShowsAsync();
 

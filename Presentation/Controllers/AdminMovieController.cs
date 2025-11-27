@@ -98,6 +98,10 @@ namespace Presentation.Controllers
         {
             try
             {
+
+                var oldData = await _movieService.GetMoviesByIdAsync(id);
+                if (oldData == null)
+                    return NotFound(ApiResponse<bool>.FailResponse("Movie not found."));
                 var update = await _movieService.UpdateAsync(id, dto);
 
                 if (!update)
@@ -110,6 +114,11 @@ namespace Presentation.Controllers
                 return BadRequest(ApiResponse<bool>.FailResponse("Failed to update movie.", new List<string> { ex.Message }));
             }
         }
+
+
+
+
+
 
         // DELETE: api/AdminMovie/{id}
         [HttpDelete("{id:guid}")]

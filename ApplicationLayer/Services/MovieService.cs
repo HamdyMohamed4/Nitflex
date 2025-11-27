@@ -47,6 +47,15 @@ namespace ApplicationLayer.Services
         }
 
 
+        public async Task<MovieDto?> GetMoviesByIdAsync(Guid id)
+        {
+            var movie = await _repo.GetAllQueryable()
+                .Include(m => m.MovieGenres).ThenInclude(g => g.Genre)
+                .Include(m => m.Castings).ThenInclude(c => c.CastMember)
+                .FirstOrDefaultAsync(m => m.Id == id);
+
+            return movie == null ? null : _mapper.Map<MovieDto>(movie);
+        }
 
         public async Task ImportCastForMovieAsync(MovieDto movieDto, int tmdbMovieId)
         {
@@ -955,6 +964,12 @@ namespace ApplicationLayer.Services
 
             return result;
         }
+
+
+
+
+
+
 
         // ===========================
         // Delete (Soft Delete)

@@ -96,22 +96,7 @@ namespace ApplicationLayer.Mapping
 
 
 
-            //// لا تستخدم ReverseMap() هنا — بدّلها بمابّينج عكسي مخصص:
-            //CreateMap<MovieDto, Movie>()
-            //    // لو عندك GenreIds في DTO => حوّلهم لكائنات MovieGenre
-            //    .ForMember(dest => dest.MovieGenres,
-            //        opt => opt.MapFrom(src =>
-            //            (src.GenreIds ?? new List<Guid>()).Select(gid => new MovieGenre { GenreId = gid }).ToList()))
-            //    // لو Castings في DTO => حوّلهم لكائنات MovieCast
-            //    .ForMember(dest => dest.Castings,
-            //        opt => opt.MapFrom(src =>
-            //            (src.Castings ?? new List<CastDto>()).Select(c => new MovieCast
-            //            {
-            //                CastMemberId = c.Id,          // لو c.Id موجود هو رابط لـ CastMember موجود
-            //                CharacterName = c.CharacterName
-            //            }).ToList()))
-            //    // تأكد ما تقلبش الانواع التانية لو مش لازمة
-            //    ;
+         
 
 
             CreateMap<MovieDto, Movie>()
