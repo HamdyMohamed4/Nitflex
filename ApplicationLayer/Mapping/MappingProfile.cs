@@ -1,10 +1,8 @@
 ﻿using AutoMapper;
-using System;
 using System.Linq;
 using ApplicationLayer.Dtos;
 using Domains;
 using InfrastructureLayer.UserModels;
-using ApplicationLayer.Contract;
 
 namespace ApplicationLayer.Mapping
 {
@@ -21,72 +19,93 @@ namespace ApplicationLayer.Mapping
             CreateMap<CreateCastMemberDto, CastMember>().ReverseMap();
             CreateMap<UpdateCastMemberDto, CastMember>().ReverseMap();
 
+            // Genre mappings
+            CreateMap<Genre, GenreDto>().ReverseMap();
+            CreateMap<TVShowGenre, GenreDto>()
+                .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.GenreId))
+                .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Genre != null ? src.Genre.Name : ""))
+                .ReverseMap();
 
+            // Cast mapping
+            CreateMap<TvShowCast, CastDto>()
+                .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.CastMemberId))
+                .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.CastMember != null ? src.CastMember.Name : ""))
+                .ForMember(dest => dest.CharacterName, opt => opt.MapFrom(src => src.CharacterName))
+                .ReverseMap();
 
+            CreateMap<MovieCast, CastDto>()
+                .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.CastMemberId))
+                .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.CastMember != null ? src.CastMember.Name : ""))
+                .ForMember(dest => dest.CharacterName, opt => opt.MapFrom(src => src.CharacterName))
+                .ReverseMap();
 
+            // Episode & Season mapping
+            CreateMap<Episode, EpisodeDto>().ReverseMap();
+            CreateMap<Season, SeasonDto>()
+                .ForMember(dest => dest.Episodes, opt => opt.MapFrom(src =>
+                    src.Episodes != null
+                        ? src.Episodes.Where(e => e.CurrentState == 1).ToList()
+                        : new List<Episode>()))
+                .ReverseMap();
 
+            CreateMap<Season, SeasonWithEpisodesDto>()
+                .ForMember(dest => dest.Episodes, opt => opt.MapFrom(src =>
+                    src.Episodes != null
+                        ? src.Episodes.Where(e => e.CurrentState == 1).ToList()
+                        : new List<Episode>()))
+                .ReverseMap();
 
+            // TV Show mappings
             CreateMap<TVShow, TvShowDto>()
-    .ForMember(dest => dest.GenreIds,
-        opt => opt.MapFrom(src => src.TVShowGenres.Select(g => g.GenreId).ToList()))
-    .ForMember(dest => dest.GenresNames,
-        opt => opt.MapFrom(src => src.TVShowGenres
-            .Select(g => new GenreDto { Id = g.Genre.Id, Name = g.Genre.Name })
-            .ToList()))
-    .ForMember(dest => dest.Cast,
-        opt => opt.MapFrom(src => src.Castings
-            .Where(c => c.CastMember != null)
-            .Select(c => new CastDto
-            {
-                Id = c.CastMember.Id,
-                Name = c.CastMember.Name,
-                CharacterName = c.CharacterName
-            }).ToList()))
-    .ForMember(dest => dest.Seasons,
-        opt => opt.MapFrom(src => src.Seasons
-            .Where(s => s.CurrentState == 1)
-            .OrderBy(s => s.SeasonNumber)
-            .Select(s => new SeasonDto
-            {
-                SeasonNumber = s.SeasonNumber,
-                Episodes = s.Episodes
-                    .Where(e => e.CurrentState == 1)
-                    .OrderBy(e => e.EpisodeNumber)
-                    .Select(e => new EpisodeDto
-                    {
-                        EpisodeNumber = e.EpisodeNumber,
-                        Title = e.Title,
-                    }).ToList()
-            }).ToList()));
-
-
-
-
-
-
-
-
-            // Movie mappings
-            CreateMap<Movie, MovieDto>()
                 .ForMember(dest => dest.GenreIds,
-                    opt => opt.MapFrom(src => src.MovieGenres.Select(g => g.GenreId)))
+                    opt => opt.MapFrom(src => src.TVShowGenres.Select(g => g.GenreId).ToList()))
                 .ForMember(dest => dest.GenresNames,
-                    opt => opt.MapFrom(src => src.MovieGenres.Select(g => new GenreDto
-                    {
-                        Id = g.Genre.Id,
-                        Name = g.Genre.Name
-                    }).ToList()))
-                .ForMember(dest => dest.Castings,
-                    opt => opt.MapFrom(src => src.Castings.Select(c => new CastDto
-                    {
-                        Id = c.CastMemberId,
-                        Name = c.CastMember.Name,
-                        CharacterName = c.CharacterName
-                    }).ToList()));
+                    opt => opt.MapFrom(src => src.TVShowGenres
+                        .Where(g => g.Genre != null)
+                        .Select(g => new GenreDto { Id = g.Genre.Id, Name = g.Genre.Name ,CurrentState=g.Genre.CurrentState }).ToList()))
+                .ForMember(dest => dest.Cast,
+                    opt => opt.MapFrom(src => src.Castings
+                        .OrderBy(c => c.Id)
+                        .Take(10)))
+                .ForMember(dest => dest.Seasons,
+                    opt => opt.MapFrom(src => src.Seasons
+                        .OrderBy(s => s.SeasonNumber)))
+                .ReverseMap();
 
+            CreateMap<TVShow, TvShowDetailsDto>()
+                .ForMember(dest => dest.GenresNames,
+                    opt => opt.MapFrom(src => src.TVShowGenres
+                        .Where(g => g.Genre != null)
+                        .Select(g => new GenreDto { Id = g.Genre.Id, Name = g.Genre.Name ,CurrentState=g.Genre.CurrentState }).ToList()))
+                .ReverseMap();
+
+            CreateMap<CreateTvShowDto, TVShow>().ReverseMap();
+            CreateMap<UpdateTvShowDto, TVShow>().ReverseMap();
+
+            // Movie -> DTO
+            CreateMap<Movie, MovieDto>()
+                .ForMember(dest => dest.GenresNames,
+                    opt => opt.MapFrom(src => src.MovieGenres
+                        .Where(g => g.Genre != null)
+                        .Select(g => new GenreDto
+                        {
+                            Id = g.Genre.Id,
+                            Name = g.Genre.Name,
+                            CurrentState = g.Genre.CurrentState
+
+                        }).ToList()))
+                .ForMember(dest => dest.Castings, opt => opt.MapFrom(src => src.Castings));
+
+
+            // DTO -> Movie
             CreateMap<MovieDto, Movie>()
                 .ForMember(dest => dest.MovieGenres,
-                    opt => opt.MapFrom(src => src.GenreIds.Select(id => new MovieGenre { GenreId = id })))
+                    opt => opt.MapFrom(src => src.GenresNames.Select(g => new MovieGenre
+                    {
+                        GenreId = g.Id,
+                        CurrentState = 1
+
+                    })))
                 .ForMember(dest => dest.Castings,
                     opt => opt.MapFrom(src => src.Castings.Select(c => new MovieCast
                     {
@@ -94,142 +113,24 @@ namespace ApplicationLayer.Mapping
                         CharacterName = c.CharacterName
                     })));
 
-            // Genre
-            CreateMap<Genre, GenreDto>().ReverseMap();
-            CreateMap<TVShowGenre, GenreDto>()
-                .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Genre.Id))
-                .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Genre.Name));
-
-            // TV Show mappings
-            CreateMap<TVShow, TvShowDto>()
-                .ForMember(dest => dest.GenreIds,
-                    opt => opt.MapFrom(src => src.TVShowGenres.Select(g => g.GenreId)))
-                .ForMember(dest => dest.GenresNames,
-                    opt => opt.MapFrom(src => src.TVShowGenres.Select(g => new GenreDto
-                    {
-                        Id = g.Genre.Id,
-                        Name = g.Genre.Name
-                    }).ToList()))
-                .ForMember(dest => dest.Cast,
-                    opt => opt.MapFrom(src => src.Castings.Select(c => new CastDto
-                    {
-                        Id = c.CastMemberId,
-                        Name = c.CastMember.Name,
-                        CharacterName = c.CharacterName
-                    }).ToList()))
-                .ForMember(dest => dest.Seasons,
-                    opt => opt.MapFrom(src => src.Seasons.Where(s => s.CurrentState == 1)
-                                                        .OrderBy(s => s.SeasonNumber)
-                                                        .ToList()));
-
-            //CreateMap<TVShow, TvShowDetailsDto>()
-            //    .ForMember(dest => dest.GenresNames,
-            //        opt => opt.MapFrom(src => src.TVShowGenres.Select(g => new GenreDto
-            //        {
-            //            Id = g.Genre.Id,
-            //            Name = g.Genre.Name
-            //        }).ToList()))
-            //    .ForMember(dest => dest.Cast,
-            //        opt => opt.MapFrom(src => src.Castings.Select(c => new CastDto
-            //        {
-            //            Id = c.CastMemberId,
-            //            Name = c.CastMember.Name,
-            //            CharacterName = c.CharacterName
-            //        }).ToList()))
-            //    .ForMember(dest => dest.Seasons,
-            //        opt => opt.MapFrom(src => src.Seasons.Where(s => s.CurrentState == 1)
-            //                                            .OrderBy(s => s.SeasonNumber)
-            //                                            .ToList()));
-
-
-
-
-
-
-
-
-
-    //        CreateMap<TVShow, TvShowDetailsDto>()
-    //// Genres
-    //.ForMember(dest => dest.GenresNames,
-    //    opt => opt.MapFrom(src => src.TVShowGenres
-    //        .Select(g => new GenreDto
-    //        {
-    //            Id = g.Genre.Id,
-    //            Name = g.Genre.Name
-    //        }).ToList()))
-    //.ForMember(dest => dest.GenreIds,
-    //    opt => opt.MapFrom(src => src.TVShowGenres.Select(g => g.GenreId).ToList()))
-    //// Cast (أول 10 فقط)
-    //.ForMember(dest => dest.Cast,
-    //    opt => opt.MapFrom(src => src.Castings
-    //        .Where(c => c.CastMember != null)
-    //        .OrderBy(c => c.Id)
-    //        .Take(10)
-    //        .Select(c => new CastDto
-    //        {
-    //            Id = c.CastMemberId,
-    //            Name = c.CastMember.Name,
-    //            CharacterName = c.CharacterName
-    //        }).ToList()))
-    //// Seasons + Episodes
-    //.ForMember(dest => dest.Seasons,
-    //    opt => opt.MapFrom(src => src.Seasons
-    //        .Where(s => s.CurrentState == 1)
-    //        .OrderBy(s => s.SeasonNumber)
-    //        .Select(s => new SeasonWithEpisodesDto
-    //        {
-    //            SeasonNumber = s.SeasonNumber,
-    //            Episodes = s.Episodes
-    //                .Where(e => e.CurrentState == 1)
-    //                .OrderBy(e => e.EpisodeNumber)
-    //                .Select(e => new EpisodeDto
-    //                {
-    //                    EpisodeNumber = e.EpisodeNumber,
-    //                    Title = e.Title,
-    //                }).ToList()
-    //        }).ToList()));
-
-
-
-
-
-
-
-
-
-            CreateMap<CreateTvShowDto, TVShow>().ReverseMap();
-            CreateMap<UpdateTvShowDto, TVShow>().ReverseMap();
-
-            // Seasons & Episodes
-            CreateMap<Season, SeasonDto>()
-                .ForMember(dest => dest.Episodes, opt => opt.MapFrom(src => src.Episodes.Where(e => e.CurrentState == 1).ToList()));
-            CreateMap<Season, SeasonWithEpisodesDto>()
-                .ForMember(dest => dest.Episodes, opt => opt.MapFrom(src => src.Episodes.Where(e => e.CurrentState == 1).ToList()));
-            CreateMap<Episode, EpisodeDto>().ReverseMap();
-
-            CreateMap<CreateSeasonDto, Season>();
-            CreateMap<UpdateSeasonDto, Season>();
-            CreateMap<CreateEpisodeDto, Episode>().ReverseMap();
-            CreateMap<UpdateEpisodeDto, Episode>().ReverseMap();
 
             // Watchlist
             CreateMap<UserWatchlist, WatchlistItemDto>().ReverseMap();
-            CreateMap<AddToWatchlistDto, UserWatchlist>();
+            CreateMap<AddToWatchlistDto, UserWatchlist>().ReverseMap();
 
             // Ratings
             CreateMap<UserRating, RatingDto>().ReverseMap();
-            CreateMap<RateContentDto, UserRating>();
+            CreateMap<RateContentDto, UserRating>().ReverseMap();
 
             // OTP
             CreateMap<EmailOtp, OtpDto>().ReverseMap();
 
             // Subscriptions
             CreateMap<SubscriptionPlan, SubscriptionPlanDto>().ReverseMap();
-            CreateMap<CreateSubscriptionPlanDto, SubscriptionPlan>();
-            CreateMap<UpdateSubscriptionPlanDto, SubscriptionPlan>();
+            CreateMap<CreateSubscriptionPlanDto, SubscriptionPlan>().ReverseMap();
+            CreateMap<UpdateSubscriptionPlanDto, SubscriptionPlan>().ReverseMap();
             CreateMap<UserSubscription, UserSubscriptionDto>().ReverseMap();
-            CreateMap<CreateUserSubscriptionDto, UserSubscription>();
+            CreateMap<CreateUserSubscriptionDto, UserSubscription>().ReverseMap();
 
             // Users
             CreateMap<ApplicationUser, RegisterDto>()
@@ -239,8 +140,8 @@ namespace ApplicationLayer.Mapping
             CreateMap<ApplicationUser, LoginWithOtpDto>().ReverseMap();
             CreateMap<ApplicationUser, UserResultDto>().ReverseMap();
             CreateMap<ApplicationUser, UserDto>().ReverseMap();
-            CreateMap<CreateUserDto, ApplicationUser>();
-            CreateMap<UpdateUserDto, ApplicationUser>();
+            CreateMap<CreateUserDto, ApplicationUser>().ReverseMap();
+            CreateMap<UpdateUserDto, ApplicationUser>().ReverseMap();
 
             // Profiles
             CreateMap<UserProfile, UserProfileDto>().ReverseMap();
@@ -248,12 +149,11 @@ namespace ApplicationLayer.Mapping
             // User History
             CreateMap<UserHistory, UserHistoryDto>()
                 .ForMember(dest => dest.Title, opt => opt.MapFrom(src => string.Empty))
-                .ForMember(dest => dest.ThumbnailUrl, opt => opt.MapFrom(src => (string?)null));
-            CreateMap<UserHistoryDto, UserHistory>().ReverseMap();
+                .ForMember(dest => dest.ThumbnailUrl, opt => opt.MapFrom(src => (string?)null))
+                .ReverseMap();
 
             // Notifications
             CreateMap<Notification, NotificationDto>().ReverseMap();
-            CreateMap<NotificationDto, Notification>().ReverseMap();
         }
     }
 }

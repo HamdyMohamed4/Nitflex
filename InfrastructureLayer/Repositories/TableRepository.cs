@@ -110,7 +110,8 @@ namespace InfrastructureLayer.Repositories
             }
             catch (Exception ex)
             {
-                throw new DataAccessException(ex, "", _logger);
+                throw new DataAccessException(ex, ex.Message, _logger);
+
             }
         }
 

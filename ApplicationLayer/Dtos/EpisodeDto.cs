@@ -14,8 +14,6 @@ namespace ApplicationLayer.Dtos
         public int Duration { get; set; }
         public string? VideoUrl { get; set; }
 
-        [MaxLength(500)]
-        public string? TrailerUrl { get; set; } = string.Empty;
         public Guid SeasonId { get; set; }
     }
 }

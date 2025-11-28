@@ -46,22 +46,25 @@ namespace Presentation.Controllers
             }
         }
 
-        // GET: api/AdminTvShow/{id}
+
         [HttpGet("{id:guid}")]
         public async Task<ActionResult<ApiResponse<TvShowDto>>> GetById(Guid id)
         {
             try
             {
-                var show = await _tvShowService.GetByIdAsync(id);
+                if (id == Guid.Empty)
+                    return BadRequest(ApiResponse<TvShowDto>.FailResponse("Invalid show id."));
 
-                if (show == null)
+                var serviceResponse = await _tvShowService.GetByIdAsync(id);
+
+                if (serviceResponse == null || serviceResponse.Data == null)
                     return NotFound(ApiResponse<TvShowDto>.FailResponse("Show not found."));
 
-                return Ok(ApiResponse<TvShowDto>.SuccessResponse(show, "Show retrieved successfully."));
+                return Ok(ApiResponse<TvShowDto>.SuccessResponse(serviceResponse.Data, serviceResponse.Message));
             }
             catch (Exception ex)
             {
-                return BadRequest(ApiResponse<TvShowDto>.FailResponse("Failed to retrieve show.", new List<string> { ex.Message }));
+                return BadRequest(ApiResponse<TvShowDto>.FailResponse("Failed to retrieve show", new List<string> { ex.Message }));
             }
         }
 

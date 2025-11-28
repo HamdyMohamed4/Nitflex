@@ -36,6 +36,56 @@ namespace ApplicationLayer.Services
             _userService = userService;
         }
 
+        public async Task<ServiceResponse<TvShowDto>?> GetByIdAsync(Guid id)
+        {
+            if (id == Guid.Empty) return null;
+
+            // Use repository GetListWithInclude or GetPagedListAsync pattern; here we will query using the repository's GetListWithInclude if exists
+            // We'll fall back to using the unit of work's repository and building EF query via GetListWithInclude func
+
+            var shows = await _tvShowRepo.GetListWithInclude(
+                filter: s => s.Id == id && s.CurrentState == 1,
+                include: query => query
+                    .Include(s => s.TVShowGenres)
+                        .ThenInclude(tg => tg.Genre)
+                    .Include(s => s.Seasons)
+                        .ThenInclude(se => se.Episodes)
+                    .Include(s => s.Castings)
+                        .ThenInclude(c => c.CastMember)
+            );
+
+            var show = shows.FirstOrDefault();
+            if (show == null) return null;
+
+            // Filter child collections by CurrentState == 1 and order accordingly
+            show.Castings = show.Castings?.Where(c => c.CastMember != null && c.CastMember.CurrentState == 1 && c.CurrentState == 1)
+                .OrderBy(c => c.Id)
+                .Take(10)
+                .ToList() ?? new List<TvShowCast>();
+
+            show.Seasons = show.Seasons?.Where(se => se.CurrentState == 1)
+                .OrderBy(se => se.SeasonNumber)
+                .ToList() ?? new List<Season>();
+
+            foreach (var season in show.Seasons)
+            {
+                season.Episodes = season.Episodes?.Where(ep => ep.CurrentState == 1)
+                    .OrderBy(ep => ep.EpisodeNumber)
+                    .ToList() ?? new List<Episode>();
+            }
+
+            var dto = _mapper.Map<TvShowDto>(show);
+
+            var response = new ServiceResponse<TvShowDto>
+            {
+                Success = true,
+                Message = "Show retrieved successfully.",
+                Data = dto
+            };
+
+            return response;
+        }
+
         // ===========================
         // TvShow: Basic CRUD & listing
         // ===========================
@@ -78,51 +128,6 @@ namespace ApplicationLayer.Services
 
 
 
-        public async Task<TvShowDto?> GetByIdAsync(Guid id)
-        {
-            // جلب الـ TVShow مع كل الـ relations المهمة
-            var shows = await _unitOfWork.Repository<TVShow>()
-                .GetListWithInclude(
-                    filter: x => x.Id == id,
-                    include: query => query
-                        .Include(x => x.Castings)
-                            .ThenInclude(c => c.CastMember)
-                        .Include(x => x.TVShowGenres)
-                            .ThenInclude(g => g.Genre)
-                        .Include(x => x.Seasons)
-                            .ThenInclude(s => s.Episodes)
-                );
-
-            var show = shows.FirstOrDefault();
-            if (show == null)
-                return null;
-
-            // تحديد أول 10 من الكاست
-            show.Castings = show.Castings
-                .Where(c => c.CastMember != null)
-                .OrderBy(c => c.Id)
-                .Take(10)
-                .ToList();
-
-            // ترتيب الـ Seasons والـ Episodes
-            foreach (var season in show.Seasons)
-            {
-                season.Episodes = season.Episodes
-                    .Where(e => e.CurrentState == 1)
-                    .OrderBy(e => e.EpisodeNumber)
-                    .ToList();
-            }
-
-            show.Seasons = show.Seasons
-                .Where(s => s.CurrentState == 1)
-                .OrderBy(s => s.SeasonNumber)
-                .ToList();
-
-            // Mapping للـ DTO النهائي
-            var dto = _mapper.Map<TvShowDto>(show);
-
-            return dto;
-        }
 
         // Create TV show
         public async Task<TvShowDto> CreateAsync(CreateTvShowDto dto)
@@ -223,142 +228,43 @@ namespace ApplicationLayer.Services
 
 
 
-        public async Task<IEnumerable<TvShowDto>> GetFeaturedAsync(int limit = 10)
+        public async Task<IEnumerable<TvShowDetailsDto>> GetFeaturedAsync(int limit = 10)
         {
-            // 1️⃣ جلب البيانات مع Include لكل الـ relations
+            // 1️⃣ جلب البيانات مع Include لكل العلاقات المطلوبة
             var tvShows = await _unitOfWork.Repository<TVShow>()
                 .GetListWithInclude(
                     filter: m => m.CurrentState == 1 && m.IsFeatured,
                     include: query => query
                         .Include(x => x.TVShowGenres)
                             .ThenInclude(mg => mg.Genre)
-                        .Include(x => x.Castings)
-                            .ThenInclude(c => c.CastMember)
-                        .Include(x => x.Seasons)
-                            .ThenInclude(s => s.Episodes)
                 );
 
-            // 2️⃣ ترتيب حسب التاريخ واخد limit
+            // 2️⃣ ترتيب وأخذ أول عدد من البيانات
             var ordered = tvShows
-                .OrderByDescending(m => m.CreatedDate)
+                .OrderByDescending(x => x.CreatedDate)
                 .Take(limit)
-                .Select(m =>
-                {
-                    // 3️⃣ أخذ أعلى 10 Cast لكل show
-                    m.Castings = m.Castings
-                        .OrderBy(c => c.Id)
-                        .Take(10)
-                        .ToList();
-
-                    return m;
-                })
                 .ToList();
 
-            // 4️⃣ تحويل الـ entities لـ DTOs باستخدام AutoMapper
-            return _mapper.Map<IEnumerable<TvShowDto>>(ordered);
+            // 3️⃣ تحويل البيانات النهائية باستخدام الـ AutoMapper فقط
+            return _mapper.Map<IEnumerable<TvShowDetailsDto>>(ordered);
         }
 
 
-
-
-
-
-        //public async Task<IEnumerable<TvShowDto>> GetAllShowsAsync()
-        //{
-        //    var shows = await _unitOfWork.Repository<TVShow>()
-        //        .GetListWithInclude(
-        //            filter: x => true,
-        //            include: query => query
-        //                .Include(x => x.TVShowGenres)
-        //                    .ThenInclude(mg => mg.Genre)
-        //                .Include(x => x.Castings)
-        //                    .ThenInclude(c => c.CastMember)
-        //                .Include(x => x.Seasons)
-        //                    .ThenInclude(s => s.Episodes)
-        //        );
-
-        //    return _mapper.Map<IEnumerable<TvShowDto>>(shows);
-        //}
-
-
-
-
-
-
-        public async Task<IEnumerable<TvShowDto>> GetAllTvShowsAsync()
+        public async Task<IEnumerable<TvShowDetailsDto>> GetAllTvShowsAsync()
         {
-            // Load TV Shows with Related Entities
+            // Load TV Shows with Related Entities فقط
             var shows = await _unitOfWork.Repository<TVShow>()
                 .GetListWithInclude(
-                    filter: x => true,
+                    filter: _ => true,
                     include: query => query
-                        .Include(x => x.Castings)
-                            .ThenInclude(c => c.CastMember)
                         .Include(x => x.TVShowGenres)
                             .ThenInclude(g => g.Genre)
-                        .Include(x => x.Seasons)
-                            .ThenInclude(s => s.Episodes)
                 );
 
-            // Map to DTO
-            var result = shows.Select(m => new TvShowDto
-            {
-                Name = m.Name,
-                Id = m.Id,
-                Title = m.Title,
-                Description = m.Description,
-                ReleaseYear = m.ReleaseYear,
-                DurationMinutes = m.DurationMinutes,
-                AgeRating = m.AgeRating,
-                PosterUrl = m.PosterUrl,
-                TmdbId = m.TmdbId,
-                IsFeatured = m.IsFeatured,
-                Type = m.Type,
-                Language = m.Language,
-                AudioType = m.AudioType,
-
-                // Genres
-                GenresNames = m.TVShowGenres.Select(mg => new GenreDto
-                {
-                    Id = mg.Genre.Id,
-                    Name = mg.Genre.Name
-                }).ToList(),
-
-                // Cast (first 10 only)
-                Cast = m.Castings
-                    .Where(c => c.CastMember != null)
-                    .OrderBy(c => c.Id)
-                    .Take(10)
-                    .Select(c => new CastDto
-                    {
-                        Id = c.CastMember.Id,
-                        Name = c.CastMember.Name,
-                        CharacterName = c.CharacterName
-                    }).ToList(),
-
-                // Seasons + Episodes
-                Seasons = m.Seasons
-                    .OrderBy(s => s.SeasonNumber)
-                    .Select(s => new SeasonWithEpisodesDto
-                    {
-                        SeasonNumber = s.SeasonNumber,
-                        Episodes = s.Episodes
-                            .OrderBy(e => e.EpisodeNumber)
-                            .Select(e => new EpisodeDto
-                            {
-                                Id = e.Id,
-                                Title = e.Title,
-                                Duration = e.DurationMinutes,
-                                EpisodeNumber = e.EpisodeNumber,
-                                VideoUrl = e.VideoUrl,
-                                TrailerUrl = e.TrailerUrl,
-
-                            }).ToList()
-                    }).ToList()
-            }).ToList();
-
-            return result;
+            // AutoMapper will handle the transformation
+            return _mapper.Map<IEnumerable<TvShowDetailsDto>>(shows);
         }
+
 
 
 

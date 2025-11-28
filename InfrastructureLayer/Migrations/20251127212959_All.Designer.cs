@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace InfrastructureLayer.Migrations
 {
     [DbContext(typeof(NetflixContext))]
-    [Migration("20251125175828_AllMigaaaa")]
-    partial class AllMigaaaa
+    [Migration("20251127212959_All")]
+    partial class All
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -138,10 +138,6 @@ namespace InfrastructureLayer.Migrations
                         .IsRequired()
                         .HasMaxLength(250)
                         .HasColumnType("nvarchar(250)");
-
-                    b.Property<string>("TrailerUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
 
                     b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("uniqueidentifier");
@@ -309,6 +305,24 @@ namespace InfrastructureLayer.Migrations
 
                     b.Property<Guid>("GenreId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CurrentState")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("MovieId", "GenreId");
 
@@ -501,6 +515,10 @@ namespace InfrastructureLayer.Migrations
 
                     b.Property<int>("TmdbId")
                         .HasColumnType("int");
+
+                    b.Property<string>("TrailerUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<int?>("Type")
                         .HasColumnType("int");
@@ -801,6 +819,15 @@ namespace InfrastructureLayer.Migrations
 
                     b.Property<int>("CurrentState")
                         .HasColumnType("int");
+
+                    b.Property<bool>("IsKidProfile")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsLocked")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("PinHash")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ProfileName")
                         .IsRequired()

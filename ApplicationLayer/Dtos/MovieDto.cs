@@ -19,8 +19,6 @@ namespace ApplicationLayer.Dtos
         public MediaType? Type { get; set; } = MediaType.Movie;
         public string? Language { get; set; }
         public string? AudioType { get; set; }
-
-        public List<Guid> GenreIds { get; set; } = new();
         public List<GenreDto> GenresNames { get; set; } = new();
         public List<CastDto> Castings { get; set; } = new();
     }

@@ -200,7 +200,12 @@ namespace ApplicationLayer.Services
                     IsFeatured = false,
                     Type = MediaType.TvShow,
                     ReleaseYear = !string.IsNullOrEmpty(show.first_air_date) ?
-                                   int.Parse(show.first_air_date.Split("-")[0]) : null
+                                   int.Parse(show.first_air_date.Split("-")[0]) : null,
+
+                    // Use trailer if exists; otherwise fallback to show trailer
+                    TrailerUrl = showTrailerKey != null
+                                                    ? $"https://www.youtube.com/watch?v={showTrailerKey}"
+                                                    : (showTrailerKey != null ? $"https://www.youtube.com/watch?v={showTrailerKey}" : ""),
                 };
 
                 // Assign Genres
@@ -253,8 +258,7 @@ namespace ApplicationLayer.Services
                             {
                                 // Try get trailer for specific episode (optional)
                                 var epVideos = await _tmdbService.GetEpisodeVideosAsync(show.id, seasonInfo.season_number, ep.episode_number);
-                                var episodeTrailerKey = epVideos?.results?
-                                    .FirstOrDefault(x => x.site == "YouTube" && x.type == "Trailer")?.key;
+                         
 
                                 var episodeEntity = new Episode
                                 {
@@ -264,10 +268,6 @@ namespace ApplicationLayer.Services
                                     EpisodeNumber = ep.episode_number,
                                     DurationMinutes = ep.runtime ?? 0,
 
-                                    // Use trailer if exists; otherwise fallback to show trailer
-                                    TrailerUrl = episodeTrailerKey != null
-                                                    ? $"https://www.youtube.com/watch?v={episodeTrailerKey}"
-                                                    : (showTrailerKey != null ? $"https://www.youtube.com/watch?v={showTrailerKey}" : ""),
 
                                     // Video stored later when streaming server exists
                                     VideoUrl = ""
@@ -359,7 +359,10 @@ namespace ApplicationLayer.Services
                     Type = MediaType.TvShow,
                     IsFeatured = true,
                     ReleaseYear = !string.IsNullOrEmpty(show.first_air_date) ?
-                                   int.Parse(show.first_air_date.Split("-")[0]) : null
+                                   int.Parse(show.first_air_date.Split("-")[0]) : null,
+                    TrailerUrl = showTrailerKey != null
+                                                    ? $"https://www.youtube.com/watch?v={showTrailerKey}"
+                                                    : (showTrailerKey != null ? $"https://www.youtube.com/watch?v={showTrailerKey}" : ""),
                 };
 
                 // Assign Genres
@@ -420,9 +423,7 @@ namespace ApplicationLayer.Services
                                     Title = ep.name ?? $"Episode {ep.episode_number}",
                                     EpisodeNumber = ep.episode_number,
                                     DurationMinutes = ep.runtime ?? 0,
-                                    TrailerUrl = episodeTrailerKey != null
-                                                    ? $"https://www.youtube.com/watch?v={episodeTrailerKey}"
-                                                    : (showTrailerKey != null ? $"https://www.youtube.com/watch?v={showTrailerKey}" : ""),
+
                                     VideoUrl = "" // Optional: fill when streaming video is available
                                 };
 
@@ -520,6 +521,13 @@ namespace ApplicationLayer.Services
                     {
                         var genre = (await _unitOfWork.Repository<Genre>().GetAll())
                                     .FirstOrDefault(x => x.TmdbId == gid);
+
+                        var exists = await _repo.GetFirstOrDefault(m => m.TmdbId == movie.TmdbId);
+                        if (exists != null)
+                        {
+                            continue; // skip duplicates
+                        }
+
 
                         if (genre != null)
                         {
@@ -784,9 +792,10 @@ namespace ApplicationLayer.Services
             var movies = await _unitOfWork.Repository<Movie>()
                 .GetListWithInclude(
                     filter: x => x.Id == id,
-                    include: query => query
-                        .Include(x => x.MovieGenres)
-                            .ThenInclude(g => g.Genre)
+                   include: query =>
+                    query.Include(x => x.MovieGenres)
+                    .ThenInclude(mg => mg.Genre)
+                        .AsSplitQuery()
                         .Include(x => x.Castings)
                             .ThenInclude(c => c.CastMember)
                 );
@@ -1042,6 +1051,7 @@ namespace ApplicationLayer.Services
             var result = movies.Select(m => new MovieDto
             {
                 Id = m.Id,
+                CurrentState = m.CurrentState,
                 Title = m.Title,
                 Description= m.Description,
                 ReleaseYear=m.ReleaseYear,
@@ -1058,7 +1068,9 @@ namespace ApplicationLayer.Services
                 GenresNames = m.MovieGenres.Select(mg => new GenreDto
                 {
                     Id = mg.Genre.Id,
-                    Name = mg.Genre.Name
+                    Name = mg.Genre.Name,
+                    CurrentState = mg.Genre.CurrentState
+
                 }).ToList(),
 
                 Castings = m.Castings
@@ -1069,7 +1081,8 @@ namespace ApplicationLayer.Services
                     {
                         Id = c.CastMember.Id,
                         Name = c.CastMember.Name,
-                        CharacterName = c.CharacterName
+                        CharacterName = c.CharacterName,
+                        CurrentState = c.CastMember.CurrentState
                     }).ToList()
 
             }).ToList();

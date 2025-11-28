@@ -1,13 +1,35 @@
-﻿//using System;
-//using System.Collections.Generic;
-//using System.Linq;
-//using System.Text;
-//using System.Threading.Tasks;
+﻿using Domains;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
-//namespace ApplicationLayer.Dtos
-//{
-//    public class TvShowDetailsDto : TvShowDto
-//    {
-//        public List<SeasonDto> Seasons { get; set; } = new List<SeasonDto>();
-//    }
-//}
+namespace ApplicationLayer.Dtos
+{
+    public class TvShowDetailsDto :BaseDto
+    {
+        public string? Name { get; set; } = string.Empty;
+        public string? Title { get; set; } = string.Empty;
+        public string? Description { get; set; } = string.Empty;
+        public int? ReleaseYear { get; set; }
+        public int? DurationMinutes { get; set; }
+        public AgeRating AgeRating { get; set; }
+
+        [MaxLength(500)]
+        public string? Language { get; set; }  // English / Arabic / Spanish / French
+        public string? AudioType { get; set; }  // Original / Dubbed / Subtitled
+
+
+        [MaxLength(500)]
+        public string? PosterUrl { get; set; } = string.Empty;
+
+        [MaxLength(500)]
+        public string? TrailerUrl { get; set; } = string.Empty;
+        public bool IsFeatured { get; set; } = false;
+        public MediaType? Type { get; set; } = MediaType.Movie;
+        public List<GenreDto> GenresNames { get; set; } = new();
+
+    }
+}

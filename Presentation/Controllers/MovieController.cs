@@ -181,7 +181,7 @@ namespace Presentation.Controllers
         public async Task<IActionResult> ImportAll()
         {
             // 1. Import Genres
-            //await _movieService.ImportGenresAsync();
+            await _movieService.ImportGenresAsync();
 
             // 2. Import Top Rated Movies
             await _movieService.ImportTopRatedMoviesAsync();
@@ -197,11 +197,11 @@ namespace Presentation.Controllers
             }
 
 
-            var allTvshows = await _movieService.GetAllImportedTvshowsAsync();
-            foreach (var movie in allTvshows)
-            {
-                await _movieService.ImportCastForShowsAsync(movie, movie.TmdbId); // لازم تضيف TmdbId للـ Movie
-            }
+            //var allTvshows = await _movieService.GetAllImportedTvshowsAsync();
+            //foreach (var movie in allTvshows)
+            //{
+            //    await _movieService.ImportCastForShowsAsync(movie, movie.TmdbId); // لازم تضيف TmdbId للـ Movie
+            //}
 
 
 

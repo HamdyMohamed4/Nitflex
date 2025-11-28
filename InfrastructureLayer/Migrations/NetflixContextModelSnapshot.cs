@@ -136,10 +136,6 @@ namespace InfrastructureLayer.Migrations
                         .HasMaxLength(250)
                         .HasColumnType("nvarchar(250)");
 
-                    b.Property<string>("TrailerUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
                     b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("uniqueidentifier");
 
@@ -516,6 +512,10 @@ namespace InfrastructureLayer.Migrations
 
                     b.Property<int>("TmdbId")
                         .HasColumnType("int");
+
+                    b.Property<string>("TrailerUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<int?>("Type")
                         .HasColumnType("int");

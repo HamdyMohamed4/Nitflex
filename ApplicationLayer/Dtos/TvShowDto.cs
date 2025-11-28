@@ -22,6 +22,9 @@ namespace ApplicationLayer.Dtos
 
         [MaxLength(500)]
         public string? PosterUrl { get; set; } = string.Empty;
+
+        [MaxLength(500)]
+        public string? TrailerUrl { get; set; } = string.Empty;
         public bool IsFeatured { get; set; } = false;
         public MediaType? Type { get; set; } = MediaType.Movie;
 
@@ -32,14 +35,10 @@ namespace ApplicationLayer.Dtos
 
         public List<Guid> GenreIds { get; set; } = new();
 
-        // Streaming locator exposed to the client when user clicks Play
-        public string? StreamingUrl { get; set; }
-
         // Lightweight cast / creators for UI lists
         public List<CastDto> Cast { get; set; } = new();
 
         // Optional: whether the show has been marked complete / ended
-        public bool IsEnded { get; set; }
 
 
         // ⬇️ بديل NumberOfEpisodes و NumberOfSeasons
