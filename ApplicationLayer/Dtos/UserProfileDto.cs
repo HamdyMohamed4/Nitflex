@@ -7,5 +7,6 @@ public class UserProfileDto : BaseDto
     public Guid UserId { get; set; }
     [MaxLength(100)]
     public string ProfileName { get; set; } = string.Empty;
+    public string? ProfilePictureUrl { get; set; }
     public ICollection<WatchlistItemDto> WatchListItems { get; set; } = new List<WatchlistItemDto>();
 }

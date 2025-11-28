@@ -33,6 +33,8 @@ namespace ApplicationLayer.Contract
         Task<UserResultDto> ConfirmEmailAsync(Guid userId, string token);
         Task<UserResultDto> SetPasswordAsync(Guid userId, string password);
         Task<ApplicationUser?> GetUserByIdentityAsync(string userId);
+        Task<ApplicationUser?> GetUserByIdWithProfilesAsync(string userId);
+        Task<ApplicationUser?> GetUserByIdWithProfilesWithWatchListAsync(string userId);
         Task<ApplicationUser?> GetUserByIdWithProfilesWithHistoriesAsync(string userId);
         Task<LoginResponseDto> LoginWithOtpAsync(string email, string code);
         Task<IList<string>> GetUserRolesAsync(string userId);

@@ -1,15 +1,13 @@
-﻿using System.Reflection.Metadata.Ecma335;
-using ApplicationLayer.Contract;
+﻿using ApplicationLayer.Contract;
 using ApplicationLayer.Dtos;
 using AutoMapper;
 using Domains;
 using InfrastructureLayer.Contracts;
 using InfrastructureLayer.UserModels;
-using Microsoft.Extensions.Logging;
 
 namespace ApplicationLayer.Services
 {
-    internal class WatchlistService : BaseService<UserWatchlist, WatchlistItemDto>, IWatchlistService
+    public class WatchlistService : BaseService<UserWatchlist, WatchlistItemDto>, IWatchlistService
     {
         public WatchlistService(IGenericRepository<UserWatchlist> repo, IMapper mapper, IUserService userService) : base(repo, mapper) { }
 
@@ -23,14 +21,14 @@ namespace ApplicationLayer.Services
             if (userFromDB is null)
                 return (false, Guid.Empty);
 
-            UserWatchlist userWatchListItem = new() { ContentId = dto.ContentId, ContentType = dto.ContentType, ProfileId = dto.ProfileId };
+            UserWatchlist userWatchListItem = new() { ContentId = dto.ContentId, ContentType = dto.ContentType, ProfileId = dto.ProfileId, CurrentState = 1 };
 
             return await _repo.Add(userWatchListItem);
         }
 
         public async Task<List<WatchlistItemDto>> GetUserWatchlistAsync(string userId, Guid profileId)
         {
-            var userFromDB = await _userService.GetUserByIdentityAsync(userId);
+            var userFromDB = await _userService.GetUserByIdWithProfilesWithWatchListAsync(userId);
 
             if (userFromDB is null)
                 return null!;
@@ -40,14 +38,14 @@ namespace ApplicationLayer.Services
             if (profile is null)
                 return null!;
 
-            List<WatchlistItemDto> profiles = profile.WatchlistItems.Select(x => new WatchlistItemDto { Id = x.Id, ProfileId = x.ProfileId, ContentId = x.ContentId, ContentType = x.ContentType, CurrentState = x.CurrentState, AddedAt = DateTime.Now }).ToList();
+            List<WatchlistItemDto> profiles = profile.WatchlistItems.Where(x => x.CurrentState == 1).Select(x => new WatchlistItemDto { Id = x.Id, ProfileId = x.ProfileId, ContentId = x.ContentId, ContentType = x.ContentType, CurrentState = x.CurrentState, AddedAt = DateTime.Now }).ToList();
 
             return profiles;
         }
 
         public async Task<bool> RemoveAsync(string userId, Guid id, Guid profileId)
         {
-            var userFromDB = await _userService.GetUserByIdentityAsync(userId);
+            var userFromDB = await _userService.GetUserByIdWithProfilesWithWatchListAsync(userId);
 
             if (userFromDB is null)
                 return false;

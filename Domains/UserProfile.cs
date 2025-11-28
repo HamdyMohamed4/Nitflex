@@ -12,9 +12,9 @@ namespace Domains
     {
         [MaxLength(100)]
         public string ProfileName { get; set; } = string.Empty;
-
-        public Guid UserId { get; set; }        // الربط بالـ User
+        public Guid UserId { get; set; }
         public ApplicationUser User { get; set; } = default!;
+        public string? ProfilePicturePath { get; set; }
 
         // Lock / PIN support (store hashed PIN only)
         public bool IsLocked { get; set; } = false;
@@ -28,5 +28,4 @@ namespace Domains
         public ICollection<UserRating> Ratings { get; set; } = new List<UserRating>();
         public ICollection<UserHistory> Histories { get; set; } = new List<UserHistory>();
     }
-
 }

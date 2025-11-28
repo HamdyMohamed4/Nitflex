@@ -536,6 +536,11 @@ namespace Presentation.Services
             return await _userManager.Users.Include(x => x.Profiles).ThenInclude(x => x.Histories).AsNoTracking().FirstOrDefaultAsync(x => x.Id.ToString() == userId);
         }
 
+        public async Task<ApplicationUser?> GetUserByIdWithProfilesWithWatchListAsync(string userId)
+        {
+            return await _userManager.Users.Include(x => x.Profiles).ThenInclude(x => x.WatchlistItems).AsNoTracking().FirstOrDefaultAsync(x => x.Id.ToString() == userId);
+        }
+
         public async Task<bool> ResetPasswordAsync(string email, string token, string newPassword)
         {
             var user = await _userManager.FindByEmailAsync(email);
