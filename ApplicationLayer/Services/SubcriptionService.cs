@@ -3,6 +3,7 @@ using ApplicationLayer.Dtos;
 using AutoMapper;
 using Domains;
 using InfrastructureLayer.Contracts;
+using Microsoft.EntityFrameworkCore;
 using Presentation.Services;
 using System;
 using System.Collections.Generic;
@@ -16,7 +17,6 @@ namespace ApplicationLayer.Services
         private readonly IGenericRepository<SubscriptionPlan> _planRepo;
         private readonly IGenericRepository<UserSubscription> _userSubRepo;
         private readonly IMapper _mapper;
-        private readonly IUserService _userService;
         private readonly TokenService _tokenService;
         private readonly IRefreshTokens _refreshTokenService;
 
@@ -28,12 +28,12 @@ namespace ApplicationLayer.Services
             IUserService userService,
             IRefreshTokens refreshTokenService,
             TokenService tokenService
-        ) : base(planRepo, mapper, userService)
+        ) : base(planRepo, mapper)
         {
             _planRepo = planRepo;
             _userSubRepo = userSubRepo;
             _mapper = mapper;
-            _userService = userService;
+
             _tokenService = tokenService;
             _refreshTokenService = refreshTokenService;
         }
@@ -90,10 +90,12 @@ namespace ApplicationLayer.Services
         // ==================== User Subscriptions ====================
         public async Task<UserSubscriptionDto?> GetCurrentUserSubscriptionAsync(string userId)
         {
-            var subs = await _userSubRepo.GetList(us =>
+            var subs = await _userSubRepo.GetListWithInclude(
+                filter: us =>
                 us.UserId.ToString() == userId &&
                 us.StartDate <= DateTime.UtcNow &&
-                us.EndDate >= DateTime.UtcNow);
+                us.EndDate >= DateTime.UtcNow,
+                include: q => q.Include(x => x.SubscriptionPlan));
 
             var currentSub = subs.FirstOrDefault();
             if (currentSub == null) return null;
@@ -109,13 +111,14 @@ namespace ApplicationLayer.Services
             var userSub = new UserSubscription
             {
                 Id = Guid.NewGuid(),
-                Name = dto.Name,
+                Name = subPlan.Name,
                 UserId = Guid.Parse(userId),
                 SubscriptionPlanId = dto.SubscriptionPlanId,
                 StartDate = DateTime.UtcNow,
                 EndDate = DateTime.UtcNow.AddMonths(1), // أو حسب Duration
                 CreatedBy = Guid.Parse(userId),
                 CurrentState = 1
+                
             };
 
             await _userSubRepo.Add(userSub);
@@ -135,7 +138,7 @@ namespace ApplicationLayer.Services
                 throw new InvalidOperationException("User not found.");
 
             // توليد التوكنات
-            var accessToken = _tokenService.GenerateAccessToken(user);
+            var accessToken = await _tokenService.GenerateAccessToken(user);
             var refreshToken = _tokenService.GenerateRefreshToken();
 
             // حفظ الـ Refresh Token في قاعدة البيانات

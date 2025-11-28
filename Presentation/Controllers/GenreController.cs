@@ -55,7 +55,7 @@ namespace Presentation.Controllers
 
         [HttpPost]
         [Authorize(Roles = "Admin")]
-        public async Task<ActionResult<ApiResponse<GenreDto>>> Create([FromBody] CreateGenreDto dto)
+        public async Task<ActionResult<ApiResponse<GenreDto>>> Create([FromBody] GenreDto dto)
         {
             try
             {
@@ -70,7 +70,7 @@ namespace Presentation.Controllers
 
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin")]
-        public async Task<ActionResult<ApiResponse<GenreDto>>> Update(Guid id, [FromBody] UpdateGenreDto dto)
+        public async Task<ActionResult<ApiResponse<GenreDto>>> Update(Guid id, [FromBody] GenreDto dto)
         {
             try
             {

@@ -11,6 +11,25 @@ namespace InfrastructureLayer.Contracts
 {
     public interface IGenericRepository<T> where T : BaseTable
     {
+
+        Task<PagedResult<T>> GetPagedListAsync(
+            int pageNumber,
+            int pageSize,
+            Expression<Func<T, bool>>? filter = null,
+            Expression<Func<T, object>>? orderBy = null,
+            bool isDescending = false,
+            Func<IQueryable<T>, IQueryable<T>>? include = null
+        );
+
+        //Task<T?> GetByIdAsync(int id);
+        Task<(bool, Guid)> AddAsync(T entity);
+        Task<bool> AnyAsync(Expression<Func<T, bool>> predicate);
+
+
+        Task<IEnumerable<T>> GetAllAsync(params Expression<Func<T, object>>[] includes);
+        Task<List<T>> GetListWithInclude(
+   Expression<Func<T, bool>> filter,
+   Func<IQueryable<T>, IQueryable<T>>? include = null);
         Task<List<T>> GetAll();
         Task<T?> GetById(Guid id);
         Task<T?> GetByIdAsNoTracking(Guid id);
@@ -36,5 +55,9 @@ namespace InfrastructureLayer.Contracts
             Expression<Func<T, object>>? orderBy = null,
             bool isDescending = false,
             params Expression<Func<T, object>>[] includers);
+
+
+
+        IQueryable<T> GetAllQueryable();
     }
 }

@@ -22,7 +22,7 @@ namespace ApplicationLayer.Contract
         //Task<OtpDto?> GetValidOtpAsync(string userId, string code);
 
         // Save an OTP / magic token (we accept userId or email in the first param depending on usage)
-        Task SaveOtpAsync(string userIdOrEmail, string code, DateTime expires);
+        Task SaveOtpAsync(string email, string code, DateTime expires);
 
         // Get a stored OTP record by email/user and code (only if not used and not expired)
         Task<OtpDto?> GetValidOtpAsync(string emailOrUserId, string code);
@@ -31,12 +31,24 @@ namespace ApplicationLayer.Contract
         Task<bool> ValidateOtpAsync(string emailOrUserId, string code);
 
         // Mark OTP as used after successful verification
-        Task MarkOtpUsedAsync(string emailOrUserId, string code);
+        //Task MarkOtpUsedAsync(string emailOrUserId, string code);
+        Task MarkOtpAsUsedAsync(string email, string code);
+
+        Task SaveOtpAsync(string email, string code, DateTime expires, string type);
+
+        Task<OtpDto?> GetValidOtpAsync(string email, string code, string type);
+
+        Task MarkOtpAsUsedAsync(Guid otpId);
+
+
+        Task<bool> ValidateOtpAsync(string email);
 
         // Optional: get last token for an email (used by some implementations)
-        Task<OtpDto?> GetOtpAsync(string emailOrUserId);
+        //Task<OtpDto?> GetOtpAsync(string emailOrUserId);
 
-        // Optional: delete consumed/expired token
-        Task DeleteOtpAsync(string emailOrUserId);
+        //// Optional: delete consumed/expired token
+        //Task DeleteOtpAsync(string emailOrUserId);
+
+
     }
 }

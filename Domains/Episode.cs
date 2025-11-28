@@ -15,6 +15,7 @@ namespace Domains
         public int DurationMinutes { get; set; }
         public string VideoUrl { get; set; } = string.Empty;
 
+
         // Foreign Key (Changed from int to Guid)
         public Guid SeasonId { get; set; }
         public Season Season { get; set; } = default!;

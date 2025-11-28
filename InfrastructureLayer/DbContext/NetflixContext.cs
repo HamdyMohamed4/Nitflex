@@ -33,6 +33,7 @@ namespace InfrastructureLayer
         // --- Identity & Security ---
         public DbSet<TbRefreshTokens> TbRefreshTokens { get; set; }
         public DbSet<TbPaymentMethod> TbPaymentMethod { get; set; }
+        public DbSet<TbPaymentTransaction> TbPaymentTransaction { get; set; }
         public DbSet<EmailOtp> EmailOtp { get; set; }
 
         // --- Junction Tables ---
@@ -40,6 +41,11 @@ namespace InfrastructureLayer
         public DbSet<TVShowGenre> TVShowGenres { get; set; }
         public DbSet<MovieCast> MovieCasts { get; set; }
         public DbSet<TvShowCast> TVShowCasts { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
+        // inside NetflixContext class
+        public DbSet<TransferRequest> TransferRequests { get; set; }
+
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

@@ -13,6 +13,18 @@ namespace InfrastructureLayer.Exceptions
         { 
             logger.LogError($"main exception {ex.Message} developer custom exception " +
                 $"{customMessage}");
+
+
+
         }
+
+
+
+        public DataAccessException() : base("Database operation failed") { }
+
+        public DataAccessException(string message) : base(message) { }
+
+        public DataAccessException(string message, Exception innerException)
+            : base(message, innerException) { }
     }
 }

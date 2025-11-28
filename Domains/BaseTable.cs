@@ -12,7 +12,7 @@ namespace Domains
 
         public Guid? UpdatedBy { get; set; }
 
-        public int CurrentState { get; set; }
+        public int CurrentState { get; set; } = 1;
 
         public DateTime CreatedDate { get; set; }
 

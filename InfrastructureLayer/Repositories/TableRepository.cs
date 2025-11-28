@@ -25,11 +25,49 @@ namespace InfrastructureLayer.Repositories
             _logger = logger;
         }
 
+
+        public IQueryable<T> GetAllQueryable()
+        {
+            return _dbSet.AsQueryable();
+        }
+
+
+
+        public async Task<bool> AnyAsync(Expression<Func<T, bool>> predicate)
+        {
+            try
+            {
+                return await _dbSet.AnyAsync(predicate);
+            }
+            catch (Exception ex)
+            {
+                throw new DataAccessException(ex,$"Error executing AnyAsync: {ex.Message}" ,_logger);
+            }
+        }
+
+
+        public async Task<IEnumerable<T>> GetAllAsync(params Expression<Func<T, object>>[] includes)
+        {
+            IQueryable<T> query = _dbSet.AsQueryable();
+
+            if (includes != null && includes.Any())
+            {
+                foreach (var include in includes)
+                {
+                    query = query.Include(include);
+                }
+            }
+
+            return await query.ToListAsync();
+        }
+
+
+
         public async Task<List<T>> GetAll()
         {
             try
             {
-                return await _dbSet.Where(a => a.CurrentState > 0).AsNoTracking().ToListAsync();
+                return await _dbSet.AsNoTracking().ToListAsync();
             }
             catch (Exception ex)
             {
@@ -72,9 +110,40 @@ namespace InfrastructureLayer.Repositories
             }
             catch (Exception ex)
             {
-                throw new DataAccessException(ex, "", _logger);
+                throw new DataAccessException(ex, ex.Message, _logger);
+
             }
         }
+
+
+        public async Task<(bool, Guid)> AddAsync(T entity)
+        {
+            try
+            {
+                entity.CreatedDate = DateTime.Now;
+
+                // لو نفس الكيان موجود في الـ ChangeTracker لازم نفصله
+                var trackedEntity = _context.ChangeTracker
+                    .Entries<T>()
+                    .FirstOrDefault(e => e.Entity.Id.Equals(entity.Id));
+
+                if (trackedEntity != null)
+                    trackedEntity.State = EntityState.Detached;
+
+                await _dbSet.AddAsync(entity);
+                await _context.SaveChangesAsync();
+
+                // بعد الحفظ، فك تتبع النسخة عشان ما يسببش conflict بعدين
+                _context.Entry(entity).State = EntityState.Detached;
+
+                return (true, entity.Id);
+            }
+            catch (Exception ex)
+            {
+                throw new DataAccessException(ex, "Error during Add() operation", _logger);
+            }
+        }
+
 
         public async Task<bool> Update(T entity)
         {
@@ -180,6 +249,24 @@ namespace InfrastructureLayer.Repositories
                 throw new DataAccessException(ex, "", _logger);
             }
         }
+        public async Task<List<T>> GetListWithInclude(
+    Expression<Func<T, bool>> filter,
+    Func<IQueryable<T>, IQueryable<T>>? include = null)
+        {
+            try
+            {
+                IQueryable<T> query = _dbSet.Where(filter);
+
+                if (include != null)
+                    query = include(query);
+
+                return await query.AsNoTracking().ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new DataAccessException(ex, "", _logger);
+            }
+        }
 
         public async Task<List<TResult>> GetList<TResult>(
             Expression<Func<T, bool>>? filter = null,
@@ -217,6 +304,46 @@ namespace InfrastructureLayer.Repositories
                 throw new DataAccessException(ex, "", _logger);
             }
         }
+
+
+
+        public async Task<PagedResult<T>> GetPagedListAsync(
+        int pageNumber,
+        int pageSize,
+        Expression<Func<T, bool>>? filter = null,
+        Expression<Func<T, object>>? orderBy = null,
+        bool isDescending = false,
+        Func<IQueryable<T>, IQueryable<T>>? include = null
+    )
+        {
+            IQueryable<T> query = _dbSet.AsQueryable();
+
+            if (include != null)
+                query = include(query);
+
+            if (filter != null)
+                query = query.Where(filter);
+
+            int totalCount = await query.CountAsync();
+
+            if (orderBy != null)
+                query = isDescending ? query.OrderByDescending(orderBy) : query.OrderBy(orderBy);
+
+            var items = await query.AsNoTracking()
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new PagedResult<T>
+            {
+                Items = items,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+            };
+        }
+
 
         public async Task<PagedResult<TResult>> GetPagedList<TResult>(
             int pageNumber,

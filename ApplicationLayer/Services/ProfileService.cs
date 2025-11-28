@@ -1,131 +1,197 @@
-using ApplicationLayer.Contract;
+﻿using ApplicationLayer.Contract;
 using ApplicationLayer.Dtos;
 using AutoMapper;
-using Azure;
 using Domains;
 using InfrastructureLayer.Contracts;
 using InfrastructureLayer.UserModels;
-using Org.BouncyCastle.Asn1.Misc;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
 
 namespace ApplicationLayer.Services;
 
-public class ProfileService : BaseService<UserProfile, UserProfileDto>, IProfileService
+public class ProfileService : IProfileService
 {
+
+    private const int MaxProfilesPerUser = 5;
+    private readonly IProfileRepository _profileRepository;
+    private readonly IMapper _mapper;
+    private readonly ILogger<ProfileService> _logger;
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IPasswordHasher<UserProfile> _pinHasher;
     private readonly IFileService _fileService;
-    public ProfileService(IGenericRepository<UserProfile> repo, IMapper mapper, IUserService userService, IFileService fileService)
-        : base(repo, mapper, userService)
+
+    public ProfileService(IProfileRepository profileRepository, IMapper mapper,
+    ILogger<ProfileService> logger,
+    IGenericRepository<UserProfile> repo,
+    IUserService userServiceUserManager<ApplicationUser> userManager,
+    IFileService fileService): base(repo, mapper, userService)
     {
+        _profileRepository = profileRepository;
+        _mapper = mapper;
         _fileService = fileService;
+        _logger = logger;
+        _userManager = userManager;
+        _pinHasher = new PasswordHasher<UserProfile>();
+
     }
 
-    public async Task<(bool Status, string Message, IEnumerable<UserProfileDto> Response)> GetAllProfilesByUserIdAsync(Guid userId)
+    public async Task<UserProfileDto> CreateProfileAsync(CreateProfileDto dto, Guid userId)
     {
-        ApplicationUser? user = await _userService.GetUserByIdWithProfilesAsync(userId.ToString());
+        var count = await _profileRepository.CountByUserIdAsync(userId);
+        if (count >= MaxProfilesPerUser)
+            throw new InvalidOperationException("User already has maximum number of profiles");
 
-        if (user is null)
-            return (false, "User Not Found", null!);
+        var existingProfiles = await _profileRepository.GetAllByUserIdAsync(userId);
+        if (existingProfiles.Any(p => p.ProfileName.Equals(dto.ProfileName, StringComparison.OrdinalIgnoreCase)))
+            throw new InvalidOperationException("Profile name already exists for this user");
 
-        List<UserProfile> userProfiles = user.Profiles.ToList();
+        var profile = new UserProfile
+        {
+            ProfileName = dto.ProfileName,
+            UserId = userId,
+            CurrentState = 1,
+        };
 
-        return (true, "Success", _mapper.Map<List<UserProfileDto>>(userProfiles));
+        var added = await _profileRepository.AddAsync(profile);
+        return _mapper.Map<UserProfileDto>(added);
     }
 
-    public async Task<(bool Status, string Message, UserProfileDto? userProfileDto)> GetProfileByUserIdAsync(Guid userId, Guid profileId)
+    public async Task<List<UserProfileDto>> GetAllProfilesAsync(Guid userId)
     {
-        ApplicationUser? user = await _userService.GetUserByIdWithProfilesAsync(userId.ToString());
-
-        if (user is null)
-            return (false, "User Not Found", null!);
-
-        var x = user.Profiles;
-
-        UserProfile? userProfile = user.Profiles.FirstOrDefault(x => x.UserId == userId);
-
-        if (userProfile is null)
-            return (false, "Profile Not Found", null!);
-
-        UserProfileDto userProfileDto = _mapper.Map<UserProfileDto>(userProfile);
-
-        return (true, "Success", userProfileDto);
+        var list = await _profileRepository.GetAllByUserIdAsync(userId);
+        return _mapper.Map<List<UserProfileDto>>(list);
     }
 
-    public async Task<(bool Status, string Message, CreateProfileDto userProfileDto)> CreateProfileAsync(Guid userId, CreateProfileDto createProfileDto)
+    public async Task<UserProfileDto?> GetProfileByIdAsync(Guid profileId, Guid userId)
     {
-        ApplicationUser? user = await _userService.GetUserByIdentityAsync(userId.ToString());
-
-        if (user is null)
-            return (false, "User Not Found", null!);
-
-        UserProfile userProfile = new UserProfile { UserId = createProfileDto.UserId, ProfileName = createProfileDto.ProfileName };
-
-        var result = await _repo.Add(userProfile);
-
-        if (result.Item1 == true)
-            return (true, $"{result.Item2}", createProfileDto);
-
-        else
-            return (false, $"Could not created profile for user with Id {userId}", null!);
+        var profile = await _profileRepository.GetByIdAsync(profileId);
+        if (profile == null || profile.UserId != userId) return null;
+        return _mapper.Map<UserProfileDto>(profile);
     }
 
-    public async Task<(bool Status, string Message)> UpdateProfileAsync(Guid userId, Guid profileId)
+    public async Task<bool> DeleteProfileAsync(Guid profileId, Guid userId)
     {
-        ApplicationUser? user = await _userService.GetUserByIdentityAsync(userId.ToString());
-
-        if (user is null)
-            return (false, "User Not Found");
-
-        UserProfile? profile = user.Profiles.FirstOrDefault(x => x.Id == profileId);
-
-        if (profile is null)
-            return (false, "Profile Not Found");
-
-        var result = await _repo.Update(profile);
-
-        if (result == true)
-            return (true, "Success");
-
-        else
-            return (false, $"Could Not Updated Profile For User With Id {userId}");
+        return await _profileRepository.DeleteAsync(profileId, userId);
     }
 
-    public async Task<(bool Status, string Message)> DeleteProfileByUserId(Guid userId, Guid profileId)
+    public async Task<(bool Status, string Message)> TransferProfileToUserAsync(Guid profileId, string targetEmail, Guid callerUserId)
     {
-        ApplicationUser? user = await _userService.GetUserByIdWithProfilesAsync(userId.ToString());
+        var target = await _userManager.FindByEmailAsync(targetEmail.Trim());
+        if (target == null) return (false, "Target user not found.");
 
-        if (user is null)
-            return (false, "User Not Found");
+        var profile = await _profileRepository.GetByIdAsync(profileId);
+        if (profile == null) return (false, "Profile not found.");
 
-        if (!user.Profiles.Any(x => x.Id == profileId))
-            return (false, "Profile Not Found");
+        if (profile.UserId != callerUserId) return (false, "Caller is not owner of the profile.");
 
-        var result = await _repo.Delete(profileId);
+        var targetCount = await _profileRepository.CountByUserIdAsync(target.Id);
+        if (targetCount > 0) return (false, "Target already has profile(s).");
 
-        if (result)
-            return (true, "Success");
+        var deleted = await _profileRepository.DeleteAsync(profileId, callerUserId);
+        if (!deleted) return (false, "Failed to detach profile from source user.");
 
-        return (false, $"Failed to delete profile with Id: {profileId} that belongs to user with id: {userId}");
+        profile.Id = Guid.NewGuid();
+        profile.UserId = target.Id;
+        await _profileRepository.AddAsync(profile);
+
+        return (true, "Profile transferred successfully.");
     }
 
-    public async Task<(bool Status, string Message, IEnumerable<UserHistoryDto> userHistoryListDto)> GetViewingHistoryAsync(Guid userId, Guid profileId)
+    public async Task<bool> LockProfileAsync(Guid profileId, Guid userId, string pin)
     {
-        ApplicationUser? user = await _userService.GetUserByIdWithProfilesWithHistoriesAsync(userId.ToString());
+        if (string.IsNullOrEmpty(pin) || pin.Length != 4 || !pin.All(char.IsDigit))
+            throw new ArgumentException("PIN must be exactly 4 numeric digits.");
 
-        if (user is null)
-            return (false, "User Not Found", null!);
+        var profile = await _profileRepository.GetByIdAsync(profileId);
+        if (profile == null) return false;
+        if (profile.UserId != userId) throw new UnauthorizedAccessException("Not owner of profile.");
 
-        UserProfile? profile = user.Profiles.FirstOrDefault(x => x.Id == profileId);
+        profile.IsLocked = true;
+        profile.PinHash = _pinHasher.HashPassword(profile, pin);
 
-        if (profile is null)
-            return (false, "Profile Not Found", null!);
+        // update via repository - simpler to delete+add not ideal; add UpdateAsync to repository would be better
+        // For now use NetflixContext via repository if available. We'll extend repository with UpdateAsync.
+        if (await TryUpdateProfileAsync(profile)) return true;
 
-        List<UserHistory>? userHistory = profile.Histories.ToList();
+        return false;
+    }
 
-        if (userHistory is null)
-            return (false, "History Not Found", null!);
+    public async Task<bool> UnlockProfileAsync(Guid profileId, Guid userId, string pin)
+    {
+        if (string.IsNullOrEmpty(pin) || pin.Length != 4 || !pin.All(char.IsDigit))
+            throw new ArgumentException("PIN must be exactly 4 numeric digits.");
 
-        List<UserHistoryDto> userHistoryListDto = _mapper.Map<List<UserHistoryDto>>(userHistory);
+        var profile = await _profileRepository.GetByIdAsync(profileId);
+        if (profile == null) return false;
+        if (profile.UserId != userId) throw new UnauthorizedAccessException("Not owner of profile.");
 
-        return (true, "Success", userHistoryListDto);
+        if (!profile.IsLocked || string.IsNullOrEmpty(profile.PinHash)) return false;
+
+        var verification = _pinHasher.VerifyHashedPassword(profile, profile.PinHash, pin);
+        if (verification == PasswordVerificationResult.Success || verification == PasswordVerificationResult.SuccessRehashNeeded)
+        {
+            profile.IsLocked = false;
+            profile.PinHash = null;
+            if (verification == PasswordVerificationResult.SuccessRehashNeeded)
+            {
+                // Rehash to latest format
+                profile.PinHash = _pinHasher.HashPassword(profile, pin);
+            }
+
+            if (await TryUpdateProfileAsync(profile)) return true;
+        }
+
+        return false;
+    }
+
+    public async Task<bool> ToggleKidModeAsync(Guid profileId, Guid userId, bool enable)
+    {
+        var profile = await _profileRepository.GetByIdAsync(profileId);
+        if (profile == null) return false;
+        if (profile.UserId != userId) throw new UnauthorizedAccessException("Not owner of profile.");
+
+        profile.IsKidProfile = enable;
+        return await TryUpdateProfileAsync(profile);
+    }
+
+    // Helper to update profile via repository. Add UpdateAsync to IProfileRepository and implement in concrete repo.
+    private async Task<bool> TryUpdateProfileAsync(UserProfile profile)
+    {
+        if (_profileRepository is null) return false;
+
+        // If repository exposes Update, use it. We'll attempt a cast to known concrete repo with access to DbContext.
+        if (_profileRepository is InfrastructureLayer.Repositories.ProfileRepository concrete)
+        {
+            return await concrete.UpdateAsync(profile);
+        }
+
+        return false;
+    }
+
+    // Implement IBaseService minimal members to satisfy interface; throw NotImplemented for unused methods
+    public Task<List<UserProfileDto>> GetAll()
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<UserProfileDto> GetById(Guid id)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<(bool, Guid)> Add(UserProfileDto entity)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<bool> Update(UserProfileDto entity)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<bool> ChangeStatus(Guid id, int status = 1)
+    {
+        throw new NotImplementedException();
     }
 
     public async Task<(bool Status, string Message)> UploadProfilePicture(Guid userId, Guid profileId, FileUploadDto fileUploadDto)

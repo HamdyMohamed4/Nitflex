@@ -2,6 +2,7 @@
 using ApplicationLayer.Dtos;
 using ApplicationLayer.Services;
 using InfrastructureLayer.UserModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Presentation.Models;
@@ -52,8 +53,8 @@ namespace Presentation.Controllers
                 return BadRequest(ApiResponse<object>.FailResponse("Validation failed.", errors));
             }
 
-
             var user = await _userService.GetUserByEmailAsync(model.Email);
+
             var message = user != null ? "User already exists, redirecting to login." : "Proceeding with registration.";
             return Ok(ApiResponse<object>.SuccessResponse(null, message));
         }
@@ -64,61 +65,48 @@ namespace Presentation.Controllers
         [HttpPost("send-magic-link")]
         public async Task<ActionResult<ApiResponse<object>>> SendMagicLink([FromBody] EmailRequestDto model)
         {
+
             if (!ModelState.IsValid)
             {
                 var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
                 return BadRequest(ApiResponse<object>.FailResponse("Validation failed.", errors));
             }
 
-
             var success = await _authService.SendMagicLinkAsync(model.Email);
             if (!success)
                 return BadRequest(ApiResponse<object>.FailResponse("Could not send magic link."));
 
             return Ok(ApiResponse<object>.SuccessResponse(null, $"Sign-up link sent to {model.Email}"));
-            
+
         }
 
 
 
-        // ============================
-        // Confirm Email & Generate Tokens
-        // ============================      
-
-        //[HttpPost("confirm-signup")]
-        //public async Task<ActionResult<ApiResponse<LoginResponseDto>>> ConfirmSignUp([FromBody] ConfirmMagicLinkDto dto)
-        //{
-        //    if (!ModelState.IsValid)
-        //        return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Invalid input"));
-
-        //    var user = await _authService.ConfirmEmailAndGenerateTokensAsync(dto.Email, dto.Token);
-        //    if (user == null)
-        //        return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Invalid or expired token."));
-
-        //    SetRefreshTokenCookie(user.RefreshToken);
-        //    return Ok(ApiResponse<LoginResponseDto>.SuccessResponse(user, "Email confirmed and user logged in."));
-        //}
 
         [HttpPost("confirm-signup")]
         public async Task<ActionResult<ApiResponse<LoginResponseDto>>> ConfirmSignUp([FromBody] ConfirmMagicLinkDto dto)
         {
             if (!ModelState.IsValid)
-                return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Invalid input"));
+                return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Invalid input", null));
 
             // Decode token because it arrives URL encoded
             dto.Token = Uri.UnescapeDataString(dto.Token);
 
-            // 1. Confirm email & Create/Login user
-            var user = await _authService.ConfirmEmailAndGenerateTokensAsync(dto.Email,dto.Token);
+            // Step 1: Confirm & Create/Login User
+            var userResponse = await _authService.ConfirmEmailAndGenerateTokensAsync(dto.Email, dto.Token);
 
-            if (user == null)
-                return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Invalid or expired token."));
+            if (userResponse == null)
+                return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Invalid or expired token.", null));
 
-            // 2. Store refresh token inside HTTP Only cookie
-            SetRefreshTokenCookie(user.RefreshToken);
+            // Step 2: Store refresh token in HttpOnly cookie
+            SetRefreshTokenCookie(userResponse.RefreshToken);
 
-            return Ok(ApiResponse<LoginResponseDto>.SuccessResponse(user, "Email confirmed and user logged in."));
+            return Ok(ApiResponse<LoginResponseDto>.SuccessResponse(
+                userResponse,
+                "Email confirmed successfully and user logged in."
+            ));
         }
+
 
         // ============================
         // Register & Generate Tokens
@@ -127,6 +115,7 @@ namespace Presentation.Controllers
         [HttpPost("register")]
         public async Task<ActionResult<ApiResponse<LoginResponseDto>>> Register([FromBody] RegisterDto dto)
         {
+
             if (!ModelState.IsValid)
                 return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Invalid input"));
 
@@ -138,21 +127,60 @@ namespace Presentation.Controllers
             return Ok(ApiResponse<LoginResponseDto>.SuccessResponse(user, "User registered successfully."));
         }
 
-        // ============================
-        // Login
-        // ============================
+
         [HttpPost("login")]
         public async Task<ActionResult<ApiResponse<LoginResponseDto>>> Login([FromBody] LoginDto dto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Invalid input"));
 
-            var user = await _authService.LoginAndGenerateTokensAsync(dto.Email, dto.Password);
-            if (user == null)
-                return Unauthorized(ApiResponse<LoginResponseDto>.FailResponse("Invalid credentials"));
+            var validation = await _userService.ValidateLoginAsync(dto.Email, dto.Password);
 
-            SetRefreshTokenCookie(user.RefreshToken);
-            return Ok(ApiResponse<LoginResponseDto>.SuccessResponse(user, "Login successful."));
+            if (!validation.IsValid)
+            {
+                return StatusCode(StatusCodes.Status401Unauthorized,
+                    ApiResponse<LoginResponseDto>.FailResponse(validation.ErrorMessage));
+            }
+
+            var tokenInfo = await _authService.LoginAndGenerateTokensAsync(dto.Email, dto.Password);
+
+            if (tokenInfo == null)
+                return StatusCode(StatusCodes.Status401Unauthorized,
+                    ApiResponse<LoginResponseDto>.FailResponse("Invalid credentials"));
+
+            SetRefreshTokenCookie(tokenInfo.RefreshToken);
+
+            return Ok(ApiResponse<LoginResponseDto>.SuccessResponse(tokenInfo, "Login successful"));
+        }
+
+        [HttpPost("logout")]
+        public async Task<ActionResult<ApiResponse<object>>> Logout()
+        {
+            try
+            {
+                // If client stored refresh token in HTTP-only cookie, remove it and invalidate server-side record.
+                if (Request.Cookies.TryGetValue("RefreshToken", out var refreshToken) && !string.IsNullOrWhiteSpace(refreshToken))
+                {
+                    var tokenRecord = await _refreshTokenService.GetByTokenAsync(refreshToken);
+                    if (tokenRecord != null)
+                    {
+                        // mark refresh token as inactive (soft delete)
+                        await _refreshTokenService.ChangeStatus(tokenRecord.Id, 0);
+                    }
+
+                    // Remove cookie from client
+                    Response.Cookies.Delete("RefreshToken");
+                }
+
+                // Also sign out from server auth mechanisms (no-op for pure JWT but safe if cookie auth used)
+                await _userService.LogoutAsync();
+
+                return Ok(ApiResponse<object>.SuccessResponse(null, "Logged out successfully."));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<object>.FailResponse("Logout failed.", new List<string> { ex.Message }));
+            }
         }
 
         // ============================
@@ -161,6 +189,17 @@ namespace Presentation.Controllers
         [HttpPost("request-otp")]
         public async Task<ActionResult<ApiResponse<object>>> RequestOtp([FromBody] EmailRequestDto model)
         {
+
+            if (!ModelState.IsValid)
+                return BadRequest(ApiResponse<LoginResponseDto>.FailResponse("Invalid input"));
+
+            var validation = await _userService.ValidateLoginAsync(model.Email, "");
+
+            if (!validation.IsValid)
+            {
+                return StatusCode(StatusCodes.Status401Unauthorized,
+                    ApiResponse<LoginResponseDto>.FailResponse(validation.ErrorMessage));
+            }
             if (!ModelState.IsValid)
             {
                 var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
@@ -217,5 +256,115 @@ namespace Presentation.Controllers
                 Expires = DateTime.UtcNow.AddDays(7)
             });
         }
+
+
+
+        // i want you to make a new endpoint called change-password that takes in the old password and the new password and changes the password for the logged in user. make sure to validate the old password before changing to the new password. return appropriate responses for success and failure cases.
+        [HttpPost("change-password")]
+        [Authorize(Roles = "User")]
+        public async Task<ActionResult<ApiResponse<object>>> ChangePassword([FromBody] ChangePasswordDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ApiResponse<object>.FailResponse("Invalid input"));
+            // Get the logged-in user's ID from the claims
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized(ApiResponse<object>.FailResponse("User not logged in"));
+            var result = await _authService.ChangePasswordAsync(userId, dto.OldPassword, dto.NewPassword);
+            if (!result)
+                return BadRequest(ApiResponse<object>.FailResponse("Old password is incorrect or password change failed"));
+            return Ok(ApiResponse<object>.SuccessResponse(null, "Password changed successfully"));
+        }
+
+
+
+
+
+        [HttpPost("forgot-password")]
+        public async Task<ActionResult<ApiResponse<object>>> ForgotPassword([FromBody] EmailRequestDto model)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ApiResponse<object>.FailResponse("Validation failed."));
+
+            var user = await _userService.GetUserByEmailAsync(model.Email);
+            if (user == null)
+                return BadRequest(ApiResponse<object>.FailResponse("User not found."));
+
+            var resetToken = await _authService.GeneratePasswordResetTokenAsync(model.Email);
+            if (string.IsNullOrEmpty(resetToken))
+                return BadRequest(ApiResponse<object>.FailResponse("Could not generate password reset token."));
+
+            await _authService.SendPasswordResetEmailAsync(model.Email, resetToken);
+
+            return Ok(ApiResponse<object>.SuccessResponse(null, $"Password reset token sent to {model.Email}."));
+        }
+
+
+
+        [HttpPost("reset-password")]
+        public async Task<ActionResult<ApiResponse<object>>> ResetPassword([FromBody] ResetPasswordDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ApiResponse<object>.FailResponse("Invalid input"));
+
+            // Decode URL encoded token
+            dto.Token = Uri.UnescapeDataString(dto.Token);
+
+            var success = await _authService.ResetPasswordAsync(dto.Email, dto.Token, dto.NewPassword);
+            if (!success)
+                return BadRequest(ApiResponse<object>.FailResponse("Invalid OTP or expired token."));
+
+            return Ok(ApiResponse<object>.SuccessResponse(null, "Password reset successfully."));
+        }
+
+
+
+        //[HttpPost("forgot-password")]
+        //[Authorize(Roles = "User")]
+        //public async Task<ActionResult<ApiResponse<object>>> ForgotPassword([FromBody] EmailRequestDto model)
+        //{
+        //    if (!ModelState.IsValid)
+        //    {
+        //        var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+        //        return BadRequest(ApiResponse<object>.FailResponse("Validation failed.", errors));
+        //    }
+        //    var user = await _userService.GetUserByEmailAsync(model.Email);
+        //    if (user == null)
+        //        return BadRequest(ApiResponse<object>.FailResponse("User not found."));
+        //    var resetToken = await _authService.GeneratePasswordResetTokenAsync(user.Email);
+        //    if (string.IsNullOrEmpty(resetToken))
+        //        return BadRequest(ApiResponse<object>.FailResponse("Could not generate password reset token."));
+        //    // Send the reset token via email
+        //    await _authService.SendPasswordResetEmailAsync(model.Email, resetToken);
+        //    return Ok(ApiResponse<object>.SuccessResponse(null, $"Password reset token sent to {model.Email}."));
+
+        //}
+
+
+        //[HttpPost("reset-password")]
+        //public async Task<ActionResult<ApiResponse<object>>> ResetPassword([FromBody] ResetPasswordDto dto)
+        //{
+        //    if (!ModelState.IsValid)
+        //        return BadRequest(ApiResponse<object>.FailResponse("Invalid input"));
+
+        //    // Decode token because it arrives URL encoded
+        //    dto.Token = Uri.UnescapeDataString(dto.Token);
+
+        //    var resetStatus = await _userService.ResetPasswordAsync(
+        //        dto.Email,
+        //        dto.Token,
+        //        dto.NewPassword
+        //    );
+
+        //    if (!resetStatus)
+        //        return BadRequest(ApiResponse<object>.FailResponse("Invalid OTP or expired token."));
+
+        //    return Ok(ApiResponse<object>.SuccessResponse(null, "Password reset successfully."));
+        //}
+
+
+
+
     }
 }
+

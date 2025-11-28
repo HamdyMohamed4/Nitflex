@@ -15,7 +15,7 @@ namespace ApplicationLayer.Services
     public class PaymentMethodsService : BaseService<TbPaymentMethod,PaymentMethodDto>,IPaymentMethods
     {
         public PaymentMethodsService(IGenericRepository<TbPaymentMethod> repo,IMapper mapper,
-             IUserService userService) : base(repo,mapper, userService)
+             IUserService userService) : base(repo,mapper)
         {
 
         }

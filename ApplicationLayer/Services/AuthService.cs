@@ -1,9 +1,13 @@
 ﻿using ApplicationLayer.Contract;
 using ApplicationLayer.Dtos;
+using Domains;
 using InfrastructureLayer.UserModels;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Presentation.Services;
+using System.Net;
+using System.Net.Mail;
 using System.Security.Claims;
 
 namespace ApplicationLayer.Services
@@ -16,6 +20,8 @@ namespace ApplicationLayer.Services
         private readonly IRefreshTokens _refreshTokenService;
         private readonly IOtpRepository _otpRepository;
         private readonly IConfiguration _config;
+        //private readonly ILogger _logger;
+        private readonly ILogger<AuthService> _logger;
         private readonly UserManager<ApplicationUser> _userManager;
 
         public AuthService(
@@ -25,7 +31,8 @@ namespace ApplicationLayer.Services
             IRefreshTokens refreshTokenService,
             IOtpRepository otpRepository,
             IConfiguration config,
-            UserManager<ApplicationUser> userManager)
+            UserManager<ApplicationUser> userManager
+            , ILogger<AuthService> logger)
         {
             _userService = userService;
             _emailService = emailService;
@@ -34,137 +41,155 @@ namespace ApplicationLayer.Services
             _otpRepository = otpRepository;
             _config = config;
             _userManager = userManager;
+            _logger = logger;
+
         }
 
-        // ==========================
-        // Send Magic Link
-        // ==========================
-//        public async Task<bool> SendMagicLinkAsync(string email)
-//        {
-//            var (result, token) = await _userService.CreateUserWithoutPasswordAndGetTokenAsync(email);
-//            if (!result.Success || token == null) return false;
 
-//            var frontendUrl = _config["Frontend:BaseUrl"];
-//            var magicLink = $"{frontendUrl}?userId={result.Id}&token={Uri.EscapeDataString(token)}";
+        //        public async Task SendPasswordResetEmailAsync(string email, string token)
+        //        {
+        //            // رابط الصفحة الأمامية لإعادة تعيين الباسورد
+        //            var frontendBaseUrl = _config["Frontend:BaseUrl"]; // مثال: https://myapp.com
+        //            var resetLink = $"{frontendBaseUrl}/reset-password?email={Uri.EscapeDataString(email)}&token={Uri.EscapeDataString(token)}";
 
-//            string emailBody = $@"
-//<!DOCTYPE html>
-//<html>
-//<head>
-//    <meta charset=""utf-8"">
-//    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
-//    <title>WatchMe - Confirm your email</title>
-//    <style>
-//        body {{
-//            margin: 0;
-//            padding: 0;
-//            background-color: #f4f4f4;
-//            font-family: Helvetica, Arial, sans-serif;
-//        }}
-//        .container {{
-//            max-width: 600px;
-//            margin: 0 auto;
-//            background-color: #ffffff;
-//        }}
-//        .header {{
-//            background-color: #E50914; /* Netflix Red */
-//            padding: 30px 20px;
-//            text-align: center;
-//        }}
-//        .header img {{
-//            height: 40px;
-//        }}
-//        .content {{
-//            padding: 40px 40px 60px;
-//            text-align: center;
-//            color: #333333;
-//        }}
-//        .content h1 {{
-//            font-size: 28px;
-//            margin-bottom: 20px;
-//            color: #000000;
-//        }}
-//        .content p {{
-//            font-size: 16px;
-//            line-height: 1.5;
-//            margin-bottom: 30px;
-//            color: #555555;
-//        }}
-//        .button {{
-//            display: inline-block;
-//            background-color: #E50914;
-//            color: #ffffff !important;
-//            font-size: 18px;
-//            font-weight: bold;
-//            padding: 16px 36px;
-//            text-decoration: none;
-//            border-radius: 4px;
-//            margin: 20px 0;
-//        }}
-//        .button:hover {{
-//            background-color: #c30812;
-//        }}
-//        .footer {{
-//            background-color: #f4f4f4;
-//            padding: 30px;
-//            text-align: center;
-//            font-size: 12px;
-//            color: #999999;
-//        }}
-//        .footer a {{
-//            color: #999999;
-//            text-decoration: underline;
-//        }}
-//    </style>
-//</head>
-//<body>
-//    <table width=""100%"" cellpadding=""0"" cellspacing=""0"" style=""background-color:#f4f4f4;"">
-//        <tr>
-//            <td align=""center"">
-//                <table class=""container"">
-//                    <!-- Header -->
-//                    <tr>
-//                        <td class=""header"">
-//                            <!-- لو عندك لوجو WatchMe حطه هنا، لو مفيش هنكتب الاسم بالأحمر -->
-//                            <h1 style=""margin:0; color:#ffffff; font-size:32px; font-weight:bold;"">WatchMe</h1>
-//                        </td>
-//                    </tr>
+        //            // HTML البريد
+        //            var emailBody = $@"
+        //<!DOCTYPE html>
+        //<html>
+        //<head>
+        //    <meta charset='utf-8'>
+        //    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+        //    <title>Reset your password</title>
+        //    <style>
+        //        body {{ font-family: Arial, sans-serif; background-color: #f4f4f4; margin:0; padding:0; }}
+        //        .container {{ max-width:600px; margin:0 auto; background:#fff; padding:40px; text-align:center; }}
+        //        .button {{ background-color:#E50914; color:#fff; padding:16px 32px; text-decoration:none; font-weight:bold; border-radius:4px; }}
+        //        .footer {{ font-size:12px; color:#777; margin-top:40px; }}
+        //    </style>
+        //</head>
+        //<body>
+        //    <div class='container'>
+        //        <h1>Reset your password</h1>
+        //        <p>Click the button below to reset your password. This link is valid for 1 hour.</p>
+        //        <a href='{resetLink}' class='button'>Reset Password</a>
+        //        <p style='margin-top:20px;'>If you did not request this password reset, please ignore this email.</p>
+        //        <div class='footer'>
+        //            <p>© 2025 MyApp. All rights reserved.</p>
+        //        </div>
+        //    </div>
+        //</body>
+        //</html>";
 
-//                    <!-- Content -->
-//                    <tr>
-//                        <td class=""content"">
-//                            <h1>Just one more step...</h1>
-//                            <p>You're almost ready to start enjoying WatchMe.</p>
-//                            <p>Simply click the big red button below to confirm your email address and complete your registration.</p>
-                            
-//                            <a href=""{magicLink}"" class=""button"">Confirm My Email</a>
-                            
-//                            <p style=""margin-top:40px; font-size:14px; color:#777;"">
-//                                If you didn't create an account with WatchMe, you can safely ignore this email.
-//                            </p>
-//                        </td>
-//                    </tr>
+        //            try
+        //            {
+        //                // استخدم SMTP أو أي خدمة إرسال بريد عندك
+        //                var smtpClient = new System.Net.Mail.SmtpClient(_config["Smtp:Host"])
+        //                {
+        //                    Port = int.Parse(_config["Smtp:Port"]),
+        //                    Credentials = new System.Net.NetworkCredential(_config["Smtp:User"], _config["Smtp:Pass"]),
+        //                    EnableSsl = true,
+        //                };
 
-//                    <!-- Footer -->
-//                    <tr>
-//                        <td class=""footer"">
-//                            <p>© 2025 WatchMe. All rights reserved.</p>
-//                            <p>
-//                                If you're having trouble clicking the button, copy and paste this link into your browser:<br/>
-//                                <a href=""{magicLink}"">{magicLink}</a>
-//                            </p>
-//                        </td>
-//                    </tr>
-//                </table>
-//            </td>
-//        </tr>
-//    </table>
-//</body>
-//</html>";
+        //                var mailMessage = new System.Net.Mail.MailMessage
+        //                {
+        //                    From = new System.Net.Mail.MailAddress(_config["Smtp:From"], "MyApp Support"),
+        //                    Subject = "Reset your password",
+        //                    Body = emailBody,
+        //                    IsBodyHtml = true,
+        //                };
+        //                mailMessage.To.Add(email);
 
-//            await _emailService.SendEmailAsync(email, "Confirm your email", emailBody);
-//            return true;
-//        }
+        //                await smtpClient.SendMailAsync(mailMessage);
+        //            }
+        //            catch (Exception ex)
+        //            {
+        //                _logger.LogError(ex, "Failed to send password reset email to {Email}", email);
+        //                throw;
+        //            }
+        //        }
+
+
+
+
+
+
+
+
+        public async Task<string?> GeneratePasswordResetTokenAsync(string email)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null) return null;
+
+            // Generate OTP
+            var tokenBytes = Guid.NewGuid().ToByteArray();
+            var otp = Convert.ToBase64String(tokenBytes);
+            var expires = DateTime.UtcNow.AddHours(1);
+
+            await _otpRepository.SaveOtpAsync(email, otp, expires, "ResetPassword");
+            return otp;
+        }
+
+
+        public async Task<bool> ResetPasswordAsync(string email, string token, string newPassword)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null) return false;
+
+            // Validate OTP
+            var otp = await _otpRepository.GetValidOtpAsync(email, token);
+            if (otp == null) return false;
+
+            // Generate a real Identity token
+            var identityToken = await _userManager.GeneratePasswordResetTokenAsync(user);
+
+            var resetResult = await _userManager.ResetPasswordAsync(user, identityToken, newPassword);
+            if (!resetResult.Succeeded) return false;
+
+            await _otpRepository.MarkOtpAsUsedAsync(email, token);
+            return true;
+        }
+
+        public async Task SendPasswordResetEmailAsync(string email, string token)
+        {
+            try
+            {
+                var resetUrl = $"http://localhost:4200/reset-password?email={email}&token={Uri.EscapeDataString(token)}";
+
+                var message = new MailMessage
+                {
+                    From = new MailAddress(_config["EmailSettings:SenderEmail"], _config["EmailSettings:SenderName"]),
+                    Subject = "Reset Your Password",
+                    Body = $@"
+                <h2>Password Reset Request</h2>
+                <p>Click the link below to reset your password:</p>
+                <a href='{resetUrl}'>Reset Password</a>
+                <p>If you did not request this, ignore the email.</p>
+            ",
+                    IsBodyHtml = true
+                };
+
+                message.To.Add(email);
+
+                using var smtpClient = new SmtpClient(_config["EmailSettings:SmtpServer"])
+                {
+                    Port = int.Parse(_config["EmailSettings:Port"]),
+                    Credentials = new NetworkCredential(
+                        _config["EmailSettings:SenderEmail"],
+                        _config["EmailSettings:SenderPassword"]
+                    ),
+                    EnableSsl = true,
+                };
+
+                await smtpClient.SendMailAsync(message);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Failed to send password reset email");
+                throw;
+            }
+        }
+
+
 
         public async Task<bool> SendMagicLinkAsync(string email)
         {
@@ -253,7 +278,7 @@ namespace ApplicationLayer.Services
                             <tr>
                                 <td class=""header"">
                                     <!-- لو عندك لوجو WatchMe حطه هنا، لو مفيش هنكتب الاسم بالأحمر -->
-                                    <h1 style=""margin:0; color:#ffffff; font-size:32px; font-weight:bold;"">WatchMe</h1>
+                                    <h1 style=""margin:0; color:#ffffff; font-size:32px; font-weight:bold;"">Netflix</h1>
                                 </td>
                             </tr>
 
@@ -261,7 +286,7 @@ namespace ApplicationLayer.Services
                             <tr>
                                 <td class=""content"">
                                     <h1>Just one more step...</h1>
-                                    <p>You're almost ready to start enjoying WatchMe.</p>
+                                    <p>You're almost ready to start enjoying Netflix.</p>
                                     <p>Simply click the big red button below to confirm your email address and complete your registration.</p>
 
                                     <a href=""{magicLink}"" class=""button"">Confirm My Email</a>
@@ -294,154 +319,6 @@ namespace ApplicationLayer.Services
             return true;
         }
 
-
-        // إرسال رابط التفعيل مع البريد الإلكتروني
-        //        public async Task<bool> SendMagicLinkAsync(string email)
-        //        {
-        //            var token = Convert.ToBase64String(Guid.NewGuid().ToByteArray());
-
-        //            // حفظ التوكن في قاعدة البيانات
-        //            await _otpRepository.SaveOtpAsync(email, token, DateTime.UtcNow.AddMinutes(10));
-
-        //            var frontendUrl = _config["Frontend:BaseUrl"];
-        //            var magicLink = $"{frontendUrl}?email={email}&token={Uri.EscapeDataString(token)}"; 
-
-        //            string emailBody = $@"
-        //<!DOCTYPE html>
-        //<html>
-        //<head>
-        //    <meta charset=""utf-8"">
-        //    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
-        //    <title>WatchMe - Confirm your email</title>
-        //    <style>
-        //        body {{
-        //            margin: 0;
-        //            padding: 0;
-        //            background-color: #f4f4f4;
-        //            font-family: Helvetica, Arial, sans-serif;
-        //        }}
-        //        .container {{
-        //            max-width: 600px;
-        //            margin: 0 auto;
-        //            background-color: #ffffff;
-        //        }}
-        //        .header {{
-        //            background-color: #E50914; /* Netflix Red */
-        //            padding: 30px 20px;
-        //            text-align: center;
-        //        }}
-        //        .header img {{
-        //            height: 40px;
-        //        }}
-        //        .content {{
-        //            padding: 40px 40px 60px;
-        //            text-align: center;
-        //            color: #333333;
-        //        }}
-        //        .content h1 {{
-        //            font-size: 28px;
-        //            margin-bottom: 20px;
-        //            color: #000000;
-        //        }}
-        //        .content p {{
-        //            font-size: 16px;
-        //            line-height: 1.5;
-        //            margin-bottom: 30px;
-        //            color: #555555;
-        //        }}
-        //        .button {{
-        //            display: inline-block;
-        //            background-color: #E50914;
-        //            color: #ffffff !important;
-        //            font-size: 18px;
-        //            font-weight: bold;
-        //            padding: 16px 36px;
-        //            text-decoration: none;
-        //            border-radius: 4px;
-        //            margin: 20px 0;
-        //        }}
-        //        .button:hover {{
-        //            background-color: #c30812;
-        //        }}
-        //        .footer {{
-        //            background-color: #f4f4f4;
-        //            padding: 30px;
-        //            text-align: center;
-        //            font-size: 12px;
-        //            color: #999999;
-        //        }}
-        //        .footer a {{
-        //            color: #999999;
-        //            text-decoration: underline;
-        //        }}
-        //    </style>
-        //</head>
-        //<body>
-        //    <table width=""100%"" cellpadding=""0"" cellspacing=""0"" style=""background-color:#f4f4f4;"">
-        //        <tr>
-        //            <td align=""center"">
-        //                <table class=""container"">
-        //                    <!-- Header -->
-        //                    <tr>
-        //                        <td class=""header"">
-        //                            <!-- لو عندك لوجو WatchMe حطه هنا، لو مفيش هنكتب الاسم بالأحمر -->
-        //                            <h1 style=""margin:0; color:#ffffff; font-size:32px; font-weight:bold;"">WatchMe</h1>
-        //                        </td>
-        //                    </tr>
-
-        //                    <!-- Content -->
-        //                    <tr>
-        //                        <td class=""content"">
-        //                            <h1>Just one more step...</h1>
-        //                            <p>You're almost ready to start enjoying WatchMe.</p>
-        //                            <p>Simply click the big red button below to confirm your email address and complete your registration.</p>
-
-        //                            <a href=""{magicLink}"" class=""button"">Confirm My Email</a>
-
-        //                            <p style=""margin-top:40px; font-size:14px; color:#777;"">
-        //                                If you didn't create an account with WatchMe, you can safely ignore this email.
-        //                            </p>
-        //                        </td>
-        //                    </tr>
-
-        //                    <!-- Footer -->
-        //                    <tr>
-        //                        <td class=""footer"">
-        //                            <p>© 2025 WatchMe. All rights reserved.</p>
-        //                            <p>
-        //                                If you're having trouble clicking the button, copy and paste this link into your browser:<br/>
-        //                                <a href=""{magicLink}"">{magicLink}</a>
-        //                            </p>
-        //                        </td>
-        //                    </tr>
-        //                </table>
-        //            </td>
-        //        </tr>
-        //    </table>
-        //</body>
-        //</html>";
-
-        //            // إرسال البريد الإلكتروني
-        //            await _emailService.SendEmailAsync(email, "Confirm your email", emailBody);
-
-        //            return true;
-        //        }
-
-
-        // ==========================
-        // Register with Password + Tokens
-        // ==========================
-        public async Task<LoginResponseDto?> RegisterAndGenerateTokensAsync(RegisterDto dto)
-        {
-            var result = await _userService.RegisterAsync(dto);
-            if (!result.Success) return null;
-
-            var user = await _userService.GetUserByEmailAsyncs(dto.Email);
-            if (user == null) return null;
-
-            return await GenerateTokensForUserAsync(user);
-        }
-
         // ==========================
         // Login with Password + Tokens
         // ==========================
@@ -450,131 +327,97 @@ namespace ApplicationLayer.Services
             var loginResult = await _userService.LoginAsync(new LoginDto(email, password));
             if (!loginResult.Success) return null;
 
-            var user = await _userService.GetUserByEmailAsyncs(email);
+            var user = await _userService.GetUserByEmailAsync(email);
             if (user == null) return null;
 
             return await GenerateTokensForUserAsync(user);
         }
 
-        //==========================
-        //Confirm Email + Tokens
-        //==========================
-        //public async Task<LoginResponseDto?> ConfirmEmailAndGenerateTokensAsync(string userId, string token)
-        //{
-        //    if (!Guid.TryParse(userId, out var guid)) return null;
 
-        //    var confirm = await _userService.ConfirmEmailAsync(guid, token);
-        //    if (!confirm.Success) return null;
+        public async Task<bool> ChangePasswordAsync(string userId, string oldPassword, string newPassword)
+        {
+            // 1. جلب المستخدم من قاعدة البيانات
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null) return false;
 
-        //    var user = await _userService.GetUserByIdentityAsync(userId);
-        //    if (user == null) return null;
+            // 2. التحقق من الباسورد القديم
+            var isOldPasswordValid = await _userManager.CheckPasswordAsync(user, oldPassword);
+            if (!isOldPasswordValid) return false;
 
-        //    return await GenerateTokensForUserAsync(user);
-        //}
-
-
-
-        // ==========================
-        // OTP: Generate + Send
-        // ==========================
+            // 3. تغيير الباسورد
+            var result = await _userManager.ChangePasswordAsync(user, oldPassword, newPassword);
+            return result.Succeeded;
+        }
 
 
-        //public async Task<LoginResponseDto?> ConfirmEmailAndGenerateTokensAsync(string email, string token)
-        //{
-        //    // 1️⃣ Validate token from OTP table
-        //    var storedToken = await _otpRepository.GetValidOtpAsync(email, token);
-        //    if (storedToken == null)
-        //        return null;
 
-        //    // 2️⃣ Check if user exists or create new user
-        //    var user = await _userManager.FindByEmailAsync(email);
+        public async Task<LoginResponseDto?> RegisterAndGenerateTokensAsync(RegisterDto dto)
+        {
+            var result = await _userService.RegisterAsync(dto);
+            if (!result.Success) return null;
 
-        //    if (user == null)
-        //    {
-        //        user = new ApplicationUser
-        //        {
-        //            Email = email,
-        //            UserName = email,
-        //            Name = email.Split('@')[0],
-        //            EmailConfirmed = false
-        //        };
+            var user = await _userService.GetUserByEmailAsync(dto.Email);
+            if (user == null) return null;
 
-        //        var createResult = await _userManager.CreateAsync(user);
+            return await GenerateTokensForUserAsync(user);
+        }
 
-        //        if (!createResult.Succeeded)
-        //            return null;
-
-        //        await _userManager.AddToRoleAsync(user, "User");
-        //    }
-
-        //    // 3️⃣ Confirm email if not confirmed yet
-        //    if (!user.EmailConfirmed)
-        //    {
-        //        var identityToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-
-        //        var confirm = await _userManager.ConfirmEmailAsync(user, identityToken);
-
-        //        if (!confirm.Succeeded)
-        //            return null;
-        //    }
-
-        //    // 4️⃣ Mark Token As Used
-        //    await _otpRepository.MarkOtpUsedAsync(email, token);
-
-        //    // 5️⃣ Generate Auth Tokens and return response
-        //    var response = await GenerateTokensForUserAsync(user);
-
-        //    return response;
-        //}
-
-
+        // ----------------------
+        // Confirm Email (magic link) -> create user (Pending) + tokens
+        // ----------------------
         public async Task<LoginResponseDto?> ConfirmEmailAndGenerateTokensAsync(string email, string token)
         {
-            // 1️⃣ Validate token from OTP table
+            // 1️⃣ تحقق من صحة OTP
             var storedToken = await _otpRepository.GetValidOtpAsync(email, token);
             if (storedToken == null)
                 return null;
 
-            // 2️⃣ Check if user exists or create new user
+            // 2️⃣ العثور على المستخدم أو إنشاء جديد
             var user = await _userManager.FindByEmailAsync(email);
 
             if (user == null)
             {
-                // Create new user if not exists
                 user = new ApplicationUser
                 {
+                    Id = Guid.NewGuid(),
                     Email = email,
                     UserName = email,
-                    Name = email.Split('@')[0],
-                    EmailConfirmed = true
+                    EmailConfirmed = true,
+                    AccountStatus = UserAccountStatus.Pending,
+                    CurrentState = 1
                 };
 
                 var createResult = await _userManager.CreateAsync(user);
-
                 if (!createResult.Succeeded)
                     return null;
 
                 await _userManager.AddToRoleAsync(user, "User");
             }
-
-            // 3️⃣ Confirm email if not confirmed yet
-            if (!user.EmailConfirmed)
+            else
             {
-                var identityToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-                var confirm = await _userManager.ConfirmEmailAsync(user, identityToken);
+                if (!user.EmailConfirmed)
+                {
+                    var identityToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+                    var confirmResult = await _userManager.ConfirmEmailAsync(user, identityToken);
+                    if (!confirmResult.Succeeded) return null;
+                }
 
-                if (!confirm.Succeeded)
-                    return null;
+                if (user.AccountStatus != UserAccountStatus.Active)
+                {
+                    user.AccountStatus = UserAccountStatus.Pending;
+                    await _userManager.UpdateAsync(user);
+                }
             }
 
-            // 4️⃣ Mark Token As Used
-            await _otpRepository.MarkOtpUsedAsync(email, token);
+            // 3️⃣ تعليم OTP كمستخدم
+            await _otpRepository.MarkOtpAsUsedAsync(email, token);
 
-            // 5️⃣ Generate Auth Tokens and return response
+            // 4️⃣ توليد التوكنات
             var response = await GenerateTokensForUserAsync(user);
 
             return response;
         }
+
 
 
         public async Task<bool> GenerateAndSendOtpAsync(string email)
@@ -585,7 +428,7 @@ namespace ApplicationLayer.Services
             // Generate 4-digit OTP
             var code = new Random().Next(1000, 10000).ToString(); // 1000 to 9999
 
-            await _otpRepository.SaveOtpAsync(user.Id.ToString(), code, DateTime.UtcNow.AddMinutes(5));
+            await _otpRepository.SaveOtpAsync(email, code, DateTime.UtcNow.AddMinutes(5));
 
             string emailBody = $@"
 <!DOCTYPE html>
@@ -674,23 +517,25 @@ namespace ApplicationLayer.Services
         }
 
 
-        // ==========================
-        // Login with OTP + Tokens
-        // ==========================
+        // ----------------------
+        // Login with OTP
+        // ----------------------
         public async Task<LoginResponseDto?> LoginWithOtpAndGenerateTokensAsync(string email, string code)
         {
-            var user = await _userService.GetUserByEmailAsyncs(email);
+            var otpValid = await _otpRepository.ValidateOtpAsync(email, code);
+            if (!otpValid) return null;
+
+            var user = await _userManager.FindByEmailAsync(email);
             if (user == null) return null;
 
-            var valid = await _otpRepository.ValidateOtpAsync(user.Id.ToString(), code);
-            if (!valid) return null;
+            await _otpRepository.MarkOtpAsUsedAsync(email, code);
 
             return await GenerateTokensForUserAsync(user);
         }
 
-        // ==========================
+        // ----------------------
         // Refresh Access Token
-        // ==========================
+        // ----------------------
         public async Task<LoginResponseDto?> RefreshAccessTokenAsync(string refreshToken)
         {
             var stored = await _refreshTokenService.GetByTokenAsync(refreshToken);
@@ -702,31 +547,18 @@ namespace ApplicationLayer.Services
             return await GenerateTokensForUserAsync(user);
         }
 
-        // ==========================
-        // Helper: Generate Tokens for User
-        // ==========================
-
-
-
-
+        // ----------------------
+        // Helper to generate tokens and persist refresh token
+        // ----------------------
         private async Task<LoginResponseDto> GenerateTokensForUserAsync(ApplicationUser user)
         {
-            // Get roles
-            var roles = await _userService.GetUserRolesAsync(user.Id.ToString());
+            // generate access token (now async)
+            var accessToken = await _tokenService.GenerateAccessToken(user);
 
-            var claims = new List<Claim>
-    {
-        new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-        new Claim(ClaimTypes.Email, user.Email)
-    };
-            foreach (var role in roles)
-                claims.Add(new Claim(ClaimTypes.Role, role));
-
-            // Generate tokens
-            var accessToken = _tokenService.GenerateAccessTokenn(claims);
+            // generate refresh token
             var refreshToken = _tokenService.GenerateRefreshToken();
 
-            // Save refresh token
+            // save refresh token using your refresh service (keeps old tokens status handling there)
             await _refreshTokenService.Refresh(new RefreshTokenDto
             {
                 Token = refreshToken,
@@ -740,47 +572,17 @@ namespace ApplicationLayer.Services
                 AccessToken = accessToken,
                 RefreshToken = refreshToken,
                 UserId = user.Id.ToString(),
-                Email = user.Email
+                Email = user.Email,
+                AccountStatus = user.AccountStatus
             };
         }
 
+        // ----------------------
+        // helper (not implemented)
+        // ----------------------
         public Task<(Claim[] Claims, RegisterDto User)> GetUserWithRolesAsync(string email)
-        {
-            throw new NotImplementedException();
-        }
-
-
-
-
-
-        //public Task<LoginResponseDto?> RegisterUserFromMagicLinkAsync(string userId, string token)
-        //{
-        //    throw new NotImplementedException();
-        //}
-
-        //public Task<LoginResponseDto?> RegisterWithPasswordAsync(RegisterDto model)
-        //{
-        //    throw new NotImplementedException();
-        //}
-
-        //public Task<LoginResponseDto?> LoginAsync(string email, string password)
-        //{
-        //    throw new NotImplementedException();
-        //}
-
-        //public Task<(Claim[] Claims, RegisterDto User)> GetUserWithRoles(string email)
-        //{
-        //    throw new NotImplementedException();
-        //}
-
-        //public Task<LoginResponseDto> GenerateTokensForUserAsync(ApplicationUser user)
-        //{
-        //    throw new NotImplementedException();
-        //}
-
-        //Task<string> IAuthService.GenerateAndSendOtpAsync(string email)
-        //{
-        //    throw new NotImplementedException();
-        //}
+            => throw new NotImplementedException();
     }
+
 }
+

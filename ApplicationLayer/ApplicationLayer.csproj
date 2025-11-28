@@ -10,11 +10,16 @@
     <PackageReference Include="AutoMapper" Version="15.1.0" />
     <PackageReference Include="MailKit" Version="4.14.1" />
     <PackageReference Include="Microsoft.SemanticKernel" Version="1.67.1" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR" Version="1.2.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Domains\Domains.csproj" />
     <ProjectReference Include="..\InfrastructureLayer\InfrastructureLayer.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Services\u\" />
   </ItemGroup>
 
 

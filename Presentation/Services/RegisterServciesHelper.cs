@@ -14,6 +14,7 @@ using Microsoft.OpenApi.Models;
 using Microsoft.SemanticKernel;
 using Presentation.Services;
 using System.Text;
+using X.Paymob.CashIn;
 
 namespace Presentation.Services
 {
@@ -53,6 +54,9 @@ namespace Presentation.Services
 
             builder.Services.AddScoped<IProfileService, ProfileService>();
             builder.Services.AddScoped<IFileService, FileService>();
+            builder.Services.AddScoped<IProfileRepository, ProfileRepository>();
+
+            builder.Services.AddSignalR();
 
 
             // DbContext
@@ -98,6 +102,17 @@ namespace Presentation.Services
                 cfg.AddProfile<MappingProfile>();
             });
 
+
+
+            builder.Services.AddPaymobCashIn(c =>
+            {
+                c.ApiKey = builder.Configuration["Paymob:ApiKey"];
+                c.Hmac = builder.Configuration["Paymob:Hmac"];
+            });
+
+
+
+
             // Repositories & Services
             builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
             builder.Services.AddScoped(typeof(IViewRepository<>), typeof(ViewRepository<>));
@@ -112,15 +127,33 @@ namespace Presentation.Services
             builder.Services.AddScoped<ISubsciptionService, SubcriptionService>();
             builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddScoped<IOtpRepository, OtpRepository>();
+            builder.Services.AddScoped<IUserHistoryService, UserHistoryService>();
 
 
-            builder.Services.AddHttpClient<PayPalGateway>();
-            builder.Services.AddHttpClient<PaymobGateway>();
+            //builder.Services.AddHttpClient<PayPalGateway>();
+            //builder.Services.AddScoped<IPaymentGateway, PayPalGateway>();
+            builder.Services.AddScoped<IPaymentGateway, PaymobGetway>();
+            builder.Services.AddHttpClient<PaymobGetway>();
             builder.Services.AddScoped<PaymentFactory>();
 
-            builder.Services.AddSingleton<TokenService>();
+            builder.Services.AddScoped<TokenService>();
+            builder.Services.AddScoped<NotificationService>();
+
             builder.Services.AddScoped<IRefreshTokens, RefreshTokenService>();
             builder.Services.AddScoped<IRefreshTokenRetriver, RefreshTokenRetriverService>();
+            builder.Services.AddScoped<IMovieService, MovieService>();
+            builder.Services.AddScoped<ITvShowService, TvShowService>();
+            builder.Services.AddScoped<IAdminUserService, AdminUserService>();
+            builder.Services.AddScoped<ITmdbService, TmdbService>();
+            // Infrastructure / Application registrations
+            builder.Services.AddScoped<ITransferRequestRepository,TransferRequestRepository>();
+            builder.Services.AddScoped<ITransferService, TransferService>();
+
+            // Ensure EmailService, IUserService, and IGenericRepository<UserProfile> are registered (they already are).
+
+
+
+
 
             builder.Services.AddSingleton<EmailService>();
 
@@ -157,6 +190,8 @@ namespace Presentation.Services
             });
 
             builder.Services.AddScoped<IWatchlistService, WatchlistService>();
+            builder.Services.AddScoped<ICastMemberRepository, CastMemberRepository>();
+            builder.Services.AddScoped<ICastMemberService, CastMemberService>();
         }
     }
 }

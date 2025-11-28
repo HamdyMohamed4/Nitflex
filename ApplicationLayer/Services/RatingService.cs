@@ -15,7 +15,7 @@ namespace ApplicationLayer.Services
     public class RatingService : BaseService<UserRating,RatingDto>, IRatingService
     {
         private readonly IGenericRepository<UserRating> _repo;
-        public RatingService(IGenericRepository<UserRating> repo, IMapper mapper, IUserService userService) : base(repo, mapper, userService)
+        public RatingService(IGenericRepository<UserRating> repo, IMapper mapper, IUserService userService) : base(repo, mapper)
         {
             _repo = repo;
         }

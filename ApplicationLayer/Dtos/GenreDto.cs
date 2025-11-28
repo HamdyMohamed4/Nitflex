@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 
 namespace ApplicationLayer.Dtos
 {
-    public class GenreDto:BaseDto
+    public class GenreDto : BaseDto
     {
-        public string Name { get; set; } = null!;
+        public string Name { get; set; } = string.Empty;
     }
 }

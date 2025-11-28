@@ -1,8 +1,10 @@
-using ApplicationLayer.Contract;
+﻿using ApplicationLayer.Contract;
 using ApplicationLayer.Dtos;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Presentation.ExtensionMethods;
 using Presentation.Models;
+using System.Security.Claims;
 
 namespace Presentation.Controllers;
 
@@ -19,108 +21,97 @@ public class ProfileController : ControllerBase
         _fileService = fileService;
     }
 
-    [HttpGet]
-    [Route("AllProfiles/{userId}")]
-    public async Task<ActionResult<ApiResponse<List<UserProfileDto>>>> GetAllProfilesByUserIdAsync(Guid userId)
+    private Guid? GetUserIdFromClaims()
     {
-        var response = await _profileService.GetAllProfilesByUserIdAsync(userId);
-
-        if (!response.Status)
-        {
-            if (response.Message.Contains("Not Found"))
-            {
-                return NotFound(ApiResponse<List<UserProfileDto>>.FailResponse(response.Message));
-            }
-
-            else
-            {
-                return BadRequest(ApiResponse<List<UserProfileDto>>.FailResponse("Something went wrong"));
-            }
-        }
-
-        return Ok(ApiResponse<IEnumerable<UserProfileDto>>.SuccessResponse(response.Response, response.Message));
+            var id = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (Guid.TryParse(id, out var g)) return g;
+            return null;
     }
 
     [HttpGet]
-    [Route("GetProfileByUserId/{userId}/{profileId}")]
-    public async Task<ActionResult<ApiResponse<UserProfileDto>>> GetProfileByUserIdAsync(Guid userId, Guid profileId)
+    [Route("AllProfiles")]
+    [Authorize(Roles = "User")]
+    public async Task<ActionResult<ApiResponse<List<UserProfileDto>>>> GetAllProfilesByUserIdAsync()
     {
-        var response = await _profileService.GetProfileByUserIdAsync(userId, profileId);
+        var userId = GetUserIdFromClaims();
+        if (userId == null)
+            return Unauthorized(ApiResponse<List<UserProfileDto>>.FailResponse("User not authenticated."));
 
-        if (!response.Status)
+        try
         {
-            if (response.Message.Contains("Not Found"))
-            {
-                return NotFound(ApiResponse<UserProfileDto>.FailResponse(response.Message));
-            }
-
-            else
-            {
-                return BadRequest(ApiResponse<UserProfileDto>.FailResponse("Soemthing went wrong"));
-            }
+            var profiles = await _profileService.GetAllProfilesAsync(userId.Value);
+            return Ok(ApiResponse<List<UserProfileDto>>.SuccessResponse(profiles, "Profiles retrieved"));
         }
-
-        return Ok(ApiResponse<UserProfileDto>.SuccessResponse(response.userProfileDto!, response.Message));
+        catch (Exception ex)
+        {
+            return BadRequest(ApiResponse<List<UserProfileDto>>.FailResponse(ex.Message));
+        }
     }
 
     [HttpGet]
-    [Route("GetViewHistory/{userId}/{profileId}")]
-    public async Task<ActionResult<ApiResponse<IEnumerable<UserHistoryDto>>>> GetViewingHistory(Guid userId, Guid profileId)
+    [Authorize(Roles = "User")]
+    [Route("GetProfile/{profileId}")]
+    public async Task<ActionResult<ApiResponse<UserProfileDto>>> GetProfileByProfileAsync(Guid profileId)
     {
-        var response = await _profileService.GetViewingHistoryAsync(userId, profileId);
+        var userId = GetUserIdFromClaims();
+        if (userId == null)
+            return Unauthorized(ApiResponse<UserProfileDto>.FailResponse("User not authenticated."));
 
-        if (!response.Status)
-        {
-            if (response.Message.Contains("Not Found"))
-                return NotFound(ApiResponse<IEnumerable<UserHistoryDto>>.FailResponse(response.Message));
+        var profile = await _profileService.GetProfileByIdAsync(profileId, userId.Value);
+        if (profile == null)
+            return NotFound(ApiResponse<UserProfileDto>.FailResponse("Profile not found."));
 
-            return BadRequest(ApiResponse<IEnumerable<UserHistoryDto>>.FailResponse(response.Message));
-        }
+        return Ok(ApiResponse<UserProfileDto>.SuccessResponse(profile, "Profile retrieved"));
+    }
 
-        else
-        {
-            return Ok(ApiResponse<IEnumerable<UserHistoryDto>>.SuccessResponse(response.userHistoryListDto, response.Message));
-        }
+    [HttpGet]
+    [Route("GetViewHistory/{profileId}")]
+    [Authorize(Roles = "User")]
+    public Task<ActionResult<ApiResponse<IEnumerable<object>>>> GetViewingHistory(Guid profileId)
+    {
+        // This method previously relied on a profile service method that isn't part of the simplified IProfileService.
+        // Return 501 Not Implemented so callers know to use the dedicated history endpoint.
+        return Task.FromResult<ActionResult<ApiResponse<IEnumerable<object>>>>(StatusCode(501, ApiResponse<IEnumerable<object>>.FailResponse("Viewing history endpoint not implemented here. Use /api/UserHistory endpoints.")));
     }
 
     [HttpPost]
-    [Route("CreateProfileByUserId/{userId}")]
-    public async Task<ActionResult<ApiResponse<CreateProfileDto>>> CreateProfileForUserWithIdAsync(Guid userId, [FromBody] CreateProfileDto createProfileDto)
+    [Route("CreateProfile")]
+    [Authorize(Roles = "User")]
+    public async Task<ActionResult<ApiResponse<CreateProfileDto>>> CreateProfileForUserAsync([FromBody] CreateProfileDto createProfileDto)
     {
-        var response = await _profileService.CreateProfileAsync(userId, createProfileDto);
+        var userId = GetUserIdFromClaims();
+        if (userId == null)
+            return Unauthorized(ApiResponse<CreateProfileDto>.FailResponse("User not authenticated."));
 
-        if (!response.Status)
+        try
         {
-            if (response.Message.Contains("Not Found"))
-                return NotFound(ApiResponse<CreateProfileDto>.FailResponse(response.Message));
-
-            return BadRequest(ApiResponse<CreateProfileDto>.FailResponse(response.Message));
+            var created = await _profileService.CreateProfileAsync(createProfileDto, userId.Value);
+            return Ok(ApiResponse<CreateProfileDto>.SuccessResponse(createProfileDto, "Profile created"));
         }
-
-        return Ok(ApiResponse<CreateProfileDto>.SuccessResponse(response.userProfileDto, response.Message));
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<CreateProfileDto>.FailResponse(ex.Message));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ApiResponse<CreateProfileDto>.FailResponse("Internal server error", new List<string> { ex.Message }));
+        }
     }
 
-    // [HttpPost]
-    // [Route("Update/{}")]
-
     [HttpDelete]
-    [Route("Delete/{userId}/{profileId}")]
-    public async Task<ActionResult<ApiResponse<bool>>> DeleteProfile(Guid userId, Guid profileId)
+    [Route("Delete/{profileId}")]
+    [Authorize(Roles = "User")]
+    public async Task<ActionResult<ApiResponse<bool>>> DeleteProfile(Guid profileId)
     {
-        var response = await _profileService.DeleteProfileByUserId(userId, profileId);
+        var userId = GetUserIdFromClaims();
+        if (userId == null)
+            return Unauthorized(ApiResponse<bool>.FailResponse("User not authenticated."));
 
-        if (!response.Status)
-        {
-            if (response.Message.Contains("Not Found"))
-                return NotFound(ApiResponse<bool>.FailResponse(response.Message));
+        var deleted = await _profileService.DeleteProfileAsync(profileId, userId.Value);
+        if (!deleted)
+            return NotFound(ApiResponse<bool>.FailResponse("Profile not found or not owned by user."));
 
-            return BadRequest(ApiResponse<bool>.FailResponse(response.Message));
-        }
-
-        else
-        {
-            return Ok(ApiResponse<bool>.SuccessResponse(true, response.Message));
-        }
+        return Ok(ApiResponse<bool>.SuccessResponse(true, "Profile deleted"));
     }
 
     [HttpPost]

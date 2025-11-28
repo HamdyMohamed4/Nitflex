@@ -16,12 +16,10 @@ namespace ApplicationLayer.Services
         protected readonly IMapper _mapper;
         protected readonly IUserService _userService;
         protected readonly IUnitOfWork _UnitOfWork;
-        public BaseService(IGenericRepository<T> repo, IMapper mapper,
-            IUserService userService)
+        public BaseService(IGenericRepository<T> repo, IMapper mapper)
         {
             _repo = repo;
             _mapper = mapper;
-            _userService = userService;
         }
         public BaseService(IUnitOfWork unitofwork, IMapper mapper,
             IUserService userService)
