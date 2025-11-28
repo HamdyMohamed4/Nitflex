@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace ApplicationLayer.Dtos
 {
-    public class GenreMoviesResponseDto
+    public class GenreMoviesResponseDto :BaseDto
     {
         public Guid GenreId { get; set; }
         public string GenreName { get; set; } = string.Empty;
@@ -19,4 +19,7 @@ namespace ApplicationLayer.Dtos
         // Convenience computed property
         public bool HasMore => Page * PageSize < TotalCount;
     }
+
+
+
 }

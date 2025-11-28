@@ -52,6 +52,7 @@ namespace Presentation.Services
 
 
             builder.Services.AddScoped<IProfileService, ProfileService>();
+            builder.Services.AddScoped<IProfileRepository, ProfileRepository>();
 
             builder.Services.AddSignalR();
 
@@ -160,6 +161,8 @@ namespace Presentation.Services
 
 
 
+            builder.Services.AddScoped<ICastMemberRepository, CastMemberRepository>();
+            builder.Services.AddScoped<ICastMemberService, CastMemberService>();
         }
     }
 }

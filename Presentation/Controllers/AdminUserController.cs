@@ -145,44 +145,33 @@ namespace Presentation.Controllers
             }
         }
 
-        //// GET: api/AdminUser/blocked
-        //[HttpGet("blocked")]
-        //public async Task<ActionResult<ApiResponse<List<UserDto>>>> GetBlockedUsers()
-        //{
-        //    try
-        //    {
-        //        var users = await _adminUserService.GetAllUsersBlockedAsync();
-
-        //        if (users == null || !users.Any())
-        //            return NotFound(ApiResponse<List<UserDto>>.FailResponse("No blocked users found."));
-
-        //        return Ok(ApiResponse<List<UserDto>>.SuccessResponse(users.ToList(), "Blocked users retrieved successfully."));
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return BadRequest(ApiResponse<List<UserDto>>.FailResponse("Failed to retrieve blocked users.", new List<string> { ex.Message }));
-        //    }
-        //}
 
 
+        // unblock a user 
+        [HttpPatch("{id:guid}/unblock")]
+        public async Task<ActionResult<ApiResponse<bool>>> Unblock(Guid id)
+        {
+            try
+            {
+                var result = await _adminUserService.UnblockAsync(id);
+                if (!result)
+                    return NotFound(ApiResponse<bool>.FailResponse("User not found."));
+                return Ok(ApiResponse<bool>.SuccessResponse(result, "User unblocked successfully."));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<bool>.FailResponse("Failed to unblock user.", new List<string> { ex.Message }));
+            }
+        }
 
-        //// GET: api/AdminTvShow/{tvShowId}/episodes/all
-        //[HttpGet("{tvShowId:guid}/episodes/all")]
-        //public async Task<ActionResult<ApiResponse<List<EpisodeDto>>>> GetAllEpisodesByTvShow(Guid tvShowId)
-        //{
-        //    try
-        //    {
-        //        var episodes = await _tvShowService.GetAllEpisodesByTvShowIdAsync(tvShowId);
 
-        //        if (episodes == null || !episodes.Any())
-        //            return NotFound(ApiResponse<List<EpisodeDto>>.FailResponse("No episodes found."));
 
-        //        return Ok(ApiResponse<List<EpisodeDto>>.SuccessResponse(episodes, "Episodes retrieved successfully."));
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return BadRequest(ApiResponse<List<EpisodeDto>>.FailResponse("Failed to retrieve episodes.", new List<string> { ex.Message }));
-        //    }
-        //}
+        //impelement UnblockAsync method here
+
+
+
+
+
+
     }
 }

@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 
 namespace ApplicationLayer.Services
@@ -33,6 +34,56 @@ namespace ApplicationLayer.Services
             _genreRepo = _unitOfWork.Repository<Genre>();
             _mapper = mapper;
             _userService = userService;
+        }
+
+        public async Task<ServiceResponse<TvShowDto>?> GetByIdAsync(Guid id)
+        {
+            if (id == Guid.Empty) return null;
+
+            // Use repository GetListWithInclude or GetPagedListAsync pattern; here we will query using the repository's GetListWithInclude if exists
+            // We'll fall back to using the unit of work's repository and building EF query via GetListWithInclude func
+
+            var shows = await _tvShowRepo.GetListWithInclude(
+                filter: s => s.Id == id && s.CurrentState == 1,
+                include: query => query
+                    .Include(s => s.TVShowGenres)
+                        .ThenInclude(tg => tg.Genre)
+                    .Include(s => s.Seasons)
+                        .ThenInclude(se => se.Episodes)
+                    .Include(s => s.Castings)
+                        .ThenInclude(c => c.CastMember)
+            );
+
+            var show = shows.FirstOrDefault();
+            if (show == null) return null;
+
+            // Filter child collections by CurrentState == 1 and order accordingly
+            show.Castings = show.Castings?.Where(c => c.CastMember != null && c.CastMember.CurrentState == 1 && c.CurrentState == 1)
+                .OrderBy(c => c.Id)
+                .Take(10)
+                .ToList() ?? new List<TvShowCast>();
+
+            show.Seasons = show.Seasons?.Where(se => se.CurrentState == 1)
+                .OrderBy(se => se.SeasonNumber)
+                .ToList() ?? new List<Season>();
+
+            foreach (var season in show.Seasons)
+            {
+                season.Episodes = season.Episodes?.Where(ep => ep.CurrentState == 1)
+                    .OrderBy(ep => ep.EpisodeNumber)
+                    .ToList() ?? new List<Episode>();
+            }
+
+            var dto = _mapper.Map<TvShowDto>(show);
+
+            var response = new ServiceResponse<TvShowDto>
+            {
+                Success = true,
+                Message = "Show retrieved successfully.",
+                Data = dto
+            };
+
+            return response;
         }
 
         // ===========================
@@ -74,43 +125,9 @@ namespace ApplicationLayer.Services
         }
 
         // Get TV show by id
-        public async Task<TvShowDetailsDto?> GetByIdAsync(Guid id)
-        {
-            var tvShow = await _tvShowRepo.GetById(id);
-            if (tvShow == null) return null;
 
-            // load seasons and their episodes
-            var seasons = await _seasonRepo.GetList(s => s.TvShowId == id && s.CurrentState == 1);
 
-            if (!seasons.Any())
-            {
-                var emptyDto = _mapper.Map<TvShowDetailsDto>(tvShow);
-                emptyDto.Seasons = new List<SeasonDto>();
-                return emptyDto;
-            }
 
-            await Task.WhenAll(seasons.Select(async season =>
-            {
-                var episodes = await _episodeRepo.GetList(
-                    e => e.SeasonId == season.Id && e.CurrentState == 1
-                );
-                
-                season.Episodes = episodes
-                    .OrderBy(e => e.EpisodeNumber)
-                    .ToList();
-            }));
-
-            
-            var orderedSeasons = seasons
-                .OrderBy(s => s.SeasonNumber)
-                .ToList();
-
-            var dto = _mapper.Map<TvShowDetailsDto>(tvShow);
-            dto.Seasons = _mapper.Map<List<SeasonDto>>(orderedSeasons);
-
-            return dto;
-
-        }
 
         // Create TV show
         public async Task<TvShowDto> CreateAsync(CreateTvShowDto dto)
@@ -161,66 +178,94 @@ namespace ApplicationLayer.Services
         // ===========================
         public async Task<GenreShowsResponseDto> GetShowsByGenreAsync(Guid genreId, int page = 1, int pageSize = 20)
         {
+            // جلب بيانات الـ Genre نفسه
             var genre = await _genreRepo.GetById(genreId);
 
-            var paged = await _tvShowRepo.GetPagedList<TVShow>(
-                pageNumber: page,
-                pageSize: pageSize,
-                filter: s => s.CurrentState == 1 && s.TVShowGenres.Any(g => g.GenreId == genreId),
-                selector: null,
-                orderBy: s => s.CreatedDate,
-                isDescending: true,
-                s => s.Seasons,
-                s => s.TVShowGenres,
-                s => s.Castings
-            );
+            if (genre == null)
+                throw new KeyNotFoundException($"Genre with Id {genreId} not found.");
 
-            var shows = _mapper.Map<List<TvShowDto>>(paged.Items);
+            var paged = await _tvShowRepo.GetPagedListAsync(
+         pageNumber: page,
+         pageSize: pageSize,
+         filter: s => s.CurrentState == 1 && s.TVShowGenres.Any(g => g.GenreId == genreId),
+         orderBy: s => s.CreatedDate,
+         isDescending: true,
+         include: query => query
+             .Include(s => s.Seasons)
+                 .ThenInclude(se => se.Episodes)
+             .Include(s => s.Castings)
+                 .ThenInclude(c => c.CastMember)
+             .Include(s => s.TVShowGenres)
+                 .ThenInclude(g => g.Genre)
+     );
 
-            return new GenreShowsResponseDto
+
+            // عمل Mapping للـ DTO
+            var showsDto = _mapper.Map<List<TvShowDto>>(paged.Items);
+
+            // تحديد عدد الـ Casts اللي هيرجع لكل Show (لو حابب)
+            foreach (var show in showsDto)
+            {
+                if (show.Cast != null)
+                    show.Cast = show.Cast.Take(10).ToList(); // مثلا تاخد أول 10 Casts
+            }
+
+            // تجهيز Response DTO
+            var response = new GenreShowsResponseDto
             {
                 GenreId = genreId,
-                GenreName = genre?.Name ?? string.Empty,
-                MediaData = shows,
+                GenreName = genre.Name,
+                MediaData = showsDto,
                 TotalCount = paged.TotalCount,
                 Page = page,
                 PageSize = pageSize
             };
-        }
 
-        public async Task<IEnumerable<TvShowDto>> GetFeaturedAsync(int limit = 10)
-        {
-            var list = await _tvShowRepo.GetList(s => s.IsFeatured == true);
-            var ordered = list.OrderByDescending(s => s.CreatedDate).Take(limit).ToList();
-            return _mapper.Map<IEnumerable<TvShowDto>>(ordered);
+            return response;
         }
 
 
-        //public async Task<IEnumerable<TvShowDto>> GetAllShowsAsync()
-        //{
-        //    var list = await _tvShowRepo.GetAll();
-        //    var ordered = list.OrderByDescending(s => s.CreatedDate).ToList();
-        //    return _mapper.Map<IEnumerable<TvShowDto>>(ordered);
-        //}
 
 
 
-        public async Task<IEnumerable<TvShowDto>> GetAllShowsAsync()
+        public async Task<IEnumerable<TvShowDetailsDto>> GetFeaturedAsync(int limit = 10)
         {
-            var shows = await _unitOfWork.Repository<TVShow>()
+            // 1️⃣ جلب البيانات مع Include لكل العلاقات المطلوبة
+            var tvShows = await _unitOfWork.Repository<TVShow>()
                 .GetListWithInclude(
-                    filter: x => true,
+                    filter: m => m.CurrentState == 1 && m.IsFeatured,
                     include: query => query
                         .Include(x => x.TVShowGenres)
                             .ThenInclude(mg => mg.Genre)
-                        .Include(x => x.Castings)
-                            .ThenInclude(c => c.CastMember)
-                        .Include(x => x.Seasons)
-                            .ThenInclude(s => s.Episodes)
                 );
 
-            return _mapper.Map<IEnumerable<TvShowDto>>(shows);
+            // 2️⃣ ترتيب وأخذ أول عدد من البيانات
+            var ordered = tvShows
+                .OrderByDescending(x => x.CreatedDate)
+                .Take(limit)
+                .ToList();
+
+            // 3️⃣ تحويل البيانات النهائية باستخدام الـ AutoMapper فقط
+            return _mapper.Map<IEnumerable<TvShowDetailsDto>>(ordered);
         }
+
+
+        public async Task<IEnumerable<TvShowDetailsDto>> GetAllTvShowsAsync()
+        {
+            // Load TV Shows with Related Entities فقط
+            var shows = await _unitOfWork.Repository<TVShow>()
+                .GetListWithInclude(
+                    filter: _ => true,
+                    include: query => query
+                        .Include(x => x.TVShowGenres)
+                            .ThenInclude(g => g.Genre)
+                );
+
+            // AutoMapper will handle the transformation
+            return _mapper.Map<IEnumerable<TvShowDetailsDto>>(shows);
+        }
+
+
 
 
 

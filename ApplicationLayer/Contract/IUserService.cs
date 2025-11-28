@@ -8,6 +8,10 @@ namespace ApplicationLayer.Contract
 {
     public interface IUserService
     {
+        Task<ApplicationUser?> GetUserByIdWithProfilesAsync(Guid userId);
+
+
+        Task<ApplicationUser?> GetUserByIdWithProfilesAsync();
         // New: transfer profile data (sourceUserId must match caller)
         Task<(bool Success, string Message)> TransferProfileAsync(Guid sourceUserId, Guid targetUserId);
 
@@ -29,7 +33,6 @@ namespace ApplicationLayer.Contract
         Task<UserResultDto> ConfirmEmailAsync(Guid userId, string token);
         Task<UserResultDto> SetPasswordAsync(Guid userId, string password);
         Task<ApplicationUser?> GetUserByIdentityAsync(string userId);
-        Task<ApplicationUser?> GetUserByIdWithProfilesAsync(string userId);
         Task<ApplicationUser?> GetUserByIdWithProfilesWithHistoriesAsync(string userId);
         Task<LoginResponseDto> LoginWithOtpAsync(string email, string code);
         Task<IList<string>> GetUserRolesAsync(string userId);

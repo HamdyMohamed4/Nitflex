@@ -24,7 +24,6 @@ namespace ApplicationLayer.Dtos
         [Required]
         public string Role { get; set; } = "User";
 
-        public bool IsBlocked { get; set; } = false;
     }
 
 }

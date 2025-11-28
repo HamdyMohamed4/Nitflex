@@ -447,6 +447,8 @@ namespace Presentation.Services
             return Guid.Parse(userIdClaim);
         }
 
+
+
         public async Task<ApplicationUser?> GetUserByIdentityAsync(string userId) => await _userManager.FindByIdAsync(userId);
 
         // --- Magic Link Implementations ---
@@ -495,43 +497,6 @@ namespace Presentation.Services
             return new UserResultDto { Success = true };
         }
 
-        //public async Task<LoginResponseDto> LoginWithOtpAsync(string email, string code)
-        //{
-        //    // تحقق من الكود
-        //    var otpValid = await _otpRepo.GetValidOtpAsync(email, code);
-        //    if (otpValid == null || otpValid.ExpirationDate < DateTime.UtcNow)
-        //        return null!; // أو throw exception أو ترجع null
-
-        //    // علامة استخدام الكود
-        //    await _otpRepo.MarkOtpUsedAsync(email, code);
-
-        //    // تحقق من وجود المستخدم
-        //    var user = await _userManager.FindByEmailAsync(email);
-        //    if (user == null)
-        //    {
-        //        user = new ApplicationUser
-        //        {
-        //            UserName = email,
-        //            Email = email,
-        //            Name = email.Split('@')[0],
-        //            EmailConfirmed = true
-        //        };
-        //        var result = await _userManager.CreateAsync(user);
-        //        if (!result.Succeeded) return null!;
-        //        await _userManager.AddToRoleAsync(user, "User");
-        //    }
-
-        //    // هنا تحول الـ UserResultDto إلى LoginResponseDto
-        //    var loginResponse = new LoginResponseDto
-        //    {
-        //        AccessToken = "DEMO_ACCESS_TOKEN",   // هنا تحط منطق إنشاء JWT فعلي
-        //        RefreshToken = "DEMO_REFRESH_TOKEN",
-        //        UserId = user.Id.ToString()
-        //    };
-
-        //    return loginResponse;
-        //}
-
         public async Task<LoginResponseDto?> LoginWithOtpAsync(string email, string otp)
         {
             var otpRecord = await _otpRepo.GetValidOtpAsync(email, otp);
@@ -561,9 +526,9 @@ namespace Presentation.Services
             return await _userManager.GetRolesAsync(user);
         }
 
-        public async Task<ApplicationUser?> GetUserByIdWithProfilesAsync(string userId)
+        public async Task<ApplicationUser?> GetUserByIdWithProfilesAsync()
         {
-            return await _userManager.Users.Include(x => x.Profiles).AsNoTracking().FirstOrDefaultAsync(x => x.Id.ToString() == userId);
+            return await _userManager.Users.Include(x => x.Profiles).AsNoTracking().FirstOrDefaultAsync();
         }
 
         public async Task<ApplicationUser?> GetUserByIdWithProfilesWithHistoriesAsync(string userId)
@@ -595,16 +560,14 @@ namespace Presentation.Services
 
 
 
-        //public async Task<(bool Success, string? Id)> CreateUserWithoutPasswordAndGetTokenAsync(string email)
-        //{
-        //    var user = new ApplicationUser { Email = email, UserName = email };
-        //    var result = await _userManager.CreateAsync(user);
-        //    if (!result.Succeeded) return (false, null);
+        public async Task<ApplicationUser?> GetUserByIdWithProfilesAsync(Guid userId)
+        {
+            return await _userManager.Users
+                .Include(u => u.Profiles)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+        }
 
-        //    // Generate token (مثلاً email confirmation token)
-        //    var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-        //    return (true, token);
-        //}
+
 
 
     }

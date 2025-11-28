@@ -22,12 +22,22 @@ public class AdminUserService : IAdminUserService
     // ===========================
     public async Task<IEnumerable<UserDto>> GetAllAsync()
     {
-        var users = _userManager.Users
-                 .Where(u => u.CurrentState == 1)
-                 .ToList();
+        var users = _userManager.Users.ToList();
 
-        return _mapper.Map<IEnumerable<UserDto>>(users);
+        var result = new List<ApplicationUser>();
+
+        foreach (var user in users)
+        {
+            var roles = await _userManager.GetRolesAsync(user); // جلب أدوار المستخدم
+            if (!roles.Contains("Admin")) // استبعاد الـ Admin
+            {
+                result.Add(user);
+            }
+        }
+
+        return _mapper.Map<IEnumerable<UserDto>>(result);
     }
+
 
 
     // ===========================
@@ -144,6 +154,19 @@ public class AdminUserService : IAdminUserService
                                 .ToList();
 
         return _mapper.Map<IEnumerable<UserDto>>(users);
+    }
+
+
+
+    //impelement UnblockAsync method here
+    public async Task<bool> UnblockAsync(Guid userId)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user == null || user.CurrentState == 0) return false;
+        user.IsBlocked = false;
+        user.BlockReason = null;
+        var result = await _userManager.UpdateAsync(user);
+        return result.Succeeded;
     }
 
 }

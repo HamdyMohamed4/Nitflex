@@ -28,44 +28,51 @@ namespace Presentation.Controllers
         // Movie CRUD
         // ===========================
 
-        // GET: api/AdminMovie
-        [HttpGet]
-        public async Task<ActionResult<ApiResponse<List<MovieDto>>>> GetAll()
-        {
-            try
-            {
-                var movies = await _movieService.GetAllAsync();
+        //// GET: api/AdminMovie
+        //[HttpGet]
+        //public async Task<ActionResult<ApiResponse<List<MovieDto>>>> GetAll()
+        //{
+        //    try
+        //    {
+        //        var movies = await _movieService.GetAllAsync();
 
-                if (movies == null || !movies.Any())
-                   return NotFound(ApiResponse<List<MovieDto>>.FailResponse("No movies found."));
+        //        if (movies == null || !movies.Any())
+        //           return NotFound(ApiResponse<List<MovieDto>>.FailResponse("No movies found."));
 
-                return Ok(ApiResponse<List<MovieDto>>.SuccessResponse(movies.ToList(), "Movies retrieved successfully."));
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ApiResponse<List<MovieDto>>.FailResponse("Failed to retrieve movies.", new List<string> { ex.Message }));
-            }
-        }
+        //        return Ok(ApiResponse<List<MovieDto>>.SuccessResponse(movies.ToList(), "Movies retrieved successfully."));
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return BadRequest(ApiResponse<List<MovieDto>>.FailResponse("Failed to retrieve movies.", new List<string> { ex.Message }));
+        //    }
+        //}
 
 
         // GET: api/AdminMovie/{id}
-        [HttpGet("{id:guid}")]
-        public async Task<ActionResult<ApiResponse<MovieDto>>> GetById(Guid id)
+
+
+
+        // GET: api/Movie/featured?limit=10
+
+        [HttpGet("AllMovies")]
+        public async Task<ActionResult<ApiResponse<List<MovieDto>>>> GetAllMovies()
         {
             try
             {
-                var movie = await _movieService.GetByIdAsync(id);
+                var movies = await _movieService.GetAllMoviesAsync();
+                if (movies == null || !movies.Any())
+                    return NotFound(ApiResponse<List<MovieDto>>.FailResponse("No featured movies found."));
 
-                if (movie == null)
-                    return NotFound(ApiResponse<MovieDto>.FailResponse("Movie not found."));
-
-                return Ok(ApiResponse<MovieDto>.SuccessResponse(movie, "Movie retrieved successfully."));
+                return Ok(ApiResponse<List<MovieDto>>.SuccessResponse(movies.ToList(), "Featured movies retrieved."));
             }
             catch (Exception ex)
             {
-                return BadRequest(ApiResponse<MovieDto>.FailResponse("Failed to retrieve movie.", new List<string> { ex.Message }));
+                return BadRequest(ApiResponse<List<MovieDto>>.FailResponse("Failed to retrieve featured movies", new List<string> { ex.Message }));
             }
+
+
         }
+
 
 
         // POST: api/AdminMovie
@@ -90,6 +97,10 @@ namespace Presentation.Controllers
         {
             try
             {
+
+                var oldData = await _movieService.GetMoviesByIdAsync(id);
+                if (oldData == null)
+                    return NotFound(ApiResponse<bool>.FailResponse("Movie not found."));
                 var update = await _movieService.UpdateAsync(id, dto);
 
                 if (!update)
@@ -102,6 +113,7 @@ namespace Presentation.Controllers
                 return BadRequest(ApiResponse<bool>.FailResponse("Failed to update movie.", new List<string> { ex.Message }));
             }
         }
+
 
         // DELETE: api/AdminMovie/{id}
         [HttpDelete("{id:guid}")]

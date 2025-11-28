@@ -18,4 +18,7 @@ namespace Domains
         public ICollection<TVShowGenre> TVShowGenres { get; set; } = new List<TVShowGenre>();
     }
 
+
+
+
 }

@@ -23,11 +23,16 @@ namespace Presentation.Controllers
             return Ok(result);
         }
 
-        [HttpPost("callback")]
-        public async Task<IActionResult> Callback([FromBody] object payload)
+        [HttpGet("callback")]
+        public async Task<IActionResult> HandleCallback([FromQuery] Dictionary<string, string> queryParams)
         {
-            bool result = await _payment.ValidatePaymentCallback(payload.ToString());
-            return Ok(result);
+
+            var success = await _payment.ValidatePaymentCallback(System.Text.Json.JsonSerializer.Serialize(queryParams));
+
+            if (!success)
+                return Redirect("http://localhost:4200/error");
+
+            return Redirect("http://localhost:4200/browse");
         }
 
 

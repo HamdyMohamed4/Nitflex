@@ -17,4 +17,7 @@ namespace Domains
         public string? CharacterName { get; set; } = string.Empty;
     }
 
+
+
+
 }

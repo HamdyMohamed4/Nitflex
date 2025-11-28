@@ -23,6 +23,9 @@ namespace Domains
 
         [MaxLength(500)]
         public string? PosterUrl { get; set; } = string.Empty;
+
+        [MaxLength(500)]
+        public string? TrailerUrl { get; set; } = string.Empty;
         public bool IsFeatured { get; set; } = false;
         public MediaType? Type { get; set; } = MediaType.Movie;
 

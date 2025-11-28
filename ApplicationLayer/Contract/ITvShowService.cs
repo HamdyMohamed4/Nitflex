@@ -13,18 +13,19 @@ namespace ApplicationLayer.Contract
     {
 
 
-        Task<IEnumerable<TvShowDto>> GetAllShowsAsync();
+        Task<IEnumerable<TvShowDetailsDto>> GetAllTvShowsAsync();
+        //Task<IEnumerable<TvShowDto>> GetAllShowsAsync();
         Task<GenreShowsResponseDto?> GetShowsByGenreNameAsync(string genreName, int page = 1, int pageSize = 20);
         //// TvShow
         Task<List<TvShowDto>> GetAllAsync(Guid? genreId = null, string? search = null);
-        Task<TvShowDetailsDto?> GetByIdAsync(Guid id);
+        Task<ServiceResponse<TvShowDto>?> GetByIdAsync(Guid id);
         Task<TvShowDto> CreateAsync(CreateTvShowDto dto);
         Task<bool> UpdateAsync(Guid id, UpdateTvShowDto dto);
         Task<bool> DeleteAsync(Guid id);
 
         // Genre-based listing (paged) and helpers
         Task<GenreShowsResponseDto> GetShowsByGenreAsync(Guid genreId, int page = 1, int pageSize = 20);
-        Task<IEnumerable<TvShowDto>> GetFeaturedAsync(int limit = 10);
+        Task<IEnumerable<TvShowDetailsDto>> GetFeaturedAsync(int limit = 10);
         Task<IEnumerable<TvShowDto>> GetByGenreIdsAsync(IEnumerable<Guid> genreIds, int limit = 50);
 
         // Streaming / playback locator (may validate profile/subscription)
